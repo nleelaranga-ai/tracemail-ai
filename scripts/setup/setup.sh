@@ -32,7 +32,7 @@ echo "[+] Installing shared layer dependencies..."
 pip install -r shared/requirements.txt --quiet
 
 echo "[+] Installing threat intelligence dependencies..."
-pip install -r threat-intelligence/requirements.txt --quiet
+pip install -r threat_intelligence/requirements.txt --quiet
 
 if [ ! -f ".env" ] && [ -f ".env.example" ]; then
     cp .env.example .env

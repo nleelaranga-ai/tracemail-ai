@@ -57,7 +57,7 @@
 | 1 | **Frontend Team** | Dashboard & UI Lead | `frontend/` | Next.js 15 (App Router), Tailwind CSS, shadcn/ui |
 | 2 | **Backend Team** | Hub Architecture & Database | `backend/` | FastAPI, PostgreSQL 16, Prisma/SQLAlchemy |
 | 3 | **AI Engine Team** | Phishing Detection & LLM | `ai-engine/` | Hugging Face Transformers, Groq API (LLaMA 3) |
-| 4 | **Threat Intelligence Team** | Cybersecurity & Integration | `threat-intelligence/`, `shared/`, `scripts/` | Python 3.12, VirusTotal, AbuseIPDB, dnspython, whois |
+| 4 | **Threat Intelligence Team** | Cybersecurity & Integration | `threat_intelligence/`, `shared/`, `scripts/` | Python 3.12, VirusTotal, AbuseIPDB, dnspython, whois |
 | 5 | **Maps & Attack Graph Team** | Spatial & Graph Visualization | `maps-engine/` | Leaflet GeoJSON, Recharts, Neo4j Graph |
 | 6 | **Reports & Forensics Team** | Digital Forensics Reports | `reports/`, `docs/` | WeasyPrint / ReportLab PDF generator |
 

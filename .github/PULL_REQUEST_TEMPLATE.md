@@ -4,7 +4,7 @@
 - [ ] `frontend/` (Frontend Team)
 - [ ] `backend/` (Backend Team)
 - [ ] `ai-engine/` (AI Engine Team)
-- [ ] `threat-intelligence/` (Threat Intelligence Team)
+- [ ] `threat_intelligence/` (Threat Intelligence Team)
 - [ ] `maps-engine/` (Maps & Attack Graph Team)
 - [ ] `reports/` (Reports & Forensics Team)
 - [ ] `shared/` (Threat Intelligence & Integration Team)

@@ -28,17 +28,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r shared/requirements.txt
-          pip install -r threat-intelligence/requirements.txt
+          pip install -r threat_intelligence/requirements.txt
 
       - name: Verify Code Syntax
         run: |
-          python -m py_compile $(find shared threat-intelligence -name "*.py")
+          python -m py_compile $(find shared threat_intelligence -name "*.py")
 
       - name: Run Pytest Suite
         env:
           PYTHONPATH: .
         run: |
-          pytest shared/tests threat-intelligence/tests -v
+          pytest shared/tests threat_intelligence/tests -v
 
       - name: Run Master API Contract Verification Suite
         env:

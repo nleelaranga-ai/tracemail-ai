@@ -19,7 +19,7 @@ This work represents the **architectural backbone** that unblocks all other 5 en
 
 | # | Engineering Team / Module | Primary Folder | Scope % | Status | Key Deliverables & Dependencies Handed Over |
 |---|---|---|:---:|:---:|---|
-| **1** | **Threat Intelligence & Integration Team** | `threat-intelligence/`, `shared/`, `scripts/`, `docker/`, `.github/` | **100%** | **COMPLETE & PUSHED** | **8 Threat Submodules, Master API Contracts, Shared Pydantic & TS schemas, Docker Compose, CI/CD, Tests.** |
+| **1** | **Threat Intelligence & Integration Team** | `threat_intelligence/`, `shared/`, `scripts/`, `docker/`, `.github/` | **100%** | **COMPLETE & PUSHED** | **8 Threat Submodules, Master API Contracts, Shared Pydantic & TS schemas, Docker Compose, CI/CD, Tests.** |
 | 2 | **Frontend Team** | `frontend/` | 0% | *Ready to Build* | Handed over: `shared/types/types.ts` for Next.js 15, `docker/frontend/Dockerfile`, and mock JSON contracts. |
 | 3 | **Backend Team** | `backend/` | 10% | *In Progress* | Handed over: Master API contracts (`/api/threat/*`), PostgreSQL schema (`init.sql`), and seed email cases. |
 | 4 | **AI Engine Team** | `ai-engine/` | 0% | *Ready to Build* | Handed over: `AIPhishingRequest` / `AIPhishingResponse` Pydantic contracts and Dockerfile template. |
@@ -57,7 +57,7 @@ main                     🔒 Protected (Clean, 1 initial commit)
 
 ## 3. Detailed Audit of Threat Intelligence & Integration Deliverables (100% Scope)
 
-### ✅ Deliverable 1: Threat Intelligence Engine (`threat-intelligence/`)
+### ✅ Deliverable 1: Threat Intelligence Engine (`threat_intelligence/`)
 - **`virustotal/vt_client.py`**: VirusTotal v3 URL/domain/IP scanner with base64 ID conversion, vendor positives parsing, and typosquatting heuristic fallbacks.
 - **`abuseipdb/abuse_client.py`**: IP reputation confidence scoring (0-100), blacklist lookup, and RFC 1918 private network suppression.
 - **`dns/auth_check.py`**: Multi-header parser extracting SPF, DKIM, and DMARC alignment status and integrating domain age from WHOIS.
@@ -145,7 +145,7 @@ TraceMail AI Threat Intelligence & Integration Layer is fully operational.
   [PASS] test_master_api_contracts_conformity
   [PASS] test_url_validation
 
->>> Testing Module: threat-intelligence/tests/test_threat_engine.py
+>>> Testing Module: threat_intelligence/tests/test_threat_engine.py
   [PASS] test_abuseipdb_client
   [PASS] test_dns_auth_checker
   [PASS] test_geo_client
@@ -154,7 +154,7 @@ TraceMail AI Threat Intelligence & Integration Layer is fully operational.
   [PASS] test_virustotal_client
   [PASS] test_whois_client
 
->>> Testing Module: threat-intelligence/tests/test_api_endpoints.py
+>>> Testing Module: threat_intelligence/tests/test_api_endpoints.py
   [PASS] test_auth_check_contract_endpoint
   [PASS] test_health_endpoint
   [PASS] test_ip_threat_contract_endpoint

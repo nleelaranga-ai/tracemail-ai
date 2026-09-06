@@ -40,7 +40,7 @@ Write-Host "[+] Installing shared layer requirements..." -ForegroundColor Yellow
 python -m pip install -r shared/requirements.txt --quiet
 
 Write-Host "[+] Installing threat intelligence requirements..." -ForegroundColor Yellow
-python -m pip install -r threat-intelligence/requirements.txt --quiet
+python -m pip install -r threat_intelligence/requirements.txt --quiet
 
 # 5. Initialize .env file
 if (-not (Test-Path ".env")) {

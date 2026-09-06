@@ -11,7 +11,7 @@
 /ai-engine/                     @ai-team
 
 # Threat Intelligence & Integration Team
-/threat-intelligence/           @nleelaranga-ai
+/threat_intelligence/           @nleelaranga-ai
 /shared/                        @nleelaranga-ai
 /scripts/                       @nleelaranga-ai
 /docker/                        @nleelaranga-ai @backend-team

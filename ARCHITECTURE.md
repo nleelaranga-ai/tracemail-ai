@@ -60,7 +60,7 @@ Email remains the primary initial attack vector in >80% of sophisticated cyber i
 
 | Folder | Module | Lead Team | Responsibilities |
 |---|---|---|---|
-| `threat-intelligence/` | Threat Intelligence | **Threat Intelligence Team** | VirusTotal, AbuseIPDB, WHOIS, DNS/Auth, Geolocation, URLScan, IOC extraction, Threat Scoring. |
+| `threat_intelligence/` | Threat Intelligence | **Threat Intelligence Team** | VirusTotal, AbuseIPDB, WHOIS, DNS/Auth, Geolocation, URLScan, IOC extraction, Threat Scoring. |
 | `shared/` | Shared Contracts & Layer | **Threat Intelligence Team** | Pydantic contracts, TypeScript types, validators, centralized settings, logging, and enums. |
 | `scripts/` | Automation & Tooling | **Threat Intelligence Team** | Setup scripts, seeders, reset utilities, master integration test runner. |
 | `docker/` | Container Infrastructure | **Threat Intelligence & Backend Teams** | Multi-service Dockerfiles and root `docker-compose.yml`. |

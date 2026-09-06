@@ -17,7 +17,7 @@ if [ "$USE_DOCKER" = true ]; then
   exit 0
 fi
 
-export PYTHONPATH="$PWD:$PWD/shared:$PWD/threat-intelligence"
+export PYTHONPATH="$PWD:$PWD/shared:$PWD/threat_intelligence"
 echo "[+] Starting Threat Intelligence microservice on port $PORT..."
 echo "[+] Interactive docs: http://localhost:$PORT/docs"
 echo "[+] Health check:     http://localhost:$PORT/health"

@@ -1,6 +1,6 @@
 """
 TraceMail AI — Standalone Test Suite Runner
-Executes all unit tests in shared/tests and threat-intelligence/tests
+Executes all unit tests in shared/tests and threat_intelligence/tests
 using Python standard library without requiring external test runners.
 """
 
@@ -50,8 +50,8 @@ async def main():
     print("=" * 70)
 
     p1 = await run_test_module(test_shared, "shared/tests/test_shared.py")
-    p2 = await run_test_module(test_threat_engine, "threat-intelligence/tests/test_threat_engine.py")
-    p3 = await run_test_module(test_api_endpoints, "threat-intelligence/tests/test_api_endpoints.py")
+    p2 = await run_test_module(test_threat_engine, "threat_intelligence/tests/test_threat_engine.py")
+    p3 = await run_test_module(test_api_endpoints, "threat_intelligence/tests/test_api_endpoints.py")
 
     print("\n" + "=" * 70)
     if p1 and p2 and p3:

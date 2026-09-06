@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY shared/requirements.txt /app/shared-reqs.txt
-COPY threat-intelligence/requirements.txt /app/threat-reqs.txt
+COPY threat_intelligence/requirements.txt /app/threat-reqs.txt
 
 RUN pip install --no-cache-dir --user -r /app/shared-reqs.txt -r /app/threat-reqs.txt
 
@@ -26,7 +26,7 @@ ENV PYTHONPATH=/app
 
 # Copy application source
 COPY shared /app/shared
-COPY threat-intelligence /app/threat_intelligence
+COPY threat_intelligence /app/threat_intelligence
 
 # Non-root security user
 RUN useradd -u 10001 tracemail && chown -R tracemail:tracemail /app

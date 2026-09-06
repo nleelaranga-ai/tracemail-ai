@@ -39,7 +39,7 @@ To prevent merge conflicts:
   - `frontend/`: Frontend Team
   - `backend/`: Backend Team
   - `ai-engine/`: AI Engine Team
-  - `threat-intelligence/`: Threat Intelligence Team
+  - `threat_intelligence/`: Threat Intelligence Team
   - `shared/`: Threat Intelligence Team
   - `scripts/`: Threat Intelligence Team
   - `maps-engine/`: Maps & Attack Graph Team

@@ -16,7 +16,7 @@ if ($Docker) {
 }
 
 # Native run
-$env:PYTHONPATH = "$PWD;$PWD\shared;$PWD\threat-intelligence"
+$env:PYTHONPATH = "$PWD;$PWD\shared;$PWD\threat_intelligence"
 Write-Host "[+] Starting Threat Intelligence microservice on port $Port..." -ForegroundColor Yellow
 Write-Host "[+] Interactive docs: http://localhost:$Port/docs" -ForegroundColor Cyan
 Write-Host "[+] Health check:     http://localhost:$Port/health" -ForegroundColor Cyan
