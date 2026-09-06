@@ -1,0 +1,18 @@
+From: GitHub <noreply@github.com>
+To: developer@target-corp.com
+Subject: [GitHub] A personal access token was created
+Date: Sun, 06 Sep 2026 10:00:00 +0000
+Return-Path: <noreply@github.com>
+Authentication-Results: mx.target-corp.com; spf=pass; dkim=pass; dmarc=pass
+Received: from smtp.github.com ([142.250.1.27]) by mx.target-corp.com;
+DKIM-Signature: v=1; a=rsa-sha256; d=github.com; s=s20210201;
+Content-Type: text/plain; charset=UTF-8
+
+Hey developer,
+
+A personal access token (classic) was recently created for your account.
+If you generated this token, no further action is needed.
+Review your security settings: https://github.com/settings/tokens
+
+Thanks,
+The GitHub Team

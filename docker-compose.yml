@@ -1,0 +1,139 @@
+version: "3.8"
+
+services:
+  # ----------------------------------------------------------------------------
+  # Threat Intelligence Microservice (Threat Intelligence Team)
+  # ----------------------------------------------------------------------------
+  threat-intelligence:
+    build:
+      context: .
+      dockerfile: docker/threat-intelligence/Dockerfile
+    container_name: tracemail-threat-intel
+    ports:
+      - "8001:8001"
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
+      - IPINFO_API_KEY=${IPINFO_API_KEY:-}
+      - URLSCAN_API_KEY=${URLSCAN_API_KEY:-}
+      - USE_MOCK_THREAT_INTEL=${USE_MOCK_THREAT_INTEL:-true}
+    networks:
+      - tracemail-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # Central PostgreSQL 16 Database
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: tracemail-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=tracemail_db
+      - POSTGRES_USER=tracemail
+      - POSTGRES_PASSWORD=tracemail_secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tracemail-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracemail -d tracemail_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # Neo4j Graph Database (Attack Graph - Maps Team)
+  # ----------------------------------------------------------------------------
+  neo4j:
+    image: neo4j:5-community
+    container_name: tracemail-neo4j
+    ports:
+      - "7474:7474" # Browser UI
+      - "7687:7687" # Bolt protocol
+    environment:
+      - NEO4J_AUTH=neo4j/tracemail_neo4j
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - tracemail-net
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # FastAPI Hub Backend (Backend Team)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: tracemail-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://tracemail:tracemail_secret@postgres:5432/tracemail_db
+      - NEO4J_URI=bolt://neo4j:7687
+      - THREAT_INTEL_URL=http://threat-intelligence:8001
+      - AI_ENGINE_URL=http://ai-engine:8002
+      - JWT_SECRET=${JWT_SECRET:-tracemail-hackathon-jwt-secret-key-sih26106}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      threat-intelligence:
+        condition: service_healthy
+    networks:
+      - tracemail-net
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # AI Engine Phishing Classifier (AI Engine Team)
+  # ----------------------------------------------------------------------------
+  ai-engine:
+    build:
+      context: .
+      dockerfile: docker/ai-engine/Dockerfile
+    container_name: tracemail-ai-engine
+    ports:
+      - "8002:8002"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+    networks:
+      - tracemail-net
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # Next.js 15 Frontend Dashboard (Frontend Team)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: tracemail-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - tracemail-net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  neo4j_data:
+    driver: local
+
+networks:
+  tracemail-net:
+    driver: bridge
