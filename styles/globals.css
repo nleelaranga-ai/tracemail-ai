@@ -1,0 +1,37 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background-color: #0A0E14;
+  color: #E7EBF2;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.font-display {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+::selection {
+  background: #0A6B60;
+  color: #E7EBF2;
+}
+
+.scanline-bg {
+  background-image: linear-gradient(#212836 1px, transparent 1px),
+    linear-gradient(90deg, #212836 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.leaflet-container {
+  background: #10141C !important;
+}
