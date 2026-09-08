@@ -42,5 +42,13 @@ class EmailParsedData(BaseModel):
 
 class EmailUploadResponse(BaseModel):
     investigationId: str
+    scan_id: Optional[str] = None
     status: str = "complete"
     message: str = "Email uploaded and analyzed successfully."
+    threat_score: Optional[int] = None
+    risk_level: Optional[str] = None
+    origin_city: Optional[str] = None
+    origin_country: Optional[str] = None
+
+    class Config:
+        extra = "allow"

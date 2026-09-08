@@ -224,3 +224,108 @@ class InvestigationDetailResponse(BaseModel):
     timelineUrl: Optional[str] = None
     graphUrl: Optional[str] = None
     reportUrl: Optional[str] = None
+
+
+# ==============================================================================
+# REAL-TIME UNIFIED INVESTIGATION CONTRACT (SIH 2026 Target Architecture)
+# ==============================================================================
+
+class InvestigationTimelineStep(BaseModel):
+    time: str
+    event: str
+
+
+class IOCItem(BaseModel):
+    type: str  # "url" | "ip" | "domain" | "hash" | "attachment"
+    value: str
+    category: str = "General"
+    severity: str = "medium"  # "low" | "medium" | "high" | "critical"
+
+
+class VirusTotalSummary(BaseModel):
+    malicious_vendors: int = 0
+    total_vendors: int = 0
+    scan_date: str = ""
+    positives: int = 0
+
+
+class AbuseIPDBSummary(BaseModel):
+    confidence_score: int = 0
+    isp: str = "Unknown"
+    total_reports: int = 0
+    is_malicious: bool = False
+
+
+class WHOISSummary(BaseModel):
+    registrar: str = "Unknown"
+    created_date: str = "Unknown"
+    expiry_date: str = "Unknown"
+    domain_age: str = "Unknown"
+    domain_age_days: int = 0
+
+
+class DNSSummary(BaseModel):
+    spf: str = "none"
+    dkim: str = "none"
+    dmarc: str = "none"
+
+
+class URLScanSummary(BaseModel):
+    verdict: str = "clean"
+    score: int = 0
+    page_title: str = ""
+    screenshot_url: Optional[str] = None
+    technologies: List[str] = Field(default_factory=list)
+
+
+class AIAnalysisSummary(BaseModel):
+    prediction: str = "Suspicious"
+    confidence: float = 0.0
+    summary: str = ""
+    reasons: List[str] = Field(default_factory=list)
+
+
+class UnifiedInvestigationResponse(BaseModel):
+    """
+    Master unified investigation response shared across all modules.
+    Fulfills Target Architecture Contract Section 7.
+    """
+    scan_id: str
+    sender: str
+    domain: str
+    ip: str
+    country: str
+    city: str
+    latitude: float
+    longitude: float
+    threat_score: int = Field(..., ge=0, le=100)
+    risk_level: str  # "Low" | "Medium" | "High" | "Critical"
+    ai_summary: str
+    timeline: List[InvestigationTimelineStep] = Field(default_factory=list)
+    virus_total: VirusTotalSummary = Field(default_factory=VirusTotalSummary)
+    abuse_ipdb: AbuseIPDBSummary = Field(default_factory=AbuseIPDBSummary)
+    whois: WHOISSummary = Field(default_factory=WHOISSummary)
+    dns: DNSSummary = Field(default_factory=DNSSummary)
+    urlscan: URLScanSummary = Field(default_factory=URLScanSummary)
+    ai_analysis: AIAnalysisSummary = Field(default_factory=AIAnalysisSummary)
+    ioc: List[IOCItem] = Field(default_factory=list)
+
+    # Backwards-compatibility aliases for existing frontend and test suites
+    id: Optional[str] = None
+    investigationId: Optional[str] = None
+    status: str = "complete"
+    recipient: Optional[str] = None
+    subject: Optional[str] = None
+    receivedAt: Optional[str] = None
+    phishingScore: Optional[int] = None
+    verdict: Optional[str] = None
+    explanation: Optional[str] = None
+    aiResult: Optional[Any] = None
+    threatResults: List[Dict[str, Any]] = Field(default_factory=list)
+    mapUrl: Optional[str] = None
+    timelineUrl: Optional[str] = None
+    graphUrl: Optional[str] = None
+    reportUrl: Optional[str] = None
+    geojson_map: Optional[Dict[str, Any]] = None
+    attack_graph: Optional[Dict[str, Any]] = None
+

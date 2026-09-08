@@ -75,11 +75,17 @@ class EmailParser:
         sender = header_analysis.get("sender") or msg.get("From", "")
         recipient = header_analysis.get("recipient") or msg.get("To", "")
         subject = header_analysis.get("subject") or msg.get("Subject", "")
+        domain = header_analysis.get("domain") or (sender.split("@")[-1].strip().strip(">").strip(";").strip(")") if "@" in sender else "")
+        origin_ip = header_analysis.get("origin_ip") or (header_analysis.get("hop_ips", [""])[0] if header_analysis.get("hop_ips") else "")
 
         return {
             "sender": sender,
             "recipient": recipient,
             "subject": subject,
+            "domain": domain,
+            "origin_ip": origin_ip,
+            "reply_to": header_analysis.get("reply_to", ""),
+            "message_id": header_analysis.get("message_id", ""),
             "body_text": body_text,
             "body_html": body_html,
             "raw_headers": raw_text[:5000],  # Header block excerpt
@@ -87,3 +93,4 @@ class EmailParser:
             "attachments": attachments,
             "iocs": iocs
         }
+
