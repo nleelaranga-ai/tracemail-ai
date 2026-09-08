@@ -1,1 +1,1 @@
--r member6/requirements.txt
+-r team_reports/requirements.txt

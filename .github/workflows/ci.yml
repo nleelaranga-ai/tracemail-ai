@@ -1,5 +1,5 @@
 # ============================================================
-# TraceMail AI — Member 6: CI/CD
+# TraceMail AI — Team Reports: CI/CD
 # File: .github/workflows/ci.yml
 #
 # Main Continuous Integration pipeline.
@@ -16,7 +16,7 @@
 #   8. e2e               — Playwright E2E tests (API smoke only in CI)
 # ============================================================
 
-name: "CI — TraceMail AI (Member 6)"
+name: "CI — TraceMail AI (Team Reports)"
 
 on:
   push:
@@ -64,18 +64,18 @@ jobs:
 
       - name: Run ruff linter
         run: |
-          ruff check member6/ --output-format=github
+          ruff check team_reports/ --output-format=github
 
       - name: Run ruff formatter check
         run: |
-          ruff format member6/ --check
+          ruff format team_reports/ --check
 
       - name: Run mypy type checker
         run: |
-          mypy member6/ \
+          mypy team_reports/ \
             --ignore-missing-imports \
             --strict \
-            --exclude member6/tests/e2e
+            --exclude team_reports/tests/e2e
 
   # ──────────────────────────────────────────────────────────
   # JOB 2: TypeScript Lint
@@ -92,14 +92,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: member6/tests/e2e/package.json
+          cache-dependency-path: team_reports/tests/e2e/package.json
 
       - name: Install E2E dependencies
-        working-directory: member6/tests/e2e
+        working-directory: team_reports/tests/e2e
         run: npm ci
 
       - name: TypeScript compile check
-        working-directory: member6/tests/e2e
+        working-directory: team_reports/tests/e2e
         run: npx tsc --noEmit
 
   # ──────────────────────────────────────────────────────────
@@ -134,11 +134,11 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          pytest member6/tests/unit/ \
+          pytest team_reports/tests/unit/ \
             -v \
             --tb=short \
             -m "not pdf" \
-            --cov=member6/reports \
+            --cov=team_reports/reports \
             --cov-report=xml:coverage.xml \
             --cov-report=html:coverage-html \
             --cov-fail-under=80 \
@@ -198,7 +198,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          pytest member6/tests/integration/ \
+          pytest team_reports/tests/integration/ \
             -v \
             --tb=short \
             -m "not pdf" \
@@ -241,7 +241,7 @@ jobs:
 
       - name: Run contract tests
         run: |
-          pytest member6/tests/contract/ \
+          pytest team_reports/tests/contract/ \
             -v \
             --tb=short \
             --junitxml=test-results/contract-results.xml
@@ -275,7 +275,7 @@ jobs:
 
       - name: Check schema drift
         run: |
-          python -m member6.reports.schemas.report_schema --check-drift
+          python -m team_reports.reports.schemas.report_schema --check-drift
         # Exits 1 if schema has changed without committing the new .json file
 
   # ──────────────────────────────────────────────────────────
@@ -296,7 +296,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: member6/docker/Dockerfile.backend
+          file: team_reports/docker/Dockerfile.backend
           push: false
           tags: tracemail-ai/backend:ci
           cache-from: type=gha
@@ -306,7 +306,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: member6/docker/Dockerfile.frontend
+          file: team_reports/docker/Dockerfile.frontend
           push: false
           tags: tracemail-ai/frontend:ci
           cache-from: type=gha
@@ -341,13 +341,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install Playwright
-        working-directory: member6/tests/e2e
+        working-directory: team_reports/tests/e2e
         run: |
           npm ci
           npx playwright install --with-deps chromium
 
       - name: Run API smoke tests
-        working-directory: member6/tests/e2e
+        working-directory: team_reports/tests/e2e
         env:
           BACKEND_URL: http://localhost:8000
         run: npx playwright test --grep @api --reporter=json
@@ -357,7 +357,7 @@ jobs:
         if: always()
         with:
           name: playwright-report
-          path: member6/tests/e2e/playwright-report/
+          path: team_reports/tests/e2e/playwright-report/
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────

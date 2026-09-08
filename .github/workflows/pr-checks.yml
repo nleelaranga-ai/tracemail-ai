@@ -1,5 +1,5 @@
 # ============================================================
-# TraceMail AI — Member 6: CI/CD
+# TraceMail AI — Team Reports: CI/CD
 # File: .github/workflows/pr-checks.yml
 #
 # PR gate workflow — runs on every pull request.
@@ -49,13 +49,13 @@ jobs:
         run: pip install ruff mypy pydantic
 
       - name: Ruff lint
-        run: ruff check member6/ --output-format=github
+        run: ruff check team_reports/ --output-format=github
 
       - name: Ruff format check
-        run: ruff format member6/ --check
+        run: ruff format team_reports/ --check
 
       - name: Mypy type check
-        run: mypy member6/ --ignore-missing-imports --exclude member6/tests/e2e
+        run: mypy team_reports/ --ignore-missing-imports --exclude team_reports/tests/e2e
 
   # Full test gate
   pr-test:
@@ -79,11 +79,11 @@ jobs:
       - name: Run all pytest suites
         id: pytest
         run: |
-          pytest member6/tests/ \
+          pytest team_reports/tests/ \
             -v \
             --tb=short \
             -m "not pdf" \
-            --cov=member6/reports \
+            --cov=team_reports/reports \
             --cov-report=xml:coverage.xml \
             --cov-fail-under=75 \
             --junitxml=test-results/pr-results.xml \
@@ -103,7 +103,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ${status} Member 6 — Test Results\n\`\`\`\n${output}\n\`\`\``,
+              body: `## ${status} Team Reports — Test Results\n\`\`\`\n${output}\n\`\`\``,
             });
 
       - name: Upload test results artifact
@@ -127,7 +127,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install pydantic jsonschema
       - name: Check schema drift
-        run: python -m member6.reports.schemas.report_schema --check-drift
+        run: python -m team_reports.reports.schemas.report_schema --check-drift
 
   # TypeScript check
   pr-typescript:
@@ -139,7 +139,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install & type check
-        working-directory: member6/tests/e2e
+        working-directory: team_reports/tests/e2e
         run: |
           npm ci
           npx tsc --noEmit
