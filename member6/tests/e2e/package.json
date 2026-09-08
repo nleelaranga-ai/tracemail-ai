@@ -1,0 +1,20 @@
+{
+  "name": "tracemail-ai-e2e",
+  "version": "1.0.0",
+  "description": "TraceMail AI — Member 6 E2E Tests (Playwright)",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:api": "playwright test --grep @api",
+    "test:report": "playwright test --grep @report",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:chromium": "playwright test --project=chromium",
+    "test:ci": "playwright test --reporter=json",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "typescript": "^5.4.0"
+  }
+}

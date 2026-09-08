@@ -1,0 +1,385 @@
+# ============================================================
+# TraceMail AI — Member 6: CI/CD
+# File: .github/workflows/ci.yml
+#
+# Main Continuous Integration pipeline.
+# Triggers on push to main/develop and all pull requests.
+#
+# Jobs:
+#   1. lint-python       — ruff + mypy
+#   2. lint-typescript   — eslint + tsc
+#   3. test-unit         — pytest unit tests + coverage
+#   4. test-integration  — pytest integration tests
+#   5. test-contract     — pytest contract/schema tests
+#   6. schema-drift      — Detect JSON schema drift
+#   7. docker-build      — Build all Docker images
+#   8. e2e               — Playwright E2E tests (API smoke only in CI)
+# ============================================================
+
+name: "CI — TraceMail AI (Member 6)"
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  POETRY_VERSION: "1.8.3"
+
+# Cancel in-progress runs for same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────
+  # JOB 1: Python Lint (ruff + mypy)
+  # ──────────────────────────────────────────────────────────
+  lint-python:
+    name: "🐍 Python Lint (ruff + mypy)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install lint dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ruff mypy pydantic
+
+      - name: Run ruff linter
+        run: |
+          ruff check member6/ --output-format=github
+
+      - name: Run ruff formatter check
+        run: |
+          ruff format member6/ --check
+
+      - name: Run mypy type checker
+        run: |
+          mypy member6/ \
+            --ignore-missing-imports \
+            --strict \
+            --exclude member6/tests/e2e
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 2: TypeScript Lint
+  # ──────────────────────────────────────────────────────────
+  lint-typescript:
+    name: "📘 TypeScript Lint (tsc)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: member6/tests/e2e/package.json
+
+      - name: Install E2E dependencies
+        working-directory: member6/tests/e2e
+        run: npm ci
+
+      - name: TypeScript compile check
+        working-directory: member6/tests/e2e
+        run: npx tsc --noEmit
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 3: Unit Tests + Coverage
+  # ──────────────────────────────────────────────────────────
+  test-unit:
+    name: "🧪 Unit Tests + Coverage"
+    runs-on: ubuntu-latest
+    needs: [lint-python]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            pytest \
+            pytest-cov \
+            pytest-asyncio \
+            pydantic \
+            jinja2 \
+            jsonschema \
+            httpx \
+            fastapi
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest member6/tests/unit/ \
+            -v \
+            --tb=short \
+            -m "not pdf" \
+            --cov=member6/reports \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:coverage-html \
+            --cov-fail-under=80 \
+            --junitxml=test-results/unit-results.xml
+
+      - name: Upload coverage to GitHub Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            coverage-html/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: test-results/unit-results.xml
+
+      - name: Coverage summary in PR comment
+        if: github.event_name == 'pull_request'
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          junitxml-path: test-results/unit-results.xml
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 4: Integration Tests
+  # ──────────────────────────────────────────────────────────
+  test-integration:
+    name: "🔗 Integration Tests"
+    runs-on: ubuntu-latest
+    needs: [test-unit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            pytest \
+            pytest-asyncio \
+            pydantic \
+            jinja2 \
+            jsonschema \
+            httpx \
+            fastapi
+
+      - name: Run integration tests
+        run: |
+          pytest member6/tests/integration/ \
+            -v \
+            --tb=short \
+            -m "not pdf" \
+            --junitxml=test-results/integration-results.xml
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: test-results/integration-results.xml
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 5: Contract Tests
+  # ──────────────────────────────────────────────────────────
+  test-contract:
+    name: "📋 Contract Tests"
+    runs-on: ubuntu-latest
+    needs: [test-unit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            pytest \
+            pydantic \
+            jinja2 \
+            jsonschema \
+            httpx \
+            fastapi
+
+      - name: Run contract tests
+        run: |
+          pytest member6/tests/contract/ \
+            -v \
+            --tb=short \
+            --junitxml=test-results/contract-results.xml
+
+      - name: Upload contract test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-test-results
+          path: test-results/contract-results.xml
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 6: JSON Schema Drift Detection
+  # ──────────────────────────────────────────────────────────
+  schema-drift:
+    name: "📐 Schema Drift Check"
+    runs-on: ubuntu-latest
+    needs: [lint-python]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install pydantic jsonschema
+
+      - name: Check schema drift
+        run: |
+          python -m member6.reports.schemas.report_schema --check-drift
+        # Exits 1 if schema has changed without committing the new .json file
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 7: Docker Build Validation
+  # ──────────────────────────────────────────────────────────
+  docker-build:
+    name: "🐳 Docker Build Validation"
+    runs-on: ubuntu-latest
+    needs: [test-unit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: member6/docker/Dockerfile.backend
+          push: false
+          tags: tracemail-ai/backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: member6/docker/Dockerfile.frontend
+          push: false
+          tags: tracemail-ai/frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 8: E2E API Smoke Tests
+  # ──────────────────────────────────────────────────────────
+  e2e-api-smoke:
+    name: "🎭 E2E API Smoke Tests"
+    runs-on: ubuntu-latest
+    needs: [test-integration, test-contract]
+    # Only run E2E on main/develop push or when explicitly triggered
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    services:
+      backend:
+        image: tracemail-ai/backend:ci
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright
+        working-directory: member6/tests/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run API smoke tests
+        working-directory: member6/tests/e2e
+        env:
+          BACKEND_URL: http://localhost:8000
+        run: npx playwright test --grep @api --reporter=json
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: member6/tests/e2e/playwright-report/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────
+  # Final status gate
+  # ──────────────────────────────────────────────────────────
+  ci-passed:
+    name: "✅ All CI Checks Passed"
+    runs-on: ubuntu-latest
+    needs:
+      - lint-python
+      - lint-typescript
+      - test-unit
+      - test-integration
+      - test-contract
+      - schema-drift
+      - docker-build
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "❌ One or more CI jobs failed. Merge is blocked."
+            exit 1
+          fi
+          echo "✅ All CI checks passed!"

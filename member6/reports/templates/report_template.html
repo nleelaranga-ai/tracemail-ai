@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TraceMail AI — Forensic Report | {{ report.investigation_id }}</title>
+  <style>
+    /* ============================================================
+       TraceMail AI — Forensic PDF Report Stylesheet
+       Optimised for WeasyPrint (print CSS / paged media)
+       ============================================================ */
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --c-bg:         #0f172a;
+      --c-surface:    #1e293b;
+      --c-surface2:   #334155;
+      --c-border:     #475569;
+      --c-text:       #f1f5f9;
+      --c-muted:      #94a3b8;
+      --c-accent:     #38bdf8;
+      --c-malicious:  #dc2626;
+      --c-suspicious: #d97706;
+      --c-clean:      #16a34a;
+      --c-unknown:    #6b7280;
+      --font-main:    'Inter', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    /* Paged media setup */
+    @page {
+      size: A4;
+      margin: 18mm 16mm 22mm 16mm;
+      @top-center {
+        content: "TraceMail AI — Forensic Investigation Report";
+        font-family: var(--font-main);
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+      @bottom-left {
+        content: "Case: " string(investigation-id);
+        font-family: var(--font-main);
+        font-size: 7.5pt;
+        color: #94a3b8;
+      }
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: var(--font-main);
+        font-size: 7.5pt;
+        color: #94a3b8;
+      }
+    }
+
+    @page :first {
+      @top-center { content: ""; }
+      @bottom-left { content: ""; }
+      @bottom-right { content: ""; }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      font-family: var(--font-main);
+      font-size: 9.5pt;
+      line-height: 1.55;
+      color: var(--c-text);
+      background: var(--c-bg);
+    }
+
+    /* ── Cover Page ─────────────────────────────────────────── */
+    .cover {
+      page-break-after: always;
+      min-height: 270mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12mm 0 8mm;
+    }
+
+    .cover__logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+
+    .cover__logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cover__logo-text {
+      font-size: 18pt;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--c-text);
+    }
+
+    .cover__logo-sub {
+      font-size: 8.5pt;
+      color: var(--c-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .cover__title {
+      font-size: 28pt;
+      font-weight: 700;
+      color: var(--c-text);
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+
+    .cover__subtitle {
+      font-size: 13pt;
+      color: var(--c-accent);
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+
+    .cover__verdict-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 2px solid {{ verdict_colour }};
+      background: {{ verdict_colour }}1a;
+      margin-bottom: 36px;
+    }
+
+    .cover__verdict-label {
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--c-muted);
+    }
+
+    .cover__verdict-value {
+      font-size: 18pt;
+      font-weight: 700;
+      color: {{ verdict_colour }};
+    }
+
+    .cover__score-ring {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 5px solid {{ risk_colour }};
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: {{ risk_colour }}15;
+    }
+
+    .cover__score-value {
+      font-size: 18pt;
+      font-weight: 700;
+      color: {{ risk_colour }};
+      line-height: 1;
+    }
+
+    .cover__score-label {
+      font-size: 6.5pt;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .cover__meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      padding: 16px;
+      background: var(--c-surface);
+      border-radius: 8px;
+      border: 1px solid var(--c-border);
+      margin-bottom: 24px;
+    }
+
+    .cover__meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .cover__meta-key { font-size: 7.5pt; color: var(--c-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .cover__meta-val { font-size: 9pt; color: var(--c-text); font-weight: 500; word-break: break-all; }
+
+    .cover__stats-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .stat-chip {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-chip__value {
+      font-size: 16pt;
+      font-weight: 700;
+      color: var(--c-accent);
+      display: block;
+    }
+
+    .stat-chip__label {
+      font-size: 7pt;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .cover__footer {
+      border-top: 1px solid var(--c-border);
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      color: var(--c-muted);
+    }
+
+    /* ── Sections ────────────────────────────────────────────── */
+    .section {
+      margin-bottom: 22px;
+      page-break-inside: avoid;
+    }
+
+    .section--breakable {
+      page-break-inside: auto;
+    }
+
+    .section__header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--c-surface);
+      border-left: 4px solid var(--c-accent);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 12px;
+      page-break-after: avoid;
+    }
+
+    .section__number {
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: var(--c-accent);
+      background: var(--c-accent)22;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .section__title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: var(--c-text);
+    }
+
+    /* ── Tables ──────────────────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 10px;
+    }
+
+    .data-table th {
+      background: var(--c-surface2);
+      color: var(--c-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-size: 7pt;
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    .data-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--c-surface2);
+      vertical-align: top;
+      color: var(--c-text);
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:nth-child(even) td { background: var(--c-surface)55; }
+
+    /* ── KV pairs ────────────────────────────────────────────── */
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 0;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      overflow: hidden;
+      font-size: 8.5pt;
+      margin-bottom: 10px;
+    }
+
+    .kv-grid__key {
+      background: var(--c-surface);
+      color: var(--c-muted);
+      font-weight: 600;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--c-border);
+      text-transform: uppercase;
+      font-size: 7pt;
+      letter-spacing: 0.8px;
+    }
+
+    .kv-grid__val {
+      background: var(--c-bg);
+      color: var(--c-text);
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--c-border);
+      word-break: break-all;
+    }
+
+    .kv-grid__key:last-of-type,
+    .kv-grid__val:last-of-type { border-bottom: none; }
+
+    /* ── Badges ──────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .badge--pass   { background: #16a34a22; color: #16a34a; border: 1px solid #16a34a; }
+    .badge--fail   { background: #dc262622; color: #dc2626; border: 1px solid #dc2626; }
+    .badge--soft   { background: #d9770622; color: #d97706; border: 1px solid #d97706; }
+    .badge--neutral{ background: #6b728022; color: #94a3b8; border: 1px solid #6b7280; }
+    .badge--error  { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed; }
+
+    /* ── Auth result block ───────────────────────────────────── */
+    .auth-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .auth-card {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      text-align: center;
+    }
+
+    .auth-card__protocol {
+      font-size: 7pt;
+      color: var(--c-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .auth-card__result {
+      font-size: 14pt;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .auth-card__detail {
+      font-size: 7.5pt;
+      color: var(--c-muted);
+      word-break: break-all;
+    }
+
+    /* ── Score bar ───────────────────────────────────────────── */
+    .score-bar-wrap { margin-bottom: 8px; }
+    .score-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8pt;
+      color: var(--c-muted);
+      margin-bottom: 3px;
+    }
+    .score-bar-track {
+      height: 8px;
+      background: var(--c-surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    /* ── Timeline ────────────────────────────────────────────── */
+    .timeline { position: relative; padding-left: 20px; }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--c-border);
+    }
+
+    .timeline__event { position: relative; margin-bottom: 12px; }
+    .timeline__dot {
+      position: absolute;
+      left: -17px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--c-accent);
+      border: 2px solid var(--c-bg);
+    }
+    .timeline__time {
+      font-size: 7.5pt;
+      color: var(--c-accent);
+      font-family: var(--font-mono);
+      margin-bottom: 2px;
+    }
+    .timeline__type {
+      font-size: 7pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--c-muted);
+    }
+    .timeline__desc {
+      font-size: 8.5pt;
+      color: var(--c-text);
+      margin-top: 1px;
+    }
+    .timeline__actor {
+      font-size: 7.5pt;
+      color: var(--c-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ── Correlation graph table ─────────────────────────────── */
+    .graph-section { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* ── Code / mono blocks ──────────────────────────────────── */
+    .mono-block {
+      font-family: var(--font-mono);
+      font-size: 7.5pt;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #93c5fd;
+      max-height: 120mm;
+      overflow: hidden;
+    }
+
+    /* ── IP/URL threat rows ───────────────────────────────────── */
+    .threat-score-cell { font-weight: 700; }
+    .geo-cell { font-size: 7.5pt; color: var(--c-muted); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 3px; }
+    .tag {
+      font-size: 6.5pt;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--c-surface2);
+      color: var(--c-muted);
+      border: 1px solid var(--c-border);
+    }
+
+    /* ── Evidence hash block ─────────────────────────────────── */
+    .hash-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 10px;
+      border-bottom: 1px solid var(--c-surface2);
+      font-size: 7.5pt;
+    }
+    .hash-row:last-child { border-bottom: none; }
+    .hash-algo { color: var(--c-muted); font-weight: 600; text-transform: uppercase; width: 60px; }
+    .hash-value { font-family: var(--font-mono); color: #93c5fd; word-break: break-all; }
+
+    /* ── Integrity block ─────────────────────────────────────── */
+    .integrity-block {
+      margin-top: 16px;
+      padding: 10px 14px;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      background: var(--c-surface);
+    }
+    .integrity-block__title {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--c-muted);
+      margin-bottom: 4px;
+    }
+    .integrity-block__hash {
+      font-family: var(--font-mono);
+      font-size: 7.5pt;
+      color: #93c5fd;
+      word-break: break-all;
+    }
+
+    /* ── Utility ─────────────────────────────────────────────── */
+    .text-muted   { color: var(--c-muted); }
+    .text-accent  { color: var(--c-accent); }
+    .text-danger  { color: var(--c-malicious); }
+    .text-warning { color: var(--c-suspicious); }
+    .text-success { color: var(--c-clean); }
+    .font-mono    { font-family: var(--font-mono); }
+    .mb-8  { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .page-break-before { page-break-before: always; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     COVER PAGE
+════════════════════════════════════════════════════════════ -->
+<div class="cover">
+
+  <!-- Logo / Branding -->
+  <div>
+    <div class="cover__logo">
+      <div class="cover__logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="cover__logo-text">TraceMail AI</div>
+        <div class="cover__logo-sub">SIH26106 · Forensic Intelligence Platform</div>
+      </div>
+    </div>
+
+    <div class="cover__title">Forensic Investigation<br>Report</div>
+    <div class="cover__subtitle">AI-Powered Email Threat Analysis</div>
+
+    <!-- Verdict banner + risk score side by side -->
+    <div style="display:flex; align-items:center; gap:20px; margin-bottom:24px;">
+      <div class="cover__verdict-banner">
+        <div>
+          <div class="cover__verdict-label">Final Verdict</div>
+          <div class="cover__verdict-value">{{ report.risk_score.verdict.value }}</div>
+        </div>
+      </div>
+      <div class="cover__score-ring">
+        <span class="cover__score-value">{{ report.risk_score.overall_score | round | int }}</span>
+        <span class="cover__score-label">Risk Score</span>
+      </div>
+    </div>
+
+    <!-- Case metadata -->
+    <div class="cover__meta-grid">
+      <div class="cover__meta-item">
+        <span class="cover__meta-key">Investigation ID</span>
+        <span class="cover__meta-val font-mono">{{ report.investigation_id }}</span>
+      </div>
+      <div class="cover__meta-item">
+        <span class="cover__meta-key">Report ID</span>
+        <span class="cover__meta-val font-mono">{{ report.report_id }}</span>
+      </div>
+      <div class="cover__meta-item">
+        <span class="cover__meta-key">Sender</span>
+        <span class="cover__meta-val">{{ report.case_summary.from_address }}</span>
+      </div>
+      <div class="cover__meta-item">
+        <span class="cover__meta-key">Threat Type</span>
+        <span class="cover__meta-val">{{ report.case_summary.threat_type.value | upper | replace("_", " ") }}</span>
+      </div>
+      <div class="cover__meta-item">
+        <span class="cover__meta-key">Email Received</span>
+        <span class="cover__meta-val">{{ received_at_str }}</span>
+      </div>
+      <div class="cover__meta-item">
+        <span class="cover__meta-key">Report Generated</span>
+        <span class="cover__meta-val">{{ generated_at_str }}</span>
+      </div>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="cover__stats-row">
+      <div class="stat-chip">
+        <span class="stat-chip__value">{{ malicious_ip_count }}</span>
+        <span class="stat-chip__label">Malicious IPs</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-chip__value">{{ malicious_url_count }}</span>
+        <span class="stat-chip__label">Malicious URLs</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-chip__value">{{ timeline_event_count }}</span>
+        <span class="stat-chip__label">Timeline Events</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-chip__value">{{ attachment_count }}</span>
+        <span class="stat-chip__label">Attachments</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-chip__value">{{ graph_node_count }}</span>
+        <span class="stat-chip__label">Graph Nodes</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover__footer">
+    <span>Generated by: {{ report.generated_by }}</span>
+    <span>Confidential — For Authorised Personnel Only</span>
+    <span>v{{ report.report_version }}</span>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 1 — CASE SUMMARY
+════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <span class="section__number">01</span>
+    <span class="section__title">Case Summary</span>
+  </div>
+
+  <div class="kv-grid">
+    <span class="kv-grid__key">Investigation ID</span>
+    <span class="kv-grid__val font-mono">{{ report.case_summary.investigation_id }}</span>
+
+    <span class="kv-grid__key">Email Subject</span>
+    <span class="kv-grid__val">{{ report.case_summary.subject }}</span>
+
+    <span class="kv-grid__key">From</span>
+    <span class="kv-grid__val">{{ report.case_summary.from_address }}</span>
+
+    <span class="kv-grid__key">To</span>
+    <span class="kv-grid__val">{{ report.case_summary.to_addresses | join(", ") }}</span>
+
+    <span class="kv-grid__key">Received At</span>
+    <span class="kv-grid__val">{{ received_at_str }}</span>
+
+    <span class="kv-grid__key">Analyzed At</span>
+    <span class="kv-grid__val">{{ report.case_summary.analyzed_at | format_dt }}</span>
+
+    <span class="kv-grid__key">Threat Type</span>
+    <span class="kv-grid__val">{{ report.case_summary.threat_type.value | upper | replace("_", " ") }}</span>
+
+    {% if report.case_summary.analyst_notes %}
+    <span class="kv-grid__key">Analyst Notes</span>
+    <span class="kv-grid__val">{{ report.case_summary.analyst_notes }}</span>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 2 — RISK SCORE & VERDICT
+════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <span class="section__number">02</span>
+    <span class="section__title">Risk Score &amp; Verdict</span>
+  </div>
+
+  <div class="kv-grid mb-12">
+    <span class="kv-grid__key">Overall Risk Score</span>
+    <span class="kv-grid__val" style="color:{{ risk_colour }};font-weight:700;">
+      {{ report.risk_score.overall_score }} / 100
+    </span>
+
+    <span class="kv-grid__key">Verdict</span>
+    <span class="kv-grid__val" style="color:{{ verdict_colour }};font-weight:700;">
+      {{ report.risk_score.verdict.value }}
+    </span>
+
+    <span class="kv-grid__key">Confidence</span>
+    <span class="kv-grid__val">{{ (report.risk_score.confidence * 100) | round(1) }}%</span>
+  </div>
+
+  <!-- Sub-score bars -->
+  {% set sub_scores = [
+    ("Phishing Score",  report.risk_score.phishing_score),
+    ("Spoofing Score",  report.risk_score.spoofing_score),
+    ("Malware Score",   report.risk_score.malware_score),
+    ("BEC Score",       report.risk_score.bec_score),
+  ] %}
+  {% for label, score in sub_scores %}
+  <div class="score-bar-wrap">
+    <div class="score-bar-label">
+      <span>{{ label }}</span>
+      <span style="color:{{ score | score_colour }};font-weight:600;">{{ score | round(1) }}</span>
+    </div>
+    <div class="score-bar-track">
+      <div class="score-bar-fill"
+           style="width:{{ score }}%;background:{{ score | score_colour }};"></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 3 — SENDER ANALYSIS
+════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <span class="section__number">03</span>
+    <span class="section__title">Sender Analysis</span>
+  </div>
+
+  <div class="kv-grid">
+    <span class="kv-grid__key">Display Name</span>
+    <span class="kv-grid__val">{{ report.sender_analysis.display_name }}</span>
+
+    <span class="kv-grid__key">Email Address</span>
+    <span class="kv-grid__val font-mono">{{ report.sender_analysis.email_address }}</span>
+
+    <span class="kv-grid__key">Reply-To</span>
+    <span class="kv-grid__val font-mono">{{ report.sender_analysis.reply_to or "Not set" }}</span>
+
+    <span class="kv-grid__key">Return-Path</span>
+    <span class="kv-grid__val font-mono">{{ report.sender_analysis.return_path or "Not set" }}</span>
+
+    <span class="kv-grid__key">Sender Domain</span>
+    <span class="kv-grid__val font-mono">{{ report.sender_analysis.sender_domain }}</span>
+
+    <span class="kv-grid__key">Originating IP</span>
+    <span class="kv-grid__val font-mono">{{ report.sender_analysis.originating_ip or "Unknown" }}</span>
+
+    <span class="kv-grid__key">Mail Server</span>
+    <span class="kv-grid__val">{{ report.sender_analysis.mail_server or "Unknown" }}</span>
+
+    <span class="kv-grid__key">Domain Age</span>
+    <span class="kv-grid__val">
+      {% if report.sender_analysis.domain_age_days is not none %}
+        {{ report.sender_analysis.domain_age_days }} days
+        {% if report.sender_analysis.is_newly_registered %}
+          <span class="badge badge--fail" style="margin-left:6px;">Newly Registered</span>
+        {% endif %}
+      {% else %}
+        Unknown
+      {% endif %}
+    </span>
+
+    <span class="kv-grid__key">Free Email Provider</span>
+    <span class="kv-grid__val">
+      {% if report.sender_analysis.is_free_email %}
+        <span class="badge badge--soft">Yes</span>
+      {% else %}
+        <span class="badge badge--pass">No</span>
+      {% endif %}
+    </span>
+
+    <span class="kv-grid__key">Header-From Mismatch</span>
+    <span class="kv-grid__val">
+      {% if report.sender_analysis.header_from_mismatch %}
+        <span class="badge badge--fail">Mismatch Detected</span>
+      {% else %}
+        <span class="badge badge--pass">Consistent</span>
+      {% endif %}
+    </span>
+
+    {% if report.sender_analysis.lookalike_domain %}
+    <span class="kv-grid__key">Lookalike Domain</span>
+    <span class="kv-grid__val text-danger font-mono">
+      {{ report.sender_analysis.lookalike_domain }}
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 4 — SPF / DKIM / DMARC RESULTS
+════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <span class="section__number">04</span>
+    <span class="section__title">Email Authentication: SPF / DKIM / DMARC</span>
+  </div>
+
+  <div class="auth-grid">
+    <!-- SPF -->
+    <div class="auth-card">
+      <div class="auth-card__protocol">SPF</div>
+      <div class="auth-card__result" style="color:{{ spf_badge.colour }};">
+        {{ spf_badge.label }}
+      </div>
+      <div class="auth-card__detail">{{ report.authentication.spf_details or "—" }}</div>
+    </div>
+
+    <!-- DKIM -->
+    <div class="auth-card">
+      <div class="auth-card__protocol">DKIM</div>
+      <div class="auth-card__result" style="color:{{ dkim_badge.colour }};">
+        {{ dkim_badge.label }}
+      </div>
+      <div class="auth-card__detail">
+        {% if report.authentication.dkim_selector %}
+          Selector: {{ report.authentication.dkim_selector }}
+          {% if report.authentication.dkim_domain %} · {{ report.authentication.dkim_domain }}{% endif %}
+        {% else %}—{% endif %}
+      </div>
+    </div>
+
+    <!-- DMARC -->
+    <div class="auth-card">
+      <div class="auth-card__protocol">DMARC</div>
+      <div class="auth-card__result" style="color:{{ dmarc_badge.colour }};">
+        {{ dmarc_badge.label }}
+      </div>
+      <div class="auth-card__detail">
+        Policy: {{ report.authentication.dmarc_policy or "None" }}
+      </div>
+    </div>
+  </div>
+
+  <div class="kv-grid">
+    <span class="kv-grid__key">Summary</span>
+    <span class="kv-grid__val">{{ report.authentication.authentication_summary }}</span>
+    {% if report.authentication.arc_result %}
+    <span class="kv-grid__key">ARC Chain</span>
+    <span class="kv-grid__val">{{ report.authentication.arc_result.value | upper }}</span>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 5 — MALICIOUS IPs
+════════════════════════════════════════════════════════════ -->
+<div class="section section--breakable">
+  <div class="section__header">
+    <span class="section__number">05</span>
+    <span class="section__title">Malicious IPs
+      <span class="text-muted" style="font-size:9pt;font-weight:400;">
+        ({{ malicious_ip_count }} detected)
+      </span>
+    </span>
+  </div>
+
+  {% if report.malicious_ips %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>IP Address</th>
+        <th>Threat Score</th>
+        <th>Location</th>
+        <th>Categories</th>
+        <th>Intel Sources</th>
+        <th>Abuse Reports</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ip in report.malicious_ips %}
+      <tr>
+        <td class="font-mono">{{ ip.ip }}</td>
+        <td class="threat-score-cell" style="color:{{ ip.threat_score | score_colour }};">
+          {{ ip.threat_score | round(1) }}
+        </td>
+        <td class="geo-cell">
+          {% if ip.geo %}
+            {{ ip.geo.city or "" }}{% if ip.geo.city and ip.geo.country %}, {% endif %}{{ ip.geo.country or "Unknown" }}
+            <br>
+            {% if ip.geo.is_tor %}<span class="badge badge--fail">TOR</span> {% endif %}
+            {% if ip.geo.is_vpn %}<span class="badge badge--soft">VPN</span> {% endif %}
+            {% if ip.geo.is_proxy %}<span class="badge badge--soft">PROXY</span> {% endif %}
+            {% if ip.geo.is_datacenter %}<span class="badge badge--neutral">DC</span> {% endif %}
+          {% else %}
+            Unknown
+          {% endif %}
+        </td>
+        <td>
+          <div class="tag-list">
+            {% for cat in ip.threat_categories %}<span class="tag">{{ cat }}</span>{% endfor %}
+          </div>
+        </td>
+        <td>
+          <div class="tag-list">
+            {% for src in ip.reputation_source %}<span class="tag">{{ src }}</span>{% endfor %}
+          </div>
+        </td>
+        <td>{{ ip.abuse_reports }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted" style="font-size:8.5pt; padding: 8px 0;">No malicious IPs detected.</p>
+  {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 6 — MALICIOUS URLs
+════════════════════════════════════════════════════════════ -->
+<div class="section section--breakable">
+  <div class="section__header">
+    <span class="section__number">06</span>
+    <span class="section__title">Malicious URLs
+      <span class="text-muted" style="font-size:9pt;font-weight:400;">
+        ({{ malicious_url_count }} detected)
+      </span>
+    </span>
+  </div>
+
+  {% if report.malicious_urls %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Domain</th>
+        <th>Score</th>
+        <th>Categories</th>
+        <th>Flags</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for url in report.malicious_urls %}
+      <tr>
+        <td class="font-mono" style="font-size:7pt; max-width:90mm; word-break:break-all;">
+          {{ url.url | truncate_str(90) }}
+        </td>
+        <td class="font-mono">{{ url.domain }}</td>
+        <td class="threat-score-cell" style="color:{{ url.threat_score | score_colour }};">
+          {{ url.threat_score | round(1) }}
+        </td>
+        <td>
+          <div class="tag-list">
+            {% for cat in url.threat_categories %}<span class="tag">{{ cat }}</span>{% endfor %}
+          </div>
+        </td>
+        <td>
+          {% if url.is_phishing_kit %}<span class="badge badge--fail">Phishing Kit</span> {% endif %}
+          {% if url.is_credential_harvester %}<span class="badge badge--fail">Cred Harvest</span> {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted" style="font-size:8.5pt; padding:8px 0;">No malicious URLs detected.</p>
+  {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 7 — REPUTATION SCORES
+════════════════════════════════════════════════════════════ -->
+<div class="section section--breakable">
+  <div class="section__header">
+    <span class="section__number">07</span>
+    <span class="section__title">Reputation Scores</span>
+  </div>
+
+  {% if report.reputation_scores %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Entity</th>
+        <th>Type</th>
+        <th>Score</th>
+        <th>Blacklisted</th>
+        <th>Blacklist Count</th>
+        <th>Categories</th>
+        <th>Last Checked</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rep in report.reputation_scores %}
+      <tr>
+        <td class="font-mono">{{ rep.entity | truncate_str(40) }}</td>
+        <td><span class="badge badge--neutral">{{ rep.entity_type | upper }}</span></td>
+        <td class="threat-score-cell" style="color:{{ rep.score | score_colour }};">{{ rep.score | round(1) }}</td>
+        <td>
+          {% if rep.is_blacklisted %}
+            <span class="badge badge--fail">Yes</span>
+          {% else %}
+            <span class="badge badge--pass">No</span>
+          {% endif %}
+        </td>
+        <td>{{ rep.blacklist_count }}</td>
+        <td>
+          <div class="tag-list">
+            {% for cat in rep.categories %}<span class="tag">{{ cat }}</span>{% endfor %}
+          </div>
+        </td>
+        <td style="font-size:7.5pt;">{{ rep.last_checked | format_dt("%Y-%m-%d") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted" style="font-size:8.5pt; padding:8px 0;">No reputation data available.</p>
+  {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 8 — TIMELINE
+════════════════════════════════════════════════════════════ -->
+<div class="section section--breakable page-break-before">
+  <div class="section__header">
+    <span class="section__number">08</span>
+    <span class="section__title">Investigation Timeline
+      <span class="text-muted" style="font-size:9pt;font-weight:400;">({{ timeline_event_count }} events)</span>
+    </span>
+  </div>
+
+  {% if report.timeline %}
+  <div class="timeline">
+    {% for event in report.timeline %}
+    <div class="timeline__event">
+      <div class="timeline__dot"></div>
+      <div class="timeline__time">{{ event.timestamp | format_dt }}</div>
+      <div class="timeline__type">{{ event.event_type }}</div>
+      <div class="timeline__desc">{{ event.description }}</div>
+      {% if event.actor %}
+      <div class="timeline__actor">↳ {{ event.actor }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted" style="font-size:8.5pt; padding:8px 0;">No timeline events recorded.</p>
+  {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 9 — CORRELATION GRAPH
+════════════════════════════════════════════════════════════ -->
+<div class="section section--breakable">
+  <div class="section__header">
+    <span class="section__number">09</span>
+    <span class="section__title">Threat Correlation Graph
+      <span class="text-muted" style="font-size:9pt;font-weight:400;">
+        {{ graph_node_count }} nodes · {{ graph_edge_count }} edges
+      </span>
+    </span>
+  </div>
+
+  <div class="graph-section">
+    <!-- Nodes table -->
+    <div>
+      <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">Nodes</p>
+      {% if report.correlation_graph.nodes %}
+      <table class="data-table">
+        <thead>
+          <tr><th>Label</th><th>Type</th><th>Threat Score</th></tr>
+        </thead>
+        <tbody>
+          {% for node in report.correlation_graph.nodes %}
+          <tr>
+            <td class="font-mono">{{ node.label | truncate_str(30) }}</td>
+            <td><span class="badge badge--neutral">{{ node.node_type | upper }}</span></td>
+            <td style="color:{{ node.threat_score | score_colour }};font-weight:600;">
+              {{ node.threat_score | round(1) }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted" style="font-size:8.5pt;">No nodes.</p>
+      {% endif %}
+    </div>
+
+    <!-- Edges table -->
+    <div>
+      <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">Edges / Relationships</p>
+      {% if report.correlation_graph.edges %}
+      <table class="data-table">
+        <thead>
+          <tr><th>From</th><th>Relationship</th><th>To</th><th>Conf.</th></tr>
+        </thead>
+        <tbody>
+          {% for edge in report.correlation_graph.edges %}
+          <tr>
+            <td class="font-mono" style="font-size:7pt;">{{ edge.source_id | truncate_str(20) }}</td>
+            <td style="font-size:7.5pt;color:var(--c-accent);">{{ edge.relationship }}</td>
+            <td class="font-mono" style="font-size:7pt;">{{ edge.target_id | truncate_str(20) }}</td>
+            <td>{{ (edge.confidence * 100) | round | int }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted" style="font-size:8.5pt;">No edges.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 10 — INVESTIGATION EVIDENCE
+════════════════════════════════════════════════════════════ -->
+<div class="section section--breakable page-break-before">
+  <div class="section__header">
+    <span class="section__number">10</span>
+    <span class="section__title">Investigation Evidence</span>
+  </div>
+
+  <!-- Cryptographic hashes -->
+  <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">Email Body Hashes</p>
+  <div style="border:1px solid var(--c-border);border-radius:6px;overflow:hidden;margin-bottom:12px;">
+    {% for algo, value in report.evidence.hashes.items() %}
+    <div class="hash-row">
+      <span class="hash-algo">{{ algo | upper }}</span>
+      <span class="hash-value">{{ value }}</span>
+    </div>
+    {% endfor %}
+    {% if not report.evidence.hashes %}
+    <div class="hash-row"><span class="text-muted">No hashes recorded.</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Extracted IPs -->
+  {% if report.evidence.extracted_ips %}
+  <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">Extracted IPs from Headers</p>
+  <div style="margin-bottom:12px;">
+    <div class="tag-list">
+      {% for ip in report.evidence.extracted_ips %}
+      <span class="tag font-mono">{{ ip }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Extracted URLs -->
+  {% if report.evidence.extracted_urls %}
+  <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">
+    Extracted URLs ({{ report.evidence.extracted_urls | length }})
+  </p>
+  <div style="margin-bottom:12px;">
+    <div class="tag-list">
+      {% for url in report.evidence.extracted_urls[:20] %}
+      <span class="tag font-mono" style="font-size:6pt;">{{ url | truncate_str(60) }}</span>
+      {% endfor %}
+      {% if report.evidence.extracted_urls | length > 20 %}
+      <span class="text-muted" style="font-size:7.5pt;">
+        … and {{ report.evidence.extracted_urls | length - 20 }} more (see JSON report)
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Attachments -->
+  {% if report.evidence.attachments %}
+  <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">Attachments</p>
+  <table class="data-table mb-12">
+    <thead>
+      <tr><th>Filename</th><th>MIME Type</th><th>Size</th><th>Hash (SHA256)</th></tr>
+    </thead>
+    <tbody>
+      {% for att in report.evidence.attachments %}
+      <tr>
+        <td>{{ att.get("filename", "Unknown") }}</td>
+        <td class="font-mono">{{ att.get("mime_type", "Unknown") }}</td>
+        <td>{{ att.get("size_bytes", "?") }} bytes</td>
+        <td class="font-mono" style="font-size:7pt;">{{ att.get("sha256", "N/A") | truncate_str(40) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Raw headers preview -->
+  <p class="text-muted mb-8" style="font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;">Raw Email Headers (Preview)</p>
+  <div class="mono-block">{{ raw_headers_preview }}</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     REPORT INTEGRITY FOOTER
+════════════════════════════════════════════════════════════ -->
+<div class="integrity-block" style="margin-top:24px; page-break-inside:avoid;">
+  <div class="integrity-block__title">Report Integrity — SHA-256 Hash</div>
+  <div class="integrity-block__hash">{{ report.report_hash }}</div>
+  <div class="text-muted" style="font-size:7pt;margin-top:6px;">
+    This hash covers all report content (excluding report_id, generated_at, and the hash itself).
+    Verify with: <span class="font-mono">GET /api/report/json/{{ report.investigation_id }}</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,95 @@
+# ============================================================
+# TraceMail AI — Member 6: Docker
+# File: member6/docker/Dockerfile.backend
+#
+# Multi-stage Docker image for the FastAPI backend + Reports Engine.
+# Stage 1: builder  — install deps in isolation
+# Stage 2: runtime  — minimal production image
+#
+# WeasyPrint system dependencies (libpango, libcairo) are installed
+# in the runtime stage for PDF generation.
+#
+# Build:  docker build -f member6/docker/Dockerfile.backend -t tracemail-ai/backend .
+# Run:    docker run -p 8000:8000 tracemail-ai/backend
+# ============================================================
+
+# ── Stage 1: Builder ─────────────────────────────────────────
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+# Install build essentials
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt* ./
+RUN pip install --upgrade pip && \
+    pip install --prefix=/install --no-cache-dir \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    pydantic-settings \
+    jinja2 \
+    weasyprint \
+    jsonschema \
+    httpx \
+    python-multipart \
+    psycopg2-binary \
+    sqlalchemy \
+    alembic \
+    python-jose[cryptography] \
+    passlib[bcrypt]
+
+# ── Stage 2: Runtime ─────────────────────────────────────────
+FROM python:3.12-slim AS runtime
+
+LABEL maintainer="SIH26106 Member 6 — Reports & QA"
+LABEL org.opencontainers.image.title="TraceMail AI Backend"
+LABEL org.opencontainers.image.description="FastAPI backend + Reports Engine"
+LABEL org.opencontainers.image.version="1.0.0"
+
+# WeasyPrint system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    libgirepository1.0-dev \
+    shared-mime-info \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
+# Non-root user for security
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/bash --create-home appuser
+
+WORKDIR /app
+
+# Copy application code
+COPY --chown=appuser:appgroup . .
+
+USER appuser
+
+# Environment defaults
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8000 \
+    LOG_LEVEL=info \
+    PYTHONPATH=/app
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+CMD ["uvicorn", "app.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--log-level", "info", \
+     "--proxy-headers", \
+     "--forwarded-allow-ips", "*"]

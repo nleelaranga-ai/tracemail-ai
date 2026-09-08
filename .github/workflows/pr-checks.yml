@@ -1,0 +1,161 @@
+# ============================================================
+# TraceMail AI — Member 6: CI/CD
+# File: .github/workflows/pr-checks.yml
+#
+# PR gate workflow — runs on every pull request.
+# BLOCKS merge when any check fails.
+# Posts test summary as PR comment.
+# ============================================================
+
+name: "PR Gate — Block Merge on Failure"
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Quick lint gate — fails fast
+  pr-lint:
+    name: "🔎 Lint Gate"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install lint tools
+        run: pip install ruff mypy pydantic
+
+      - name: Ruff lint
+        run: ruff check member6/ --output-format=github
+
+      - name: Ruff format check
+        run: ruff format member6/ --check
+
+      - name: Mypy type check
+        run: mypy member6/ --ignore-missing-imports --exclude member6/tests/e2e
+
+  # Full test gate
+  pr-test:
+    name: "🧪 Full Test Gate"
+    runs-on: ubuntu-latest
+    needs: pr-lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install all dependencies
+        run: |
+          pip install \
+            pytest pytest-cov pytest-asyncio \
+            pydantic jinja2 jsonschema httpx fastapi
+
+      - name: Run all pytest suites
+        id: pytest
+        run: |
+          pytest member6/tests/ \
+            -v \
+            --tb=short \
+            -m "not pdf" \
+            --cov=member6/reports \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=75 \
+            --junitxml=test-results/pr-results.xml \
+            2>&1 | tee pytest-output.txt
+
+      - name: Post test results as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.existsSync('pytest-output.txt')
+              ? fs.readFileSync('pytest-output.txt', 'utf8').slice(-3000)
+              : 'No output available.';
+            const status = '${{ steps.pytest.outcome }}' === 'success' ? '✅' : '❌';
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ${status} Member 6 — Test Results\n\`\`\`\n${output}\n\`\`\``,
+            });
+
+      - name: Upload test results artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-test-results
+          path: |
+            test-results/pr-results.xml
+            coverage.xml
+
+  # Schema drift check
+  pr-schema:
+    name: "📐 Schema Drift"
+    runs-on: ubuntu-latest
+    needs: pr-lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install pydantic jsonschema
+      - name: Check schema drift
+        run: python -m member6.reports.schemas.report_schema --check-drift
+
+  # TypeScript check
+  pr-typescript:
+    name: "📘 TypeScript Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install & type check
+        working-directory: member6/tests/e2e
+        run: |
+          npm ci
+          npx tsc --noEmit
+
+  # Final merge gate — required status check
+  pr-gate:
+    name: "🚦 PR Merge Gate"
+    runs-on: ubuntu-latest
+    needs:
+      - pr-lint
+      - pr-test
+      - pr-schema
+      - pr-typescript
+    if: always()
+    steps:
+      - name: Evaluate gate
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          if echo "$results" | grep -q "failure\|cancelled"; then
+            echo "❌ PR gate FAILED. Merge is blocked."
+            echo "Failed jobs: $results"
+            exit 1
+          fi
+          echo "✅ PR gate PASSED. Merge is allowed."
