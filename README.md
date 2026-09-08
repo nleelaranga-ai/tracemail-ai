@@ -50,18 +50,32 @@
 
 ---
 
-## 👥 Engineering Team & Module Matrix
+---
+
+## 👥 Project Team & Contributors
+
+> Meet the contributors building TraceMail AI: see the full [**Team Contributors Board with Photos**](docs/CONTRIBUTORS.md).
 
 | # | Role / Module | Module Owned | Primary Folder | Tech Stack |
 |---|---------------|--------------|----------------|------------|
 | 1 | **Frontend Team** | Dashboard & UI Lead | `frontend/` | Next.js 15 (App Router), Tailwind CSS, shadcn/ui |
-| 2 | **Backend Team** | Hub Architecture & Database | `backend/` | FastAPI, PostgreSQL 16, Prisma/SQLAlchemy |
+| 2 | **Backend Team** | Hub Architecture & Database | `backend/` | FastAPI, PostgreSQL 16, SQLAlchemy, Redis |
 | 3 | **AI Engine Team** | Phishing Detection & LLM | `ai-engine/` | Hugging Face Transformers, Groq API (LLaMA 3) |
 | 4 | **Threat Intelligence Team** | Cybersecurity & Integration | `threat_intelligence/`, `shared/`, `scripts/` | Python 3.12, VirusTotal, AbuseIPDB, dnspython, whois |
 | 5 | **Maps & Attack Graph Team** | Spatial & Graph Visualization | `maps-engine/` | Leaflet GeoJSON, Recharts, Neo4j Graph |
 | 6 | **Reports & Forensics Team** | Digital Forensics Reports | `reports/`, `docs/` | WeasyPrint / ReportLab PDF generator |
 
 ---
+
+## 📚 Project Documentation
+
+- 👥 [**Team Contributors & Responsibilities**](docs/CONTRIBUTORS.md)
+- 📡 [**REST API Specification**](docs/API.md)
+- 🛠️ [**Setup & Installation Guide**](docs/SETUP.md)
+- 🔀 [**Git Branching & Development Workflow**](docs/WORKFLOW.md)
+- 🛡️ [**Security Architecture & Standards**](docs/SECURITY.md)
+- 🏛️ [**Master Architecture & Contracts**](ARCHITECTURE.md)
+
 
 ## ⚡ Quickstart Guide
 
