@@ -54,7 +54,22 @@
 
 ## 👥 Project Team & Contributors
 
-> Meet the contributors building TraceMail AI: see the full [**Team Contributors Board with Photos**](docs/CONTRIBUTORS.md).
+<p align="left">
+  <a href="https://github.com/nleelaranga-ai">
+    <img src="https://github.com/nleelaranga-ai.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="nleelaranga-ai" title="nleelaranga-ai • Threat Intelligence & Integration Lead"/>
+  </a>
+  <a href="https://github.com/anisha1777">
+    <img src="https://github.com/anisha1777.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="anisha1777" title="anisha1777 • Frontend UI Lead"/>
+  </a>
+  <a href="https://github.com/kollitarak06-hub">
+    <img src="https://github.com/kollitarak06-hub.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="kollitarak06-hub" title="kollitarak06-hub • AI Engine Lead"/>
+  </a>
+  <a href="https://github.com/RadhaReshma">
+    <img src="https://github.com/RadhaReshma.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="RadhaReshma" title="RadhaReshma • Maps & Reports Lead"/>
+  </a>
+</p>
+
+> Meet the full engineering team and individual responsibility profiles: [**docs/CONTRIBUTORS.md**](docs/CONTRIBUTORS.md).
 
 | # | Role / Module | Module Owned | Primary Folder | Tech Stack |
 |---|---------------|--------------|----------------|------------|

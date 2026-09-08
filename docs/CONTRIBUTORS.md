@@ -4,41 +4,63 @@
 
 ---
 
-## 🏛️ Project Team
+## 🏛️ Project Team & Active Contributors
+
+<p align="center">
+  <a href="https://github.com/nleelaranga-ai" target="_blank">
+    <img src="https://github.com/nleelaranga-ai.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="nleelaranga-ai" title="nleelaranga-ai • Threat Intelligence & Integration Lead"/>
+  </a>
+  <a href="https://github.com/anisha1777" target="_blank">
+    <img src="https://github.com/anisha1777.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="anisha1777" title="anisha1777 • Frontend UI Lead"/>
+  </a>
+  <a href="https://github.com/kollitarak06-hub" target="_blank">
+    <img src="https://github.com/kollitarak06-hub.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="kollitarak06-hub" title="kollitarak06-hub • AI Engine Lead"/>
+  </a>
+  <a href="https://github.com/RadhaReshma" target="_blank">
+    <img src="https://github.com/RadhaReshma.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="RadhaReshma" title="RadhaReshma • Maps & Reports Lead"/>
+  </a>
+</p>
+
+---
+
+## 📋 Module Ownership Cards
 
 <table>
 <tr>
 
 <td align="center" width="33%">
-<img src="../assets/team/leader.jpg" width="140px" style="border-radius: 50%;" alt="Team Lead"/>
+<a href="https://github.com/nleelaranga-ai">
+<img src="https://github.com/nleelaranga-ai.png" width="130px" style="border-radius: 50%;" alt="nleelaranga-ai"/>
+</a>
 
-### Team Lead
+### Threat Intelligence & Integration Lead
+**[@nleelaranga-ai](https://github.com/nleelaranga-ai)**
 
-**Frontend & Project Management**
-
-UI/UX • Next.js 15 • GitHub Management • Integration Coordination
-
-</td>
-
-<td align="center" width="33%">
-<img src="../assets/team/backend.jpg" width="140px" style="border-radius: 50%;" alt="Backend Team"/>
-
-### Backend Team
-
-**FastAPI • PostgreSQL • Redis**
-
-REST APIs • Authentication • Database • Microservice Orchestration
+VirusTotal v3 • AbuseIPDB • WHOIS • Architecture • Integration
 
 </td>
 
 <td align="center" width="33%">
-<img src="../assets/team/ai.jpg" width="140px" style="border-radius: 50%;" alt="AI Engine Team"/>
+<a href="https://github.com/anisha1777">
+<img src="https://github.com/anisha1777.png" width="130px" style="border-radius: 50%;" alt="anisha1777"/>
+</a>
 
-### AI Engine Team
+### Frontend UI Lead
+**[@anisha1777](https://github.com/anisha1777)**
 
-**Machine Learning & NLP**
+Next.js 15 • Tailwind CSS • Dashboard UI • Upload Flows
 
-Phishing Classification • Transformers • LLM Forensic Explanations
+</td>
+
+<td align="center" width="33%">
+<a href="https://github.com/kollitarak06-hub">
+<img src="https://github.com/kollitarak06-hub.png" width="130px" style="border-radius: 50%;" alt="kollitarak06-hub"/>
+</a>
+
+### AI Engine Lead
+**[@kollitarak06-hub](https://github.com/kollitarak06-hub)**
+
+Machine Learning • Phishing Classifiers • NLP Explanations
 
 </td>
 
@@ -47,35 +69,34 @@ Phishing Classification • Transformers • LLM Forensic Explanations
 <tr>
 
 <td align="center" width="33%">
-<img src="../assets/team/threat.jpg" width="140px" style="border-radius: 50%;" alt="Threat Intelligence Team"/>
+<img src="../assets/team/backend.jpg" width="130px" style="border-radius: 50%;" alt="Backend Team"/>
 
-### Threat Intelligence Team
+### Backend Team
+**FastAPI • PostgreSQL • Redis**
 
-**Cyber Threat Intelligence & OSINT**
-
-VirusTotal v3 • WHOIS • AbuseIPDB • DNS Auth (SPF/DKIM/DMARC)
+REST Gateway • Authentication • MIME Parsing • Downstream Orchestration
 
 </td>
 
 <td align="center" width="33%">
-<img src="../assets/team/maps.jpg" width="140px" style="border-radius: 50%;" alt="Maps Engine Team"/>
+<a href="https://github.com/RadhaReshma">
+<img src="https://github.com/RadhaReshma.png" width="130px" style="border-radius: 50%;" alt="RadhaReshma"/>
+</a>
 
-### Maps & Graph Team
-
-**Attack Path Visualization**
+### Maps & Attack Graph Lead
+**[@RadhaReshma](https://github.com/RadhaReshma)**
 
 GeoJSON Paths • Server Hop Timeline • Attack Graph Topology
 
 </td>
 
 <td align="center" width="33%">
-<img src="../assets/team/reports.jpg" width="140px" style="border-radius: 50%;" alt="Reports & Forensics Team"/>
+<img src="../assets/team/reports.jpg" width="130px" style="border-radius: 50%;" alt="Reports Team"/>
 
-### Reports & Forensics Team
+### Reports & QA Lead
+**Forensics & CI/CD**
 
-**Digital Forensics & QA**
-
-PDF/JSON Forensic Reports • CERT-In Schema • CI/CD & Testing
+PDF/JSON Forensic Reports • CERT-In Schema • Automated Testing
 
 </td>
 
@@ -84,16 +105,16 @@ PDF/JSON Forensic Reports • CERT-In Schema • CI/CD & Testing
 
 ---
 
-## 📋 Responsibilities Matrix
+## 📊 Responsibilities Matrix
 
-| Team Module | Primary Responsibilities | Key Technologies |
+| Contributor / Team | Primary Responsibilities | Key Technologies |
 |:---|:---|:---|
-| **🎨 Frontend Team** | User dashboard, upload interface, authentication UI, responsive visualizations | Next.js 15, React, Tailwind CSS, TypeScript |
-| **⚙️ Backend Team** | Central REST API gateway, JWT auth, PostgreSQL/Redis, MIME parsing, downstream orchestration | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, Docker |
-| **🤖 AI Engine Team** | Email phishing classification, NLP feature extraction, natural language explanations | Transformers, PyTorch, Groq / Llama 3, Scikit-learn |
-| **🛡️ Threat Intelligence Team** | IOC extraction, multi-provider reputation scoring (VT, AbuseIPDB, WHOIS, DNS) | Python, dnspython, python-whois, REST clients |
-| **🌍 Maps & Graph Team** | Mail server relay path tracing, GeoJSON generation, attack graph node/edge topology | GeoJSON, NetworkX, Leaflet / D3.js data structures |
-| **📄 Reports & Forensics Team** | Executive and technical PDF report generation, machine-readable JSON exports, CI/CD pipelines | ReportLab, Jinja2, Pytest, GitHub Actions |
+| **[@nleelaranga-ai](https://github.com/nleelaranga-ai)** | Threat Intelligence Engine, IOC Enrichment, Master API Contracts, Docker Infrastructure | Python 3.12, VirusTotal, AbuseIPDB, dnspython, Docker |
+| **[@anisha1777](https://github.com/anisha1777)** | Next.js 15 Web Dashboard, Email Upload interface, Verdict badges, UI/UX | Next.js 15, Tailwind CSS, TypeScript, TanStack Query |
+| **[@kollitarak06-hub](https://github.com/kollitarak06-hub)** | Machine Learning phishing model, NLP feature extraction, explanation engine | Transformers, Scikit-learn, PyTorch, Groq LLaMA 3 |
+| **Backend Team** | Central REST API gateway, JWT auth, PostgreSQL/Redis, MIME parsing, downstream orchestration | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, Docker |
+| **[@RadhaReshma](https://github.com/RadhaReshma)** | Mail server relay path tracing, GeoJSON generation, attack graph node/edge topology | GeoJSON, Leaflet / D3.js data structures, NetworkX |
+| **Reports & Forensics Team** | Executive and technical PDF report generation, machine-readable JSON exports, CI/CD pipelines | ReportLab, Jinja2, Pytest, GitHub Actions |
 
 ---
 
@@ -112,12 +133,11 @@ graph LR
     Backend -->|Unified JSON Response| Frontend
 ```
 
-Every module communicates strictly through the **Master API Contracts** defined in [`ARCHITECTURE.md`](../ARCHITECTURE.md).
-
 ---
 
-## 🤝 Code of Collaboration
+## 💡 How GitHub Populates the "Contributors" Sidebar
 
-1. **Role Ownership**: Every team member strictly owns their respective directory module. Cross-module alterations require formal Pull Request reviews.
-2. **Contract Stability**: The JSON schemas defined in Section 6 of the architecture cannot be modified without team consensus.
-3. **Continuous Integration**: Every feature branch must pass GitHub Actions testing before merging into `develop`.
+GitHub automatically generates the **Contributors** sidebar widget on the repository homepage:
+1. Each teammate authors commits using the email address linked to their GitHub account (`git config user.email`).
+2. Their feature branch is merged via a **Pull Request into `develop` / `main`**.
+3. Once merged into the default branch, GitHub's analytics engine immediately places their circular avatar into the official **Contributors** sidebar.
