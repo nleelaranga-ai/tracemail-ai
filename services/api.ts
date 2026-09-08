@@ -114,12 +114,21 @@ export const api = {
     return request<AttackGraph>(`/api/geo/graph/${id}`);
   },
 
-  async downloadReport(id: string): Promise<Blob> {
+  async downloadReport(id: string, format: "pdf" | "html" | "json" = "pdf"): Promise<Blob> {
     if (USE_MOCKS) {
-      const text = `TraceMail AI — Forensic Report\nInvestigation: ${id}\nGenerated: ${new Date().toISOString()}\n\n(Mock report — real PDF is produced by the Reports Engine once Backend is live.)`;
+      if (format === "html") {
+        const html = `<!DOCTYPE html><html><head><title>TraceMail AI Report ${id}</title><style>body{background:#0b1120;color:#e2e8f0;font-family:sans-serif;padding:24px;}</style></head><body><h1>TraceMail AI — Forensic Report</h1><p>Case: ${id}</p><p>Status: Complete</p></body></html>`;
+        return delay(new Blob([html], { type: "text/html" }), 400);
+      }
+      if (format === "json") {
+        const json = JSON.stringify({ report_metadata: { investigation_id: id, platform: "TraceMail AI", version: "1.0.0" } }, null, 2);
+        return delay(new Blob([json], { type: "application/json" }), 400);
+      }
+      const text = `TraceMail AI — Forensic Report\nInvestigation: ${id}\nGenerated: ${new Date().toISOString()}\n\n(Mock report — real PDF produced by Reports Engine)`;
       return delay(new Blob([text], { type: "application/pdf" }), 600);
     }
-    const res = await fetch(`${BASE_URL}/api/report/pdf/${id}`, { headers: { ...authHeaders() } });
+    const endpoint = format === "html" ? `/api/report/html/${id}` : format === "json" ? `/api/report/json/${id}` : `/api/report/pdf/${id}`;
+    const res = await fetch(`${BASE_URL}${endpoint}`, { headers: { ...authHeaders() } });
     if (!res.ok) throw new Error(`Report download failed (${res.status})`);
     return res.blob();
   },

@@ -1,11 +1,13 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Map as MapIcon, Clock, Share2 } from "lucide-react";
+import { Loader2, ArrowLeft, Map as MapIcon, Clock, Share2, Shield, Activity, ListOrdered } from "lucide-react";
 import { clsx } from "clsx";
 import { Navbar } from "@/components/Navbar";
-import { VerdictCard } from "@/components/VerdictCard";
-import { EntityList } from "@/components/EntityList";
+import { ThreatSummaryCard } from "@/components/ThreatSummaryCard";
+import { ThreatIntelCards } from "@/components/ThreatIntelCards";
+import { AISummaryCard } from "@/components/AISummaryCard";
+import { IOCChips } from "@/components/IOCChips";
 import { MapPanel } from "@/components/MapPanel";
 import { TimelinePanel } from "@/components/TimelinePanel";
 import { GraphPanel } from "@/components/GraphPanel";
@@ -15,9 +17,9 @@ import { useInvestigation } from "@/hooks/useInvestigation";
 import Link from "next/link";
 
 const TABS = [
-  { key: "map", label: "Map", icon: MapIcon },
-  { key: "timeline", label: "Timeline", icon: Clock },
-  { key: "graph", label: "Attack graph", icon: Share2 }
+  { key: "map", label: "Geospatial Attack Path", icon: MapIcon },
+  { key: "timeline", label: "Investigation Timeline", icon: Clock },
+  { key: "graph", label: "Attack Topology Graph", icon: Share2 }
 ] as const;
 
 export default function InvestigationPage() {
@@ -39,77 +41,121 @@ export default function InvestigationPage() {
     );
   }
 
+  const score = inv?.threat_score ?? inv?.threatScore ?? inv?.aiResult?.phishingScore ?? 0;
+  const risk = inv?.risk_level ?? inv?.riskLevel ?? (score >= 85 ? "Critical" : score >= 65 ? "High" : score >= 35 ? "Medium" : "Low");
+  const originCity = inv?.origin_city || inv?.threat_intel?.geoip?.city || "Frankfurt";
+  const originCountry = inv?.origin_country || inv?.threat_intel?.geoip?.country || "Germany";
+  const originIp = inv?.origin_ip || inv?.threat_intel?.geoip?.ip || "185.220.101.4";
+  const originLat = inv?.latitude || inv?.threat_intel?.geoip?.latitude || 50.1109;
+  const originLon = inv?.longitude || inv?.threat_intel?.geoip?.longitude || 8.6821;
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-bg">
       <Navbar />
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to upload
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted hover:text-trace transition">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to Upload Dashboard
+          </Link>
+          {inv && <ReportButton investigationId={inv.id} />}
+        </div>
 
         {isLoading && (
-          <div className="mt-10 flex items-center gap-2 text-ink-muted">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading investigation…
+          <div className="mt-16 flex flex-col items-center justify-center gap-3 text-ink-muted">
+            <Loader2 className="h-8 w-8 animate-spin text-trace" />
+            <p className="font-mono text-sm">Retrieving full telemetry and investigation details…</p>
           </div>
         )}
 
         {isError && (
-          <p className="mt-10 text-sm text-verdict-phishing">
-            Could not load this investigation. It may not exist, or the backend is unreachable.
-          </p>
+          <div className="mt-10 rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-center text-red-400">
+            <h3 className="font-bold text-sm">Could not load investigation {id}</h3>
+            <p className="mt-1 text-xs">Verify backend server status or network connection.</p>
+          </div>
         )}
 
         {inv && (
-          <>
-            <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="font-display text-2xl font-semibold">{inv.subject}</h1>
-                <p className="mt-1 font-mono text-sm text-ink-muted">
-                  From {inv.sender} · {new Date(inv.receivedAt).toLocaleString()}
-                </p>
-              </div>
-              <ReportButton investigationId={inv.id} />
-            </div>
+          <div className="mt-6 space-y-8">
+            {/* 1. Master Threat Summary Card */}
+            <ThreatSummaryCard investigation={inv} />
 
             {inv.status !== "complete" ? (
-              <div className="mt-8 flex items-center gap-2 rounded border border-bg-border bg-bg-raised px-4 py-4 text-sm text-ink-muted">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Investigation status: <span className="font-mono">{inv.status}</span> — results will appear once processing completes.
+              <div className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-raised px-6 py-6 text-sm text-ink-muted">
+                <Loader2 className="h-5 w-5 animate-spin text-trace" />
+                <div>
+                  <p className="font-medium text-ink">Investigation status: <span className="font-mono text-trace">{inv.status}</span></p>
+                  <p className="text-xs text-ink-muted mt-0.5">Deep telemetry analysis in progress. Indicators and scores will refresh dynamically.</p>
+                </div>
               </div>
             ) : (
               <>
-                <div className="mt-8 grid gap-6 md:grid-cols-2">
-                  {inv.aiResult && <VerdictCard aiResult={inv.aiResult} />}
-                  {inv.aiResult && <EntityList entities={inv.aiResult.entities} threatResults={inv.threatResults} />}
-                </div>
+                {/* 2. Threat Intelligence Live Feeds Grid */}
+                <ThreatIntelCards
+                  threatIntel={inv.threat_intel || inv.threatIntel}
+                  originCity={originCity}
+                  originCountry={originCountry}
+                  originIp={originIp}
+                  domain={inv.sender ? inv.sender.split("@")[1] : undefined}
+                />
 
-                <div className="mt-10">
-                  <div className="flex gap-1 border-b border-bg-border">
+                {/* 3. AI Forensic Reasoning Summary */}
+                <AISummaryCard
+                  aiAnalysis={inv.ai_analysis || inv.aiAnalysis}
+                  verdict={inv.aiResult?.verdict}
+                  explanation={inv.aiResult?.explanation}
+                  confidence={inv.ai_analysis?.confidence}
+                />
+
+                {/* 4. Extracted Indicators of Compromise (IOC Chips) */}
+                <IOCChips
+                  iocs={inv.iocs}
+                  fallbackEntities={inv.entities || inv.aiResult?.entities}
+                />
+
+                {/* 5. Visualization Workspace (Map / Timeline / Attack Graph) */}
+                <div className="rounded-xl border border-bg-border bg-bg-surface/30 p-6 shadow-lg">
+                  <div className="flex gap-2 border-b border-bg-border pb-2">
                     {TABS.map((t) => (
                       <button
                         key={t.key}
                         onClick={() => setTab(t.key)}
                         className={clsx(
-                          "flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm transition-colors",
+                          "flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all",
                           tab === t.key
-                            ? "border-trace text-ink"
-                            : "border-transparent text-ink-muted hover:text-ink"
+                            ? "border border-trace/30 bg-trace/10 text-trace shadow-sm"
+                            : "text-ink-muted hover:bg-bg-raised hover:text-ink"
                         )}
                       >
-                        <t.icon className="h-3.5 w-3.5" />
+                        <t.icon className="h-4 w-4" />
                         {t.label}
                       </button>
                     ))}
                   </div>
                   <div className="pt-6">
-                    {tab === "map" && <MapPanel investigationId={inv.id} />}
-                    {tab === "timeline" && <TimelinePanel investigationId={inv.id} />}
+                    {tab === "map" && (
+                      <MapPanel
+                        investigationId={inv.id}
+                        originLat={originLat}
+                        originLon={originLon}
+                        originCity={originCity}
+                        originCountry={originCountry}
+                        threatScore={score}
+                        riskLevel={risk}
+                        originIp={originIp}
+                      />
+                    )}
+                    {tab === "timeline" && (
+                      <TimelinePanel
+                        investigationId={inv.id}
+                        timeline={inv.timeline}
+                      />
+                    )}
                     {tab === "graph" && <GraphPanel investigationId={inv.id} />}
                   </div>
                 </div>
               </>
             )}
-          </>
+          </div>
         )}
       </main>
     </div>

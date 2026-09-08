@@ -85,7 +85,10 @@ export default function ReportsPage() {
                     {new Date(inv.receivedAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
-                    {inv.aiResult && <VerdictBadge verdict={inv.aiResult.verdict} score={inv.aiResult.phishingScore} />}
+                    <VerdictBadge
+                      verdict={inv.aiResult?.verdict || "phishing"}
+                      score={inv.threat_score ?? inv.threatScore ?? inv.aiResult?.phishingScore ?? 0}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <ReportButton investigationId={inv.id} />

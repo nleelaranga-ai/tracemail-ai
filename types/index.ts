@@ -41,10 +41,94 @@ export interface ThreatResult {
   malicious: boolean;
 }
 
+export interface VirusTotalSummary {
+  positives?: number;
+  total_engines?: number;
+  reputation?: number;
+  scan_date?: string;
+  permalink?: string;
+}
+
+export interface AbuseIPDBSummary {
+  abuse_confidence_score?: number;
+  total_reports?: number;
+  is_whitelisted?: boolean;
+  last_reported_at?: string;
+}
+
+export interface WHOISSummary {
+  domain?: string;
+  registrar?: string;
+  creation_date?: string;
+  domain_age_days?: number | null;
+  registrant_country?: string;
+}
+
+export interface DNSSummary {
+  spf?: string;
+  dkim?: string;
+  dmarc?: string;
+  mx_records?: string[];
+}
+
+export interface URLScanSummary {
+  malicious?: boolean;
+  score?: number;
+  verdicts?: {
+    overall?: {
+      malicious?: boolean;
+      score?: number;
+      categories?: string[];
+    };
+  };
+}
+
+export interface GeoIPSummary {
+  ip?: string;
+  country?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  isp?: string;
+  asn?: string;
+}
+
+export interface ThreatIntelBundle {
+  virustotal?: VirusTotalSummary;
+  abuseipdb?: AbuseIPDBSummary;
+  whois?: WHOISSummary;
+  dns?: DNSSummary;
+  urlscan?: URLScanSummary;
+  geoip?: GeoIPSummary;
+}
+
+export interface AIAnalysisSummary {
+  prediction: "phishing" | "suspicious" | "safe";
+  confidence: number;
+  summary: string;
+  reasons: string[];
+}
+
+export interface DynamicTimelineStep {
+  step: number;
+  name: string;
+  detail: string;
+  status: "completed" | "in_progress" | "pending" | "failed";
+  timestamp?: string;
+}
+
+export interface IOCChipItem {
+  type: "url" | "ip" | "domain" | "hash" | "attachment";
+  value: string;
+  malicious: boolean;
+  category?: string;
+}
+
 export interface Investigation {
   id: string;
   status: InvestigationStatus;
   sender: string;
+  recipient?: string;
   subject: string;
   receivedAt: string;
   aiResult: AiResult | null;
@@ -53,6 +137,25 @@ export interface Investigation {
   timelineUrl: string | null;
   graphUrl: string | null;
   reportUrl: string | null;
+
+  // Dynamic Unified Intelligence Properties
+  threat_score?: number;
+  threatScore?: number;
+  risk_level?: "Low" | "Medium" | "High" | "Critical";
+  riskLevel?: "Low" | "Medium" | "High" | "Critical";
+  origin_ip?: string;
+  origin_city?: string;
+  origin_country?: string;
+  latitude?: number;
+  longitude?: number;
+  threat_intel?: ThreatIntelBundle;
+  threatIntel?: ThreatIntelBundle;
+  ai_analysis?: AIAnalysisSummary;
+  aiAnalysis?: AIAnalysisSummary;
+  timeline?: DynamicTimelineStep[];
+  iocs?: IOCChipItem[];
+  entities?: Entity[] | { urls?: string[]; ips?: string[]; domains?: string[] };
+  auth_results?: { spf?: string; dkim?: string; dmarc?: string };
 }
 
 export interface GeoFeature {
