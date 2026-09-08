@@ -1,7 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "JSONReport",
-  "description": "Final structured JSON forensic report.\nThis is the output contract of the Reports Engine.",
   "$defs": {
     "AuthResultEnum": {
       "enum": [
@@ -1013,6 +1011,7 @@
       "type": "string"
     }
   },
+  "description": "Machine-readable JSON forensic report produced by the TraceMail AI Reports Engine (SIH26106 Member 6). Covers all 10 investigation sections.",
   "properties": {
     "report_id": {
       "description": "Unique report identifier (UUID v4)",
@@ -1108,5 +1107,6 @@
     "correlation_graph",
     "evidence"
   ],
+  "title": "TraceMail AI Forensic Report",
   "type": "object"
 }

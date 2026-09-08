@@ -20,10 +20,12 @@ WeasyPrint requires system libs (libpango, libcairo) — see Dockerfile.
 from __future__ import annotations
 
 import io
+import ipaddress
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -92,6 +94,61 @@ def _truncate(text: str | None, max_len: int = 80) -> str:
     if text is None:
         return "N/A"
     return text if len(text) <= max_len else text[:max_len - 3] + "..."
+
+
+def _safe_url_fetcher(url: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    """
+    Security-hardened URL fetcher for WeasyPrint.
+    Prevents SSRF, Local File Inclusion (LFI), and Cloud Metadata access.
+    Blocks:
+      - file:// (outside template directory)
+      - localhost, 127.0.0.1, 0.0.0.0, ::1
+      - 169.254.169.254 (cloud metadata)
+      - internal/private network IP ranges (RFC 1918)
+    """
+    parsed = urlparse(url)
+    scheme = parsed.scheme.lower()
+
+    if scheme == "file":
+        template_uri = _TEMPLATE_DIR.as_uri()
+        if not url.startswith(template_uri):
+            logger.warning("Blocked unsafe file:// access attempt: %s", url)
+            raise ValueError(f"Blocked unsafe local file access: {url}")
+        from weasyprint import default_url_fetcher  # type: ignore[import-untyped, import-not-found]
+        return default_url_fetcher(url, *args, **kwargs)
+
+    if scheme in ("http", "https"):
+        hostname = (parsed.hostname or "").lower()
+
+        # Block loopback, link-local, and cloud metadata hostnames
+        blocked_hosts = {
+            "localhost",
+            "127.0.0.1",
+            "0.0.0.0",
+            "::1",
+            "169.254.169.254",
+            "metadata.google.internal",
+            "instance-data",
+        }
+        if hostname in blocked_hosts or hostname.endswith(".localhost"):
+            logger.warning("Blocked SSRF attempt to internal host: %s", hostname)
+            raise ValueError(f"Blocked access to internal host: {hostname}")
+
+        # Check for private, link-local, loopback, or reserved IP addresses
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                logger.warning("Blocked private network fetch attempt: %s (%s)", url, ip)
+                raise ValueError(f"Blocked private network address: {ip}")
+        except ValueError:
+            # Domain name, not a direct IP literal
+            pass
+
+        from weasyprint import default_url_fetcher  # type: ignore[import-untyped, import-not-found]
+        return default_url_fetcher(url, *args, **kwargs)
+
+    logger.warning("Blocked unsupported/unsafe URL scheme: %s", scheme)
+    raise ValueError(f"Blocked unsafe protocol scheme: {scheme}")
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +268,11 @@ class PDFReportGenerator:
 
         try:
             pdf_bytes_io = io.BytesIO()
-            html_doc = HTML(string=html_content, base_url=base_url)
+            html_doc = HTML(
+                string=html_content,
+                base_url=base_url,
+                url_fetcher=_safe_url_fetcher,
+            )
             html_doc.write_pdf(pdf_bytes_io)
             pdf_bytes = pdf_bytes_io.getvalue()
         except Exception as exc:

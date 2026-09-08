@@ -104,6 +104,7 @@ class TestCleanEmailPipeline:
             VerdictEnum,
         )
 
+        case_summary.investigation_id = "INV-CLEAN-001"
         clean_payload = InvestigationPayload(
             investigation_id="INV-CLEAN-001",
             case_summary=case_summary,
@@ -121,8 +122,6 @@ class TestCleanEmailPipeline:
             correlation_graph=CorrelationGraph(),
             evidence=evidence,
         )
-        # Fix case_summary id for this test
-        clean_payload.case_summary.investigation_id = "INV-CLEAN-001"
 
         gen = JSONReportGenerator()
         report = gen.generate(clean_payload)

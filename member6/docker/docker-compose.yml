@@ -110,6 +110,7 @@ services:
 
   # ── Frontend (Next.js) ──────────────────────────────────────
   frontend:
+    profiles: ["frontend", "full"]
     build:
       context: ../..
       dockerfile: member6/docker/Dockerfile.frontend

@@ -26,6 +26,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from member6.reports.json.json_report import (
     InvestigationPayload,
@@ -183,7 +184,7 @@ async def get_pdf_report(
 
     try:
         report: JSONReport = json_gen.generate(investigation)
-        pdf_bytes: bytes = pdf_gen.generate_pdf(report)
+        pdf_bytes: bytes = await run_in_threadpool(pdf_gen.generate_pdf, report)
     except RuntimeError as exc:
         logger.exception("PDF generation failed for investigation_id=%s", investigationId)
         raise HTTPException(

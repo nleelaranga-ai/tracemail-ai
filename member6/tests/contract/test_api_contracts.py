@@ -64,14 +64,14 @@ class TestJSONReportContract:
     def test_response_conforms_to_schema(self, client, raw_payload):
         """Full schema validation — zero violations allowed."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         assert resp.status_code == 200
         assert_valid_report(resp.json())
 
     def test_required_top_level_fields(self, client, raw_payload):
         """All 15 required top-level fields must be present."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
 
         required = [
@@ -88,14 +88,14 @@ class TestJSONReportContract:
         """report_id must be a valid UUID v4 string."""
         import uuid
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         report_id = resp.json()["report_id"]
         uuid.UUID(report_id)  # raises if invalid
 
     def test_report_hash_is_64_char_hex(self, client, raw_payload):
         """report_hash must be a 64-character hexadecimal string (SHA-256)."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         report_hash = resp.json()["report_hash"]
         assert len(report_hash) == 64
         assert all(c in "0123456789abcdef" for c in report_hash.lower())
@@ -103,7 +103,7 @@ class TestJSONReportContract:
     def test_risk_score_contract(self, client, raw_payload):
         """risk_score must have: overall_score, verdict, confidence."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         rs = resp.json()["risk_score"]
         assert "overall_score" in rs
         assert "verdict" in rs
@@ -116,7 +116,7 @@ class TestJSONReportContract:
     def test_authentication_contract(self, client, raw_payload):
         """authentication must have SPF, DKIM, DMARC result fields."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         auth = resp.json()["authentication"]
         assert "spf_result" in auth
         assert "dkim_result" in auth
@@ -131,7 +131,7 @@ class TestJSONReportContract:
     def test_malicious_ips_contract(self, client, raw_payload):
         """malicious_ips must be a list; each item has ip and threat_score."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         ips = resp.json()["malicious_ips"]
         assert isinstance(ips, list)
         for ip in ips:
@@ -142,7 +142,7 @@ class TestJSONReportContract:
     def test_malicious_urls_contract(self, client, raw_payload):
         """malicious_urls must be a list; each item has url, domain, threat_score."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         urls = resp.json()["malicious_urls"]
         assert isinstance(urls, list)
         for url in urls:
@@ -153,7 +153,7 @@ class TestJSONReportContract:
     def test_timeline_contract(self, client, raw_payload):
         """timeline is a list; each event has timestamp, event_type, description."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         timeline = resp.json()["timeline"]
         assert isinstance(timeline, list)
         for event in timeline:
@@ -164,7 +164,7 @@ class TestJSONReportContract:
     def test_correlation_graph_contract(self, client, raw_payload):
         """correlation_graph must have nodes and edges lists."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         graph = resp.json()["correlation_graph"]
         assert "nodes" in graph
         assert "edges" in graph
@@ -174,7 +174,7 @@ class TestJSONReportContract:
     def test_evidence_contract(self, client, raw_payload):
         """evidence must have raw_headers, hashes, extracted_urls, extracted_ips."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         ev = resp.json()["evidence"]
         assert "raw_headers" in ev
         assert "hashes" in ev
@@ -184,7 +184,7 @@ class TestJSONReportContract:
     def test_case_summary_contract(self, client, raw_payload):
         """case_summary must have all core identification fields."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         cs = resp.json()["case_summary"]
         required_fields = [
             "investigation_id", "subject", "from_address",
@@ -196,7 +196,7 @@ class TestJSONReportContract:
     def test_sender_analysis_contract(self, client, raw_payload):
         """sender_analysis must have display_name, email_address, sender_domain."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         sa = resp.json()["sender_analysis"]
         for field in ["display_name", "email_address", "sender_domain"]:
             assert field in sa
@@ -204,7 +204,7 @@ class TestJSONReportContract:
     def test_reputation_scores_contract(self, client, raw_payload):
         """reputation_scores is a list; each has entity, score, is_blacklisted."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         reps = resp.json()["reputation_scores"]
         assert isinstance(reps, list)
         for rep in reps:
@@ -215,8 +215,8 @@ class TestJSONReportContract:
     def test_response_is_deterministic_in_structure(self, client, raw_payload):
         """Two identical requests must return the same structure (not same ID)."""
         inv_id = raw_payload["investigation_id"]
-        r1 = client.get(f"/api/report/json/{inv_id}", json=raw_payload).json()
-        r2 = client.get(f"/api/report/json/{inv_id}", json=raw_payload).json()
+        r1 = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload).json()
+        r2 = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload).json()
         # Same keys
         assert set(r1.keys()) == set(r2.keys())
         # Different report IDs (they're unique per call)

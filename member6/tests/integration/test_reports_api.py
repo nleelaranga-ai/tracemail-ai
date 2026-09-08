@@ -102,17 +102,17 @@ class TestJSONReportEndpoint:
 
     def test_json_report_returns_200(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         assert resp.status_code == 200
 
     def test_json_report_content_type(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         assert "application/json" in resp.headers["content-type"]
 
     def test_json_report_has_all_10_sections(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         required_keys = [
             "case_summary", "risk_score", "sender_analysis",
@@ -124,39 +124,40 @@ class TestJSONReportEndpoint:
 
     def test_json_report_has_report_id(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         assert "report_id" in data
         assert data["report_id"]
 
     def test_json_report_has_report_hash(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         assert "report_hash" in data
         assert len(data["report_hash"]) == 64  # SHA-256
 
     def test_json_report_investigation_id_matches(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         assert data["investigation_id"] == inv_id
 
     def test_json_report_rejects_id_mismatch(self, client, raw_payload):
-        """URL investigationId ≠ payload investigation_id → 400."""
-        resp = client.get(
+        """URL investigationId != payload investigation_id -> 400."""
+        resp = client.request(
+            "GET",
             "/api/report/json/WRONG-ID",  # URL ID doesn't match payload
             json=raw_payload,
         )
         assert resp.status_code == 400
 
     def test_json_report_rejects_empty_body(self, client):
-        resp = client.get("/api/report/json/INV-001", json={})
+        resp = client.request("GET", "/api/report/json/INV-001", json={})
         assert resp.status_code == 422
 
     def test_json_report_verdict_is_present(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         assert data["risk_score"]["verdict"] in [
             "MALICIOUS", "SUSPICIOUS", "CLEAN", "UNKNOWN"
@@ -165,7 +166,7 @@ class TestJSONReportEndpoint:
     def test_json_report_timeline_sorted(self, client, raw_payload):
         """Timeline must be sorted chronologically."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/json/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         timestamps = [e["timestamp"] for e in data["timeline"]]
         assert timestamps == sorted(timestamps)
@@ -184,25 +185,26 @@ class TestPDFReportEndpoint:
         Both are acceptable in test environment; we test the request flow.
         """
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/pdf/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/pdf/{inv_id}", json=raw_payload)
         assert resp.status_code in (200, 500)
 
     def test_pdf_rejects_id_mismatch(self, client, raw_payload):
-        resp = client.get(
+        resp = client.request(
+            "GET",
             "/api/report/pdf/WRONG-ID",
             json=raw_payload,
         )
         assert resp.status_code == 400
 
     def test_pdf_rejects_empty_body(self, client):
-        resp = client.get("/api/report/pdf/INV-001", json={})
+        resp = client.request("GET", "/api/report/pdf/INV-001", json={})
         assert resp.status_code == 422
 
     @pytest.mark.pdf
     def test_pdf_content_type_when_available(self, client, raw_payload):
         """When WeasyPrint is available, response is application/pdf."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/pdf/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/pdf/{inv_id}", json=raw_payload)
         if resp.status_code == 200:
             assert resp.headers["content-type"] == "application/pdf"
 
@@ -210,7 +212,7 @@ class TestPDFReportEndpoint:
     def test_pdf_content_disposition_header(self, client, raw_payload):
         """Response must have Content-Disposition: attachment when successful."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/pdf/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/pdf/{inv_id}", json=raw_payload)
         if resp.status_code == 200:
             assert "attachment" in resp.headers.get("content-disposition", "")
             assert ".pdf" in resp.headers.get("content-disposition", "")
@@ -219,6 +221,6 @@ class TestPDFReportEndpoint:
     def test_pdf_report_hash_header(self, client, raw_payload):
         """X-Report-Hash header must be present and 64-char SHA-256."""
         inv_id = raw_payload["investigation_id"]
-        resp = client.get(f"/api/report/pdf/{inv_id}", json=raw_payload)
+        resp = client.request("GET", f"/api/report/pdf/{inv_id}", json=raw_payload)
         if resp.status_code == 200:
             assert len(resp.headers.get("x-report-hash", "")) == 64

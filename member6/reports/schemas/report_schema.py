@@ -53,13 +53,13 @@ def get_report_schema() -> dict[str, Any]:
     # compatibility with jsonschema and schemathesis.
     schema: dict[str, Any] = {
         "$schema": "http://json-schema.org/draft-07/schema#",
+        **raw_schema,
         "title": "TraceMail AI Forensic Report",
         "description": (
             "Machine-readable JSON forensic report produced by the "
             "TraceMail AI Reports Engine (SIH26106 Member 6). "
             "Covers all 10 investigation sections."
         ),
-        **raw_schema,
     }
     return schema
 

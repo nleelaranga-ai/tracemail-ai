@@ -9,8 +9,6 @@
        Optimised for WeasyPrint (print CSS / paged media)
        ============================================================ */
 
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
     :root {
       --c-bg:         #0f172a;
       --c-surface:    #1e293b;
@@ -23,8 +21,8 @@
       --c-suspicious: #d97706;
       --c-clean:      #16a34a;
       --c-unknown:    #6b7280;
-      --font-main:    'Inter', 'Helvetica Neue', Arial, sans-serif;
-      --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+      --font-main:    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono:    'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
     }
 
     /* Paged media setup */
@@ -38,7 +36,7 @@
         color: #94a3b8;
       }
       @bottom-left {
-        content: "Case: " string(investigation-id);
+        content: "Case: {{ report.investigation_id }}";
         font-family: var(--font-main);
         font-size: 7.5pt;
         color: #94a3b8;
@@ -70,7 +68,7 @@
     /* ── Cover Page ─────────────────────────────────────────── */
     .cover {
       page-break-after: always;
-      min-height: 270mm;
+      height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
