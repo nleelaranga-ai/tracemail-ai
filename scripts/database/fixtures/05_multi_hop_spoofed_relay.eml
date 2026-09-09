@@ -1,0 +1,16 @@
+From: IT Support <admin@corporate-auth.com>
+To: employee@target-corp.com
+Subject: Mandatory Password Reset Required
+Date: Sun, 06 Sep 2026 11:20:00 +0200
+Return-Path: <relay-node@tor-exit.de>
+Authentication-Results: mx.target-corp.com; spf=softfail; dkim=none; dmarc=fail
+Received: from mx.target-corp.com by internal-mail.target-corp.com;
+Received: from mail.tor-exit.de ([185.220.101.4]) by mx.target-corp.com;
+Received: from proxy-node.lan ([10.0.0.45]) by mail.tor-exit.de;
+Content-Type: text/plain; charset=UTF-8
+
+Attention Employee:
+
+Your Active Directory credentials expire in 2 hours.
+Navigate to the single-sign-on portal to sync your key:
+http://corporate-auth.top/reset-password

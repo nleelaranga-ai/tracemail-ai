@@ -1,0 +1,24 @@
+# TraceMail AI — Folder Ownership Map
+# Engineering Module Ownership (SIH26106)
+
+# Frontend Team
+/frontend/                      @frontend-team
+
+# Backend Team
+/backend/                       @backend-team
+
+# AI Engine Team
+/ai-engine/                     @ai-team
+
+# Threat Intelligence & Integration Team
+/threat_intelligence/           @nleelaranga-ai
+/shared/                        @nleelaranga-ai
+/scripts/                       @nleelaranga-ai
+/docker/                        @nleelaranga-ai @backend-team
+/.github/                       @nleelaranga-ai
+
+# Maps & Attack Graph Team
+/maps-engine/                   @maps-team
+
+# Reports & Forensics Team
+/reports/                       @reports-team

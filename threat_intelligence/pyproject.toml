@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "threat-intelligence"
+version = "1.0.0"
+description = "TraceMail AI Threat Intelligence Engine"
+readme = "README.md"
+authors = [{ name = "Threat Intelligence & Integration Team" }]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["threat_intelligence*"]
