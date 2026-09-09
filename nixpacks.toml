@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python312", "curl"]
+
+[phases.install]
+cmds = [
+    "python -m pip install --upgrade pip",
+    "pip install -r requirements.txt"
+]
+
+[start]
+cmd = "sh start.sh"

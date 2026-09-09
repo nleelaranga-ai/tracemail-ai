@@ -1,0 +1,1108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "AuthResultEnum": {
+      "enum": [
+        "pass",
+        "fail",
+        "softfail",
+        "neutral",
+        "none",
+        "temperror",
+        "permerror"
+      ],
+      "title": "AuthResultEnum",
+      "type": "string"
+    },
+    "AuthenticationResults": {
+      "description": "SPF / DKIM / DMARC authentication results.",
+      "properties": {
+        "spf_result": {
+          "$ref": "#/$defs/AuthResultEnum",
+          "description": "SPF check result"
+        },
+        "spf_details": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SPF mechanism matched",
+          "title": "Spf Details"
+        },
+        "dkim_result": {
+          "$ref": "#/$defs/AuthResultEnum",
+          "description": "DKIM signature result"
+        },
+        "dkim_selector": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DKIM selector used",
+          "title": "Dkim Selector"
+        },
+        "dkim_domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Domain the DKIM signature covers",
+          "title": "Dkim Domain"
+        },
+        "dmarc_result": {
+          "$ref": "#/$defs/AuthResultEnum",
+          "description": "DMARC policy result"
+        },
+        "dmarc_policy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DMARC policy applied (none/quarantine/reject)",
+          "title": "Dmarc Policy"
+        },
+        "arc_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuthResultEnum"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ARC chain validation result"
+        },
+        "authentication_summary": {
+          "description": "Human-readable summary of all auth results",
+          "title": "Authentication Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spf_result",
+        "dkim_result",
+        "dmarc_result",
+        "authentication_summary"
+      ],
+      "title": "AuthenticationResults",
+      "type": "object"
+    },
+    "CaseSummary": {
+      "description": "High-level summary of the investigation case.",
+      "properties": {
+        "investigation_id": {
+          "description": "Unique investigation identifier",
+          "title": "Investigation Id",
+          "type": "string"
+        },
+        "subject": {
+          "description": "Email subject line",
+          "title": "Subject",
+          "type": "string"
+        },
+        "from_address": {
+          "description": "Sender email address",
+          "title": "From Address",
+          "type": "string"
+        },
+        "to_addresses": {
+          "description": "List of recipient addresses",
+          "items": {
+            "type": "string"
+          },
+          "title": "To Addresses",
+          "type": "array"
+        },
+        "received_at": {
+          "description": "Email received timestamp (UTC)",
+          "format": "date-time",
+          "title": "Received At",
+          "type": "string"
+        },
+        "analyzed_at": {
+          "description": "Analysis completion timestamp (UTC)",
+          "format": "date-time",
+          "title": "Analyzed At",
+          "type": "string"
+        },
+        "threat_type": {
+          "$ref": "#/$defs/ThreatTypeEnum",
+          "default": "unknown",
+          "description": "Primary detected threat type"
+        },
+        "analyst_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional analyst notes",
+          "title": "Analyst Notes"
+        }
+      },
+      "required": [
+        "investigation_id",
+        "subject",
+        "from_address",
+        "to_addresses",
+        "received_at"
+      ],
+      "title": "CaseSummary",
+      "type": "object"
+    },
+    "CorrelationEdge": {
+      "description": "An edge in the threat correlation graph.",
+      "properties": {
+        "source_id": {
+          "description": "Source node ID",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "target_id": {
+          "description": "Target node ID",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "relationship": {
+          "description": "Relationship type: SENDS_FROM | RESOLVES_TO | LINKED_TO | etc.",
+          "title": "Relationship",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 1.0,
+          "description": "Confidence in this relationship",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Supporting evidence for this relationship",
+          "title": "Evidence"
+        }
+      },
+      "required": [
+        "source_id",
+        "target_id",
+        "relationship"
+      ],
+      "title": "CorrelationEdge",
+      "type": "object"
+    },
+    "CorrelationGraph": {
+      "description": "Full threat correlation graph for the investigation.",
+      "properties": {
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/CorrelationNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/CorrelationEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        }
+      },
+      "title": "CorrelationGraph",
+      "type": "object"
+    },
+    "CorrelationNode": {
+      "description": "A node in the threat correlation graph.",
+      "properties": {
+        "node_id": {
+          "description": "Unique node identifier",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "description": "Type: ip | domain | email | url | actor",
+          "title": "Node Type",
+          "type": "string"
+        },
+        "label": {
+          "description": "Display label",
+          "title": "Label",
+          "type": "string"
+        },
+        "threat_score": {
+          "default": 0.0,
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Threat Score",
+          "type": "number"
+        },
+        "attributes": {
+          "title": "Attributes",
+          "type": "object"
+        }
+      },
+      "required": [
+        "node_id",
+        "node_type",
+        "label"
+      ],
+      "title": "CorrelationNode",
+      "type": "object"
+    },
+    "GeoLocation": {
+      "description": "Geographic location for a given IP address.",
+      "properties": {
+        "ip": {
+          "description": "IP address",
+          "title": "Ip",
+          "type": "string"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Country"
+        },
+        "country_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Country Code"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latitude"
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Longitude"
+        },
+        "isp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Internet Service Provider",
+          "title": "Isp"
+        },
+        "org": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Organization",
+          "title": "Org"
+        },
+        "asn": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Autonomous System Number",
+          "title": "Asn"
+        },
+        "is_tor": {
+          "default": false,
+          "description": "IP is a Tor exit node",
+          "title": "Is Tor",
+          "type": "boolean"
+        },
+        "is_vpn": {
+          "default": false,
+          "description": "IP is a known VPN endpoint",
+          "title": "Is Vpn",
+          "type": "boolean"
+        },
+        "is_proxy": {
+          "default": false,
+          "description": "IP is a known proxy",
+          "title": "Is Proxy",
+          "type": "boolean"
+        },
+        "is_datacenter": {
+          "default": false,
+          "description": "IP belongs to a datacenter",
+          "title": "Is Datacenter",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ip"
+      ],
+      "title": "GeoLocation",
+      "type": "object"
+    },
+    "InvestigationEvidence": {
+      "description": "Raw evidence artifacts collected during investigation.",
+      "properties": {
+        "raw_headers": {
+          "description": "Complete raw email headers",
+          "title": "Raw Headers",
+          "type": "string"
+        },
+        "parsed_headers": {
+          "description": "Parsed header key-value pairs",
+          "title": "Parsed Headers",
+          "type": "object"
+        },
+        "email_body_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Plain text email body",
+          "title": "Email Body Text"
+        },
+        "email_body_html": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "HTML email body (sanitised)",
+          "title": "Email Body Html"
+        },
+        "attachments": {
+          "description": "Attachment metadata list",
+          "items": {
+            "type": "object"
+          },
+          "title": "Attachments",
+          "type": "array"
+        },
+        "extracted_urls": {
+          "description": "All URLs extracted from body/headers",
+          "items": {
+            "type": "string"
+          },
+          "title": "Extracted Urls",
+          "type": "array"
+        },
+        "extracted_ips": {
+          "description": "All IPs extracted from headers",
+          "items": {
+            "type": "string"
+          },
+          "title": "Extracted Ips",
+          "type": "array"
+        },
+        "hashes": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Cryptographic hashes: md5, sha1, sha256 of email body",
+          "title": "Hashes",
+          "type": "object"
+        }
+      },
+      "required": [
+        "raw_headers"
+      ],
+      "title": "InvestigationEvidence",
+      "type": "object"
+    },
+    "MaliciousIP": {
+      "description": "A malicious or suspicious IP indicator.",
+      "properties": {
+        "ip": {
+          "description": "IP address",
+          "title": "Ip",
+          "type": "string"
+        },
+        "threat_score": {
+          "description": "Threat score 0-100",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Threat Score",
+          "type": "number"
+        },
+        "threat_categories": {
+          "description": "Threat category tags",
+          "items": {
+            "type": "string"
+          },
+          "title": "Threat Categories",
+          "type": "array"
+        },
+        "reputation_source": {
+          "description": "Threat intel sources that flagged this IP",
+          "items": {
+            "type": "string"
+          },
+          "title": "Reputation Source",
+          "type": "array"
+        },
+        "geo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeoLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Geographic location data"
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Seen"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Seen"
+        },
+        "abuse_reports": {
+          "default": 0,
+          "description": "Number of abuse reports",
+          "title": "Abuse Reports",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ip",
+        "threat_score"
+      ],
+      "title": "MaliciousIP",
+      "type": "object"
+    },
+    "MaliciousURL": {
+      "description": "A malicious or suspicious URL indicator.",
+      "properties": {
+        "url": {
+          "description": "Full URL found in email",
+          "title": "Url",
+          "type": "string"
+        },
+        "domain": {
+          "description": "Extracted domain",
+          "title": "Domain",
+          "type": "string"
+        },
+        "threat_score": {
+          "description": "URL threat score 0-100",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Threat Score",
+          "type": "number"
+        },
+        "threat_categories": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Threat Categories",
+          "type": "array"
+        },
+        "redirect_chain": {
+          "description": "URL redirect chain if followed",
+          "items": {
+            "type": "string"
+          },
+          "title": "Redirect Chain",
+          "type": "array"
+        },
+        "final_destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Final resolved URL",
+          "title": "Final Destination"
+        },
+        "is_phishing_kit": {
+          "default": false,
+          "title": "Is Phishing Kit",
+          "type": "boolean"
+        },
+        "is_credential_harvester": {
+          "default": false,
+          "title": "Is Credential Harvester",
+          "type": "boolean"
+        },
+        "screenshot_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "URL of page screenshot (if captured)",
+          "title": "Screenshot Url"
+        },
+        "reputation_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reputation Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "url",
+        "domain",
+        "threat_score"
+      ],
+      "title": "MaliciousURL",
+      "type": "object"
+    },
+    "ReputationScore": {
+      "description": "Reputation data for a domain or IP from threat intel feeds.",
+      "properties": {
+        "entity": {
+          "description": "Domain, IP, or URL being scored",
+          "title": "Entity",
+          "type": "string"
+        },
+        "entity_type": {
+          "description": "Type: domain | ip | url | email",
+          "title": "Entity Type",
+          "type": "string"
+        },
+        "score": {
+          "description": "Reputation score 0-100",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Score",
+          "type": "number"
+        },
+        "sources": {
+          "description": "Intel sources checked",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "categories": {
+          "description": "Threat categories",
+          "items": {
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "last_checked": {
+          "format": "date-time",
+          "title": "Last Checked",
+          "type": "string"
+        },
+        "is_blacklisted": {
+          "default": false,
+          "title": "Is Blacklisted",
+          "type": "boolean"
+        },
+        "blacklist_count": {
+          "default": 0,
+          "title": "Blacklist Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "entity",
+        "entity_type",
+        "score"
+      ],
+      "title": "ReputationScore",
+      "type": "object"
+    },
+    "RiskScore": {
+      "description": "Composite risk scoring from all detection engines.",
+      "properties": {
+        "overall_score": {
+          "description": "Overall risk score 0-100",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Overall Score",
+          "type": "number"
+        },
+        "verdict": {
+          "$ref": "#/$defs/VerdictEnum",
+          "description": "Final threat verdict"
+        },
+        "confidence": {
+          "description": "Model confidence 0.0-1.0",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "phishing_score": {
+          "default": 0.0,
+          "description": "Phishing engine score",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Phishing Score",
+          "type": "number"
+        },
+        "spoofing_score": {
+          "default": 0.0,
+          "description": "Spoofing detection score",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Spoofing Score",
+          "type": "number"
+        },
+        "malware_score": {
+          "default": 0.0,
+          "description": "Malware probability score",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Malware Score",
+          "type": "number"
+        },
+        "bec_score": {
+          "default": 0.0,
+          "description": "BEC detection score",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "title": "Bec Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "overall_score",
+        "verdict",
+        "confidence"
+      ],
+      "title": "RiskScore",
+      "type": "object"
+    },
+    "SenderAnalysis": {
+      "description": "Detailed sender identity and infrastructure analysis.",
+      "properties": {
+        "display_name": {
+          "description": "Display name shown in email client",
+          "title": "Display Name",
+          "type": "string"
+        },
+        "email_address": {
+          "description": "Actual From: header address",
+          "title": "Email Address",
+          "type": "string"
+        },
+        "reply_to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reply-To address if different",
+          "title": "Reply To"
+        },
+        "return_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Return-Path header",
+          "title": "Return Path"
+        },
+        "sender_domain": {
+          "description": "Sending domain",
+          "title": "Sender Domain",
+          "type": "string"
+        },
+        "originating_ip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "First hop IP address",
+          "title": "Originating Ip"
+        },
+        "mail_server": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Identified mail server",
+          "title": "Mail Server"
+        },
+        "domain_age_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Domain age in days (None = unknown)",
+          "title": "Domain Age Days"
+        },
+        "domain_registered": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Domain registration date ISO 8601",
+          "title": "Domain Registered"
+        },
+        "is_free_email": {
+          "default": false,
+          "description": "Whether sender uses free email provider",
+          "title": "Is Free Email",
+          "type": "boolean"
+        },
+        "is_newly_registered": {
+          "default": false,
+          "description": "Domain registered within 30 days",
+          "title": "Is Newly Registered",
+          "type": "boolean"
+        },
+        "lookalike_domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Similar legitimate domain if spoofing detected",
+          "title": "Lookalike Domain"
+        },
+        "header_from_mismatch": {
+          "default": false,
+          "description": "True if Header-From and Envelope-From differ",
+          "title": "Header From Mismatch",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "display_name",
+        "email_address",
+        "sender_domain"
+      ],
+      "title": "SenderAnalysis",
+      "type": "object"
+    },
+    "ThreatTypeEnum": {
+      "enum": [
+        "phishing",
+        "malware",
+        "spam",
+        "spoofing",
+        "business_email_compromise",
+        "unknown"
+      ],
+      "title": "ThreatTypeEnum",
+      "type": "string"
+    },
+    "TimelineEvent": {
+      "description": "A single event in the email's investigation timeline.",
+      "properties": {
+        "timestamp": {
+          "description": "Event timestamp (UTC)",
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "event_type": {
+          "description": "Type: RECEIVED | FORWARDED | DELIVERED | BLOCKED | ANALYZED",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "description": {
+          "description": "Human-readable event description",
+          "title": "Description",
+          "type": "string"
+        },
+        "actor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Server/system that generated this event",
+          "title": "Actor"
+        },
+        "metadata": {
+          "description": "Additional structured metadata",
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "timestamp",
+        "event_type",
+        "description"
+      ],
+      "title": "TimelineEvent",
+      "type": "object"
+    },
+    "VerdictEnum": {
+      "enum": [
+        "MALICIOUS",
+        "SUSPICIOUS",
+        "CLEAN",
+        "UNKNOWN"
+      ],
+      "title": "VerdictEnum",
+      "type": "string"
+    }
+  },
+  "description": "Machine-readable JSON forensic report produced by the TraceMail AI Reports Engine (SIH26106 Team Reports). Covers all 10 investigation sections.",
+  "properties": {
+    "report_id": {
+      "description": "Unique report identifier (UUID v4)",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_version": {
+      "default": "1.0.0",
+      "description": "Report schema version",
+      "title": "Report Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "description": "Report generation timestamp (UTC ISO 8601)",
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "generated_by": {
+      "default": "TraceMail AI — Reports Engine v1.0",
+      "description": "System that generated this report",
+      "title": "Generated By",
+      "type": "string"
+    },
+    "investigation_id": {
+      "description": "Source investigation ID",
+      "title": "Investigation Id",
+      "type": "string"
+    },
+    "report_hash": {
+      "default": "",
+      "description": "SHA-256 of report content for integrity verification",
+      "title": "Report Hash",
+      "type": "string"
+    },
+    "case_summary": {
+      "$ref": "#/$defs/CaseSummary"
+    },
+    "risk_score": {
+      "$ref": "#/$defs/RiskScore"
+    },
+    "sender_analysis": {
+      "$ref": "#/$defs/SenderAnalysis"
+    },
+    "authentication": {
+      "$ref": "#/$defs/AuthenticationResults"
+    },
+    "malicious_ips": {
+      "items": {
+        "$ref": "#/$defs/MaliciousIP"
+      },
+      "title": "Malicious Ips",
+      "type": "array"
+    },
+    "malicious_urls": {
+      "items": {
+        "$ref": "#/$defs/MaliciousURL"
+      },
+      "title": "Malicious Urls",
+      "type": "array"
+    },
+    "reputation_scores": {
+      "items": {
+        "$ref": "#/$defs/ReputationScore"
+      },
+      "title": "Reputation Scores",
+      "type": "array"
+    },
+    "timeline": {
+      "items": {
+        "$ref": "#/$defs/TimelineEvent"
+      },
+      "title": "Timeline",
+      "type": "array"
+    },
+    "correlation_graph": {
+      "$ref": "#/$defs/CorrelationGraph"
+    },
+    "evidence": {
+      "$ref": "#/$defs/InvestigationEvidence"
+    }
+  },
+  "required": [
+    "investigation_id",
+    "case_summary",
+    "risk_score",
+    "sender_analysis",
+    "authentication",
+    "malicious_ips",
+    "malicious_urls",
+    "reputation_scores",
+    "timeline",
+    "correlation_graph",
+    "evidence"
+  ],
+  "title": "TraceMail AI Forensic Report",
+  "type": "object"
+}
