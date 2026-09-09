@@ -46,6 +46,40 @@ jobs:
         run: |
           python scripts/testing/integration_test.py
 
+  test-backend:
+    name: Backend API & Orchestration Verification
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r shared/requirements.txt
+          pip install -r threat_intelligence/requirements.txt
+          pip install -r backend/requirements.txt
+
+      - name: Verify Backend Code Syntax
+        run: |
+          python -m py_compile $(find backend -name "*.py")
+
+      - name: Run Backend Test Suite
+        env:
+          PYTHONPATH: .
+        run: |
+          pytest backend/tests -v
+
   docker-lint-and-validate:
     name: Dockerfile & Compose Syntax Check
     runs-on: ubuntu-latest

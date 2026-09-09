@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT_DIR))
 # Import test modules
 from shared.tests import test_shared
 from threat_intelligence.tests import test_threat_engine, test_api_endpoints
+from backend.tests import test_health, test_auth, test_email, test_scan, test_reports
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -49,16 +50,23 @@ async def main():
     print(" TraceMail AI -- Unit & Contract Test Suite Runner ")
     print("=" * 70)
 
-    p1 = await run_test_module(test_shared, "shared/tests/test_shared.py")
-    p2 = await run_test_module(test_threat_engine, "threat_intelligence/tests/test_threat_engine.py")
-    p3 = await run_test_module(test_api_endpoints, "threat_intelligence/tests/test_api_endpoints.py")
+    results = [
+        await run_test_module(test_shared, "shared/tests/test_shared.py"),
+        await run_test_module(test_threat_engine, "threat_intelligence/tests/test_threat_engine.py"),
+        await run_test_module(test_api_endpoints, "threat_intelligence/tests/test_api_endpoints.py"),
+        await run_test_module(test_health, "backend/tests/test_health.py"),
+        await run_test_module(test_auth, "backend/tests/test_auth.py"),
+        await run_test_module(test_email, "backend/tests/test_email.py"),
+        await run_test_module(test_scan, "backend/tests/test_scan.py"),
+        await run_test_module(test_reports, "backend/tests/test_reports.py"),
+    ]
 
     print("\n" + "=" * 70)
-    if p1 and p2 and p3:
-        print(f"{GREEN}[SUCCESS] All 15 unit and contract tests PASSED! (100% Success){RESET}")
+    if all(results):
+        print(f"{GREEN}[SUCCESS] All unit, backend and contract tests PASSED! (100% Success){RESET}")
         return 0
     else:
-        print(f"{RED}[FAILURE] Some tests failed.{RESET}")
+        print(f"{RED}[FAILURE] One or more test suites failed.{RESET}")
         return 1
 
 

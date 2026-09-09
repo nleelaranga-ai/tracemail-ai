@@ -50,18 +50,47 @@
 
 ---
 
-## 👥 Engineering Team & Module Matrix
+---
+
+## 👥 Project Team & Contributors
+
+<p align="left">
+  <a href="https://github.com/nleelaranga-ai">
+    <img src="https://github.com/nleelaranga-ai.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="nleelaranga-ai" title="nleelaranga-ai • Threat Intelligence & Integration Lead"/>
+  </a>
+  <a href="https://github.com/anisha1777">
+    <img src="https://github.com/anisha1777.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="anisha1777" title="anisha1777 • Frontend UI Lead"/>
+  </a>
+  <a href="https://github.com/kollitarak06-hub">
+    <img src="https://github.com/kollitarak06-hub.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="kollitarak06-hub" title="kollitarak06-hub • AI Engine Lead"/>
+  </a>
+  <a href="https://github.com/RadhaReshma">
+    <img src="https://github.com/RadhaReshma.png" width="55px" style="border-radius: 50%; margin-right: 6px;" alt="RadhaReshma" title="RadhaReshma • Maps & Reports Lead"/>
+  </a>
+</p>
+
+> Meet the full engineering team and individual responsibility profiles: [**docs/CONTRIBUTORS.md**](docs/CONTRIBUTORS.md).
 
 | # | Role / Module | Module Owned | Primary Folder | Tech Stack |
 |---|---------------|--------------|----------------|------------|
 | 1 | **Frontend Team** | Dashboard & UI Lead | `frontend/` | Next.js 15 (App Router), Tailwind CSS, shadcn/ui |
-| 2 | **Backend Team** | Hub Architecture & Database | `backend/` | FastAPI, PostgreSQL 16, Prisma/SQLAlchemy |
+| 2 | **Backend Team** | Hub Architecture & Database | `backend/` | FastAPI, PostgreSQL 16, SQLAlchemy, Redis |
 | 3 | **AI Engine Team** | Phishing Detection & LLM | `ai-engine/` | Hugging Face Transformers, Groq API (LLaMA 3) |
 | 4 | **Threat Intelligence Team** | Cybersecurity & Integration | `threat_intelligence/`, `shared/`, `scripts/` | Python 3.12, VirusTotal, AbuseIPDB, dnspython, whois |
 | 5 | **Maps & Attack Graph Team** | Spatial & Graph Visualization | `maps-engine/` | Leaflet GeoJSON, Recharts, Neo4j Graph |
 | 6 | **Reports & Forensics Team** | Digital Forensics Reports | `reports/`, `docs/` | WeasyPrint / ReportLab PDF generator |
 
 ---
+
+## 📚 Project Documentation
+
+- 👥 [**Team Contributors & Responsibilities**](docs/CONTRIBUTORS.md)
+- 📡 [**REST API Specification**](docs/API.md)
+- 🛠️ [**Setup & Installation Guide**](docs/SETUP.md)
+- 🔀 [**Git Branching & Development Workflow**](docs/WORKFLOW.md)
+- 🛡️ [**Security Architecture & Standards**](docs/SECURITY.md)
+- 🏛️ [**Master Architecture & Contracts**](ARCHITECTURE.md)
+
 
 ## ⚡ Quickstart Guide
 
