@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -16,7 +15,6 @@ from pydantic import ValidationError
 from team_reports.reports.json.json_report import (
     InvestigationPayload,
     JSONReport,
-    JSONReportGenerator,
     RiskScore,
     VerdictEnum,
 )
@@ -26,16 +24,12 @@ from team_reports.reports.schemas.report_schema import validate_report_dict
 class TestJSONReportGenerator:
     """Tests for JSONReportGenerator.generate()"""
 
-    def test_generates_report_from_valid_payload(
-        self, json_generator, investigation_payload
-    ):
+    def test_generates_report_from_valid_payload(self, json_generator, investigation_payload):
         """Generator produces a JSONReport from a valid InvestigationPayload."""
         report = json_generator.generate(investigation_payload)
         assert isinstance(report, JSONReport)
 
-    def test_report_has_unique_report_id(
-        self, json_generator, investigation_payload
-    ):
+    def test_report_has_unique_report_id(self, json_generator, investigation_payload):
         """Each generated report gets a unique UUID report_id."""
         r1 = json_generator.generate(investigation_payload)
         r2 = json_generator.generate(investigation_payload)
@@ -44,9 +38,7 @@ class TestJSONReportGenerator:
         uuid.UUID(r1.report_id)
         uuid.UUID(r2.report_id)
 
-    def test_report_inherits_investigation_id(
-        self, json_generator, investigation_payload
-    ):
+    def test_report_inherits_investigation_id(self, json_generator, investigation_payload):
         """report.investigation_id must match the payload."""
         report = json_generator.generate(investigation_payload)
         assert report.investigation_id == investigation_payload.investigation_id
@@ -57,9 +49,7 @@ class TestJSONReportGenerator:
         assert report.report_hash
         assert len(report.report_hash) == 64  # SHA-256 hex = 64 chars
 
-    def test_timeline_is_sorted_chronologically(
-        self, json_generator, investigation_payload
-    ):
+    def test_timeline_is_sorted_chronologically(self, json_generator, investigation_payload):
         """Timeline events must be sorted oldest→newest."""
         report = json_generator.generate(investigation_payload)
         timestamps = [e.timestamp for e in report.timeline]
@@ -98,26 +88,20 @@ class TestJSONReportGenerator:
 class TestJSONSerialization:
     """Tests for JSONReportGenerator.to_json() and to_dict()"""
 
-    def test_to_json_returns_valid_json_string(
-        self, json_generator, investigation_payload
-    ):
+    def test_to_json_returns_valid_json_string(self, json_generator, investigation_payload):
         """to_json() output must be parseable JSON."""
         report = json_generator.generate(investigation_payload)
         raw = json_generator.to_json(report)
         parsed = json.loads(raw)
         assert isinstance(parsed, dict)
 
-    def test_to_json_contains_investigation_id(
-        self, json_generator, investigation_payload
-    ):
+    def test_to_json_contains_investigation_id(self, json_generator, investigation_payload):
         """Serialised JSON must include the investigation_id."""
         report = json_generator.generate(investigation_payload)
         raw = json_generator.to_json(report)
         assert investigation_payload.investigation_id in raw
 
-    def test_to_json_exclude_evidence_body(
-        self, json_generator, investigation_payload
-    ):
+    def test_to_json_exclude_evidence_body(self, json_generator, investigation_payload):
         """exclude_evidence_body=True must strip html/text bodies."""
         report = json_generator.generate(investigation_payload)
         raw = json_generator.to_json(report, exclude_evidence_body=True)
@@ -125,9 +109,7 @@ class TestJSONSerialization:
         assert "email_body_text" not in parsed["evidence"]
         assert "email_body_html" not in parsed["evidence"]
 
-    def test_to_dict_returns_plain_dict(
-        self, json_generator, investigation_payload
-    ):
+    def test_to_dict_returns_plain_dict(self, json_generator, investigation_payload):
         """to_dict() must return a plain Python dict (not Pydantic model)."""
         report = json_generator.generate(investigation_payload)
         d = json_generator.to_dict(report)
@@ -146,9 +128,7 @@ class TestJSONSerialization:
 class TestSchemaValidation:
     """Tests that generated reports pass JSON Schema validation."""
 
-    def test_generated_report_passes_schema(
-        self, json_generator, investigation_payload
-    ):
+    def test_generated_report_passes_schema(self, json_generator, investigation_payload):
         """Generated report must pass all JSON Schema Draft-07 checks."""
         report = json_generator.generate(investigation_payload)
         errors = validate_report_dict(json_generator.to_dict(report))
@@ -176,9 +156,7 @@ class TestSchemaValidation:
 class TestPayloadValidation:
     """Tests for JSONReportGenerator.validate_payload()"""
 
-    def test_validates_dict_to_investigation_payload(
-        self, json_generator, investigation_payload
-    ):
+    def test_validates_dict_to_investigation_payload(self, json_generator, investigation_payload):
         """validate_payload() converts a dict to InvestigationPayload."""
         raw = json.loads(investigation_payload.model_dump_json())
         validated = json_generator.validate_payload(raw)

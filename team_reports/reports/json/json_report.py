@@ -24,7 +24,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
@@ -76,21 +75,15 @@ class CaseSummary(BaseModel):
     threat_type: ThreatTypeEnum = Field(
         default=ThreatTypeEnum.UNKNOWN, description="Primary detected threat type"
     )
-    analyst_notes: str | None = Field(
-        default=None, description="Optional analyst notes"
-    )
+    analyst_notes: str | None = Field(default=None, description="Optional analyst notes")
 
 
 class RiskScore(BaseModel):
     """Composite risk scoring from all detection engines."""
 
-    overall_score: float = Field(
-        ..., ge=0.0, le=100.0, description="Overall risk score 0-100"
-    )
+    overall_score: float = Field(..., ge=0.0, le=100.0, description="Overall risk score 0-100")
     verdict: VerdictEnum = Field(..., description="Final threat verdict")
-    confidence: float = Field(
-        ..., ge=0.0, le=1.0, description="Model confidence 0.0-1.0"
-    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Model confidence 0.0-1.0")
     phishing_score: float = Field(
         default=0.0, ge=0.0, le=100.0, description="Phishing engine score"
     )
@@ -100,9 +93,7 @@ class RiskScore(BaseModel):
     malware_score: float = Field(
         default=0.0, ge=0.0, le=100.0, description="Malware probability score"
     )
-    bec_score: float = Field(
-        default=0.0, ge=0.0, le=100.0, description="BEC detection score"
-    )
+    bec_score: float = Field(default=0.0, ge=0.0, le=100.0, description="BEC detection score")
 
     @field_validator("overall_score")
     @classmethod
@@ -129,9 +120,7 @@ class SenderAnalysis(BaseModel):
     is_free_email: bool = Field(
         default=False, description="Whether sender uses free email provider"
     )
-    is_newly_registered: bool = Field(
-        default=False, description="Domain registered within 30 days"
-    )
+    is_newly_registered: bool = Field(default=False, description="Domain registered within 30 days")
     lookalike_domain: str | None = Field(
         default=None, description="Similar legitimate domain if spoofing detected"
     )
@@ -148,9 +137,7 @@ class AuthenticationResults(BaseModel):
     spf_details: str | None = Field(default=None, description="SPF mechanism matched")
     dkim_result: AuthResultEnum = Field(..., description="DKIM signature result")
     dkim_selector: str | None = Field(default=None, description="DKIM selector used")
-    dkim_domain: str | None = Field(
-        default=None, description="Domain the DKIM signature covers"
-    )
+    dkim_domain: str | None = Field(default=None, description="Domain the DKIM signature covers")
     dmarc_result: AuthResultEnum = Field(..., description="DMARC policy result")
     dmarc_policy: str | None = Field(
         default=None, description="DMARC policy applied (none/quarantine/reject)"
@@ -186,18 +173,12 @@ class MaliciousIP(BaseModel):
     """A malicious or suspicious IP indicator."""
 
     ip: str = Field(..., description="IP address")
-    threat_score: float = Field(
-        ..., ge=0.0, le=100.0, description="Threat score 0-100"
-    )
-    threat_categories: list[str] = Field(
-        default_factory=list, description="Threat category tags"
-    )
+    threat_score: float = Field(..., ge=0.0, le=100.0, description="Threat score 0-100")
+    threat_categories: list[str] = Field(default_factory=list, description="Threat category tags")
     reputation_source: list[str] = Field(
         default_factory=list, description="Threat intel sources that flagged this IP"
     )
-    geo: GeoLocation | None = Field(
-        default=None, description="Geographic location data"
-    )
+    geo: GeoLocation | None = Field(default=None, description="Geographic location data")
     first_seen: datetime | None = Field(default=None)
     last_seen: datetime | None = Field(default=None)
     abuse_reports: int = Field(default=0, description="Number of abuse reports")
@@ -208,16 +189,12 @@ class MaliciousURL(BaseModel):
 
     url: str = Field(..., description="Full URL found in email")
     domain: str = Field(..., description="Extracted domain")
-    threat_score: float = Field(
-        ..., ge=0.0, le=100.0, description="URL threat score 0-100"
-    )
+    threat_score: float = Field(..., ge=0.0, le=100.0, description="URL threat score 0-100")
     threat_categories: list[str] = Field(default_factory=list)
     redirect_chain: list[str] = Field(
         default_factory=list, description="URL redirect chain if followed"
     )
-    final_destination: str | None = Field(
-        default=None, description="Final resolved URL"
-    )
+    final_destination: str | None = Field(default=None, description="Final resolved URL")
     is_phishing_kit: bool = Field(default=False)
     is_credential_harvester: bool = Field(default=False)
     screenshot_url: str | None = Field(
@@ -230,17 +207,11 @@ class ReputationScore(BaseModel):
     """Reputation data for a domain or IP from threat intel feeds."""
 
     entity: str = Field(..., description="Domain, IP, or URL being scored")
-    entity_type: str = Field(
-        ..., description="Type: domain | ip | url | email"
-    )
+    entity_type: str = Field(..., description="Type: domain | ip | url | email")
     score: float = Field(..., ge=0.0, le=100.0, description="Reputation score 0-100")
-    sources: list[str] = Field(
-        default_factory=list, description="Intel sources checked"
-    )
+    sources: list[str] = Field(default_factory=list, description="Intel sources checked")
     categories: list[str] = Field(default_factory=list, description="Threat categories")
-    last_checked: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    last_checked: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_blacklisted: bool = Field(default=False)
     blacklist_count: int = Field(default=0)
 
@@ -253,9 +224,7 @@ class TimelineEvent(BaseModel):
         ..., description="Type: RECEIVED | FORWARDED | DELIVERED | BLOCKED | ANALYZED"
     )
     description: str = Field(..., description="Human-readable event description")
-    actor: str | None = Field(
-        default=None, description="Server/system that generated this event"
-    )
+    actor: str | None = Field(default=None, description="Server/system that generated this event")
     metadata: dict[str, Any] = Field(
         default_factory=dict, description="Additional structured metadata"
     )
@@ -265,9 +234,7 @@ class CorrelationNode(BaseModel):
     """A node in the threat correlation graph."""
 
     node_id: str = Field(..., description="Unique node identifier")
-    node_type: str = Field(
-        ..., description="Type: ip | domain | email | url | actor"
-    )
+    node_type: str = Field(..., description="Type: ip | domain | email | url | actor")
     label: str = Field(..., description="Display label")
     threat_score: float = Field(default=0.0, ge=0.0, le=100.0)
     attributes: dict[str, Any] = Field(default_factory=dict)
@@ -303,12 +270,8 @@ class InvestigationEvidence(BaseModel):
     parsed_headers: dict[str, Any] = Field(
         default_factory=dict, description="Parsed header key-value pairs"
     )
-    email_body_text: str | None = Field(
-        default=None, description="Plain text email body"
-    )
-    email_body_html: str | None = Field(
-        default=None, description="HTML email body (sanitised)"
-    )
+    email_body_text: str | None = Field(default=None, description="Plain text email body")
+    email_body_html: str | None = Field(default=None, description="HTML email body (sanitised)")
     attachments: list[dict[str, Any]] = Field(
         default_factory=list, description="Attachment metadata list"
     )
@@ -349,11 +312,9 @@ class InvestigationPayload(BaseModel):
     evidence: InvestigationEvidence
 
     @model_validator(mode="after")
-    def ensure_ids_consistent(self) -> "InvestigationPayload":
+    def ensure_ids_consistent(self) -> InvestigationPayload:
         if self.case_summary.investigation_id != self.investigation_id:
-            raise ValueError(
-                "investigation_id mismatch between root and case_summary"
-            )
+            raise ValueError("investigation_id mismatch between root and case_summary")
         return self
 
 
@@ -372,9 +333,7 @@ class JSONReport(BaseModel):
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique report identifier (UUID v4)",
     )
-    report_version: str = Field(
-        default="1.0.0", description="Report schema version"
-    )
+    report_version: str = Field(default="1.0.0", description="Report schema version")
     generated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="Report generation timestamp (UTC ISO 8601)",
@@ -400,12 +359,10 @@ class JSONReport(BaseModel):
     correlation_graph: CorrelationGraph
     evidence: InvestigationEvidence
 
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, context: Any, /) -> None:
         """Compute and attach SHA-256 integrity hash after construction."""
         if not self.report_hash:
-            payload = self.model_dump_json(
-                exclude={"report_hash", "report_id", "generated_at"}
-            )
+            payload = self.model_dump_json(exclude={"report_hash", "report_id", "generated_at"})
             self.report_hash = hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -472,7 +429,6 @@ class JSONReportGenerator:
         Returns:
             str: UTF-8 encoded JSON string.
         """
-        exclude: set[str] = set()
         if exclude_evidence_body:
             # We build the dict manually to strip body fields
             data = json.loads(report.model_dump_json())

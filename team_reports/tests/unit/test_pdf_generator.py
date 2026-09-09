@@ -9,15 +9,17 @@ Purpose: Unit tests for PDFReportGenerator.
 
 from __future__ import annotations
 
-import io
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from team_reports.reports.pdf.pdf_generator import PDFReportGenerator, _auth_badge, _score_colour, _verdict_colour
 from team_reports.reports.json.json_report import AuthResultEnum, VerdictEnum
-
+from team_reports.reports.pdf.pdf_generator import (
+    PDFReportGenerator,
+    _auth_badge,
+    _score_colour,
+    _verdict_colour,
+)
 
 # Mark all tests in this file that invoke real PDF render as 'pdf'
 # Run without WeasyPrint with: pytest -m "not pdf"
@@ -44,9 +46,9 @@ class TestColourHelpers:
     @pytest.mark.parametrize(
         "score, expected_colour_start",
         [
-            (90.0, "#dc"),   # danger
-            (60.0, "#d9"),   # warning
-            (20.0, "#16"),   # clean
+            (90.0, "#dc"),  # danger
+            (60.0, "#d9"),  # warning
+            (20.0, "#16"),  # clean
         ],
     )
     def test_score_colour_thresholds(self, score, expected_colour_start):
@@ -97,9 +99,7 @@ class TestHTMLRendering:
         html = pdf_generator.render_html(json_report)
         assert json_report.report_hash in html
 
-    def test_html_contains_malicious_ip(
-        self, pdf_generator, json_report, malicious_ips
-    ):
+    def test_html_contains_malicious_ip(self, pdf_generator, json_report, malicious_ips):
         html = pdf_generator.render_html(json_report)
         assert malicious_ips[0].ip in html
 
@@ -171,23 +171,33 @@ class TestPDFGeneration:
             raise
         assert pdf_bytes[:4] == b"%PDF"
 
-    def test_generate_pdf_raises_without_weasyprint(
-        self, pdf_generator, json_report
-    ):
+    def test_generate_pdf_raises_without_weasyprint(self, pdf_generator, json_report):
         """RuntimeError raised when WeasyPrint is not importable."""
-        with patch("builtins.__import__", side_effect=ImportError("weasyprint")):
-            with pytest.raises((RuntimeError, ImportError)):
-                pdf_generator.generate_pdf(json_report)
+        with (
+            patch("builtins.__import__", side_effect=ImportError("weasyprint")),
+            pytest.raises((RuntimeError, ImportError)),
+        ):
+            pdf_generator.generate_pdf(json_report)
 
     def test_build_context_includes_all_keys(self, pdf_generator, json_report):
         """_build_context must include all required template variables."""
         ctx = pdf_generator._build_context(json_report)
         required_keys = [
-            "report", "verdict_colour", "generated_at_str",
-            "received_at_str", "spf_badge", "dkim_badge", "dmarc_badge",
-            "risk_colour", "malicious_ip_count", "malicious_url_count",
-            "timeline_event_count", "attachment_count",
-            "graph_node_count", "graph_edge_count", "raw_headers_preview",
+            "report",
+            "verdict_colour",
+            "generated_at_str",
+            "received_at_str",
+            "spf_badge",
+            "dkim_badge",
+            "dmarc_badge",
+            "risk_colour",
+            "malicious_ip_count",
+            "malicious_url_count",
+            "timeline_event_count",
+            "attachment_count",
+            "graph_node_count",
+            "graph_edge_count",
+            "raw_headers_preview",
         ]
         for key in required_keys:
             assert key in ctx, f"Context missing key: {key}"

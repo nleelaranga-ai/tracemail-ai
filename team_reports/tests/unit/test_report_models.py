@@ -13,8 +13,8 @@ import pytest
 from pydantic import ValidationError
 
 from team_reports.reports.json.json_report import (
-    AuthResultEnum,
     AuthenticationResults,
+    AuthResultEnum,
     CaseSummary,
     CorrelationEdge,
     CorrelationGraph,
@@ -22,13 +22,10 @@ from team_reports.reports.json.json_report import (
     GeoLocation,
     InvestigationEvidence,
     InvestigationPayload,
-    JSONReport,
     MaliciousIP,
     MaliciousURL,
-    ReputationScore,
     RiskScore,
     SenderAnalysis,
-    ThreatTypeEnum,
     TimelineEvent,
     VerdictEnum,
 )
@@ -71,9 +68,7 @@ class TestRiskScore:
             assert rs.verdict == v
 
     def test_default_sub_scores_are_zero(self):
-        rs = RiskScore(
-            overall_score=50.0, verdict=VerdictEnum.UNKNOWN, confidence=0.5
-        )
+        rs = RiskScore(overall_score=50.0, verdict=VerdictEnum.UNKNOWN, confidence=0.5)
         assert rs.phishing_score == 0.0
         assert rs.spoofing_score == 0.0
         assert rs.malware_score == 0.0
@@ -223,9 +218,7 @@ class TestMaliciousURL:
             MaliciousURL(url="http://a.com", domain="a.com", threat_score=200.0)
 
     def test_phishing_flags_default_false(self):
-        url = MaliciousURL(
-            url="http://a.com", domain="a.com", threat_score=50.0
-        )
+        url = MaliciousURL(url="http://a.com", domain="a.com", threat_score=50.0)
         assert url.is_phishing_kit is False
         assert url.is_credential_harvester is False
 
@@ -282,8 +275,7 @@ class TestCorrelationGraph:
 
 class TestInvestigationPayload:
     def test_id_mismatch_raises(
-        self, case_summary, risk_score, sender_analysis,
-        authentication, evidence
+        self, case_summary, risk_score, sender_analysis, authentication, evidence
     ):
         """Payload raises if investigation_id doesn't match case_summary."""
         with pytest.raises(ValidationError):
@@ -323,9 +315,7 @@ class TestInvestigationEvidence:
 
 
 class TestJSONReportIntegrity:
-    def test_report_hash_changes_when_content_changes(
-        self, json_generator, investigation_payload
-    ):
+    def test_report_hash_changes_when_content_changes(self, json_generator, investigation_payload):
         """Two reports with different data must have different hashes."""
         r1 = json_generator.generate(investigation_payload)
 

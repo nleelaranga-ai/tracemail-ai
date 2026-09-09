@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import jsonschema
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -29,9 +28,7 @@ from team_reports.reports.router.reports_router import reports_router
 from team_reports.reports.schemas.report_schema import (
     assert_valid_report,
     get_report_schema,
-    validate_report_dict,
 )
-
 
 # ---------------------------------------------------------------------------
 # Test App
@@ -75,11 +72,22 @@ class TestJSONReportContract:
         data = resp.json()
 
         required = [
-            "report_id", "report_version", "generated_at", "generated_by",
-            "investigation_id", "report_hash",
-            "case_summary", "risk_score", "sender_analysis", "authentication",
-            "malicious_ips", "malicious_urls", "reputation_scores",
-            "timeline", "correlation_graph", "evidence",
+            "report_id",
+            "report_version",
+            "generated_at",
+            "generated_by",
+            "investigation_id",
+            "report_hash",
+            "case_summary",
+            "risk_score",
+            "sender_analysis",
+            "authentication",
+            "malicious_ips",
+            "malicious_urls",
+            "reputation_scores",
+            "timeline",
+            "correlation_graph",
+            "evidence",
         ]
         missing = [f for f in required if f not in data]
         assert not missing, f"Missing required fields: {missing}"
@@ -87,6 +95,7 @@ class TestJSONReportContract:
     def test_report_id_is_uuid_format(self, client, raw_payload):
         """report_id must be a valid UUID v4 string."""
         import uuid
+
         inv_id = raw_payload["investigation_id"]
         resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         report_id = resp.json()["report_id"]
@@ -187,8 +196,12 @@ class TestJSONReportContract:
         resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         cs = resp.json()["case_summary"]
         required_fields = [
-            "investigation_id", "subject", "from_address",
-            "to_addresses", "received_at", "threat_type",
+            "investigation_id",
+            "subject",
+            "from_address",
+            "to_addresses",
+            "received_at",
+            "threat_type",
         ]
         for field in required_fields:
             assert field in cs, f"Missing case_summary field: {field}"
@@ -265,11 +278,22 @@ class TestSchemaDrift:
         schema = get_report_schema()
         props = schema.get("properties", {})
         required_props = [
-            "report_id", "report_version", "generated_at", "generated_by",
-            "investigation_id", "report_hash", "case_summary", "risk_score",
-            "sender_analysis", "authentication", "malicious_ips",
-            "malicious_urls", "reputation_scores", "timeline",
-            "correlation_graph", "evidence",
+            "report_id",
+            "report_version",
+            "generated_at",
+            "generated_by",
+            "investigation_id",
+            "report_hash",
+            "case_summary",
+            "risk_score",
+            "sender_analysis",
+            "authentication",
+            "malicious_ips",
+            "malicious_urls",
+            "reputation_scores",
+            "timeline",
+            "correlation_graph",
+            "evidence",
         ]
         for prop in required_props:
             assert prop in props, f"Schema missing property: {prop}"

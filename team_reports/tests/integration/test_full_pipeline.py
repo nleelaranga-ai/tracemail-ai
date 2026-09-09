@@ -54,9 +54,7 @@ class TestFullReportPipeline:
         errors = validate_report_dict(reparsed)
         assert errors == []
 
-    def test_pipeline_different_payloads_different_hashes(
-        self, investigation_payload
-    ):
+    def test_pipeline_different_payloads_different_hashes(self, investigation_payload):
         """Different investigation data → different report hashes."""
         gen = JSONReportGenerator()
         r1 = gen.generate(investigation_payload)
@@ -94,9 +92,7 @@ class TestFullReportPipeline:
 class TestCleanEmailPipeline:
     """Pipeline with a clean (non-malicious) email."""
 
-    def test_clean_verdict_pipeline(
-        self, case_summary, sender_analysis, authentication, evidence
-    ):
+    def test_clean_verdict_pipeline(self, case_summary, sender_analysis, authentication, evidence):
         from team_reports.reports.json.json_report import (
             CorrelationGraph,
             InvestigationPayload,

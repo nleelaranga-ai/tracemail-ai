@@ -14,18 +14,16 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import httpx
 import pytest
-import pytest_asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from team_reports.reports.router.reports_router import reports_router
 
-
 # ---------------------------------------------------------------------------
 # Test App Setup
 # ---------------------------------------------------------------------------
+
 
 def make_test_app() -> FastAPI:
     """Minimal FastAPI app mounting only the reports router."""
@@ -61,7 +59,6 @@ def raw_payload(investigation_payload) -> dict[str, Any]:
 
 
 class TestGenerateEndpoint:
-
     def test_generate_returns_200(self, client, raw_payload):
         resp = client.post("/api/v1/reports/generate", json=raw_payload)
         assert resp.status_code == 200
@@ -99,7 +96,6 @@ class TestGenerateEndpoint:
 
 
 class TestJSONReportEndpoint:
-
     def test_json_report_returns_200(self, client, raw_payload):
         inv_id = raw_payload["investigation_id"]
         resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
@@ -115,9 +111,16 @@ class TestJSONReportEndpoint:
         resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
         required_keys = [
-            "case_summary", "risk_score", "sender_analysis",
-            "authentication", "malicious_ips", "malicious_urls",
-            "reputation_scores", "timeline", "correlation_graph", "evidence",
+            "case_summary",
+            "risk_score",
+            "sender_analysis",
+            "authentication",
+            "malicious_ips",
+            "malicious_urls",
+            "reputation_scores",
+            "timeline",
+            "correlation_graph",
+            "evidence",
         ]
         for key in required_keys:
             assert key in data, f"Missing section: {key}"
@@ -159,9 +162,7 @@ class TestJSONReportEndpoint:
         inv_id = raw_payload["investigation_id"]
         resp = client.request("GET", f"/api/report/json/{inv_id}", json=raw_payload)
         data = resp.json()
-        assert data["risk_score"]["verdict"] in [
-            "MALICIOUS", "SUSPICIOUS", "CLEAN", "UNKNOWN"
-        ]
+        assert data["risk_score"]["verdict"] in ["MALICIOUS", "SUSPICIOUS", "CLEAN", "UNKNOWN"]
 
     def test_json_report_timeline_sorted(self, client, raw_payload):
         """Timeline must be sorted chronologically."""
@@ -178,7 +179,6 @@ class TestJSONReportEndpoint:
 
 
 class TestPDFReportEndpoint:
-
     def test_pdf_report_returns_200_or_500(self, client, raw_payload):
         """
         PDF endpoint returns 200 if WeasyPrint available, or 500 if not.

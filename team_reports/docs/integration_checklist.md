@@ -37,7 +37,7 @@ from team_reports.reports.router.reports_router import reports_router
 app = FastAPI(
     title="TraceMail AI Backend",
     version="1.0.0",
-    description="AI-Powered Email Threat Detection & Forensic Intelligence Platform"
+    description="AI-Powered Email Threat Detection & Forensic Intelligence Platform",
 )
 
 # Mount Team Reports Reports Engine

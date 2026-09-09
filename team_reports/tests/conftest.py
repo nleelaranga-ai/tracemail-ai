@@ -34,7 +34,6 @@ from team_reports.reports.json.json_report import (
 )
 from team_reports.reports.pdf.pdf_generator import PDFReportGenerator
 
-
 # ---------------------------------------------------------------------------
 # Reusable datetime helpers
 # ---------------------------------------------------------------------------
@@ -249,7 +248,9 @@ def evidence() -> InvestigationEvidence:
             "subject": "URGENT: Your account has been compromised",
         },
         email_body_text="Dear Customer, Your account is at risk. Click here to verify.",
-        email_body_html="<p>Dear Customer, <a href='http://paypa1-alerts.com/...'>Click here</a></p>",
+        email_body_html=(
+            "<p>Dear Customer, <a href='http://paypa1-alerts.com/...'>Click here</a></p>"
+        ),
         attachments=[],
         extracted_urls=["http://paypa1-alerts.com/secure/verify?token=abc123"],
         extracted_ips=["185.220.101.45"],

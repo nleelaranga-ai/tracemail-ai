@@ -25,7 +25,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import jsonschema
 from jsonschema import Draft7Validator
 
 from team_reports.reports.json.json_report import JSONReport
@@ -159,8 +158,7 @@ def check_schema_drift(path: Path = _SCHEMA_FILE) -> bool:
 
     if current != committed:
         print(
-            "[DRIFT] Schema has changed. "
-            "Run: python -m team_reports.reports.schemas.report_schema",
+            "[DRIFT] Schema has changed. Run: python -m team_reports.reports.schemas.report_schema",
             file=sys.stderr,
         )
         return False
@@ -173,9 +171,7 @@ def check_schema_drift(path: Path = _SCHEMA_FILE) -> bool:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="TraceMail AI Report Schema CLI"
-    )
+    parser = argparse.ArgumentParser(description="TraceMail AI Report Schema CLI")
     parser.add_argument(
         "--check-drift",
         action="store_true",

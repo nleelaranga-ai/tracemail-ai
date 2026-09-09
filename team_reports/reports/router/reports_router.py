@@ -29,7 +29,6 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from team_reports.reports.json.json_report import (
-    InvestigationPayload,
     JSONReport,
     JSONReportGenerator,
 )
@@ -124,9 +123,7 @@ async def get_json_report(
     report_dict = json_gen.to_dict(report)
     errors = validate_report_dict(report_dict)
     if errors:
-        logger.error(
-            "Generated report failed schema validation: %s", errors
-        )
+        logger.error("Generated report failed schema validation: %s", errors)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Generated report failed schema validation: {errors}",
@@ -201,7 +198,8 @@ async def get_pdf_report(
     filename = pdf_gen.generate_pdf_filename(report)
     logger.info(
         "PDF report generated: filename=%s size=%d bytes",
-        filename, len(pdf_bytes),
+        filename,
+        len(pdf_bytes),
     )
 
     return StreamingResponse(
@@ -258,8 +256,7 @@ async def generate_reports(
                 },
             },
             "note": (
-                "Pass the same investigation payload body to each endpoint "
-                "to retrieve the report."
+                "Pass the same investigation payload body to each endpoint to retrieve the report."
             ),
         }
     )

@@ -49,10 +49,10 @@ _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 def _verdict_colour(verdict: VerdictEnum) -> str:
     """Return a CSS colour token for the risk verdict badge."""
     return {
-        VerdictEnum.MALICIOUS: "#dc2626",    # red-600
-        VerdictEnum.SUSPICIOUS: "#d97706",   # amber-600
-        VerdictEnum.CLEAN: "#16a34a",        # green-600
-        VerdictEnum.UNKNOWN: "#6b7280",      # gray-500
+        VerdictEnum.MALICIOUS: "#dc2626",  # red-600
+        VerdictEnum.SUSPICIOUS: "#d97706",  # amber-600
+        VerdictEnum.CLEAN: "#16a34a",  # green-600
+        VerdictEnum.UNKNOWN: "#6b7280",  # gray-500
     }.get(verdict, "#6b7280")
 
 
@@ -93,7 +93,7 @@ def _truncate(text: str | None, max_len: int = 80) -> str:
     """Truncate long strings for display in constrained table cells."""
     if text is None:
         return "N/A"
-    return text if len(text) <= max_len else text[:max_len - 3] + "..."
+    return text if len(text) <= max_len else text[: max_len - 3] + "..."
 
 
 def _safe_url_fetcher(url: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -114,7 +114,10 @@ def _safe_url_fetcher(url: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
         if not url.startswith(template_uri):
             logger.warning("Blocked unsafe file:// access attempt: %s", url)
             raise ValueError(f"Blocked unsafe local file access: {url}")
-        from weasyprint import default_url_fetcher  # type: ignore[import-untyped, import-not-found]
+        from weasyprint import (
+            default_url_fetcher,  # type: ignore[import-untyped, import-not-found]
+        )
+
         return default_url_fetcher(url, *args, **kwargs)
 
     if scheme in ("http", "https"):
@@ -144,7 +147,10 @@ def _safe_url_fetcher(url: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
             # Domain name, not a direct IP literal
             pass
 
-        from weasyprint import default_url_fetcher  # type: ignore[import-untyped, import-not-found]
+        from weasyprint import (
+            default_url_fetcher,  # type: ignore[import-untyped, import-not-found]
+        )
+
         return default_url_fetcher(url, *args, **kwargs)
 
     logger.warning("Blocked unsupported/unsafe URL scheme: %s", scheme)
@@ -208,8 +214,11 @@ class PDFReportGenerator:
             # Truncated raw headers for PDF (full version in JSON report)
             "raw_headers_preview": (
                 report.evidence.raw_headers[:3000]
-                + ("\n... [truncated — see JSON report for full headers]"
-                   if len(report.evidence.raw_headers) > 3000 else "")
+                + (
+                    "\n... [truncated — see JSON report for full headers]"
+                    if len(report.evidence.raw_headers) > 3000
+                    else ""
+                )
             ),
             # Correlation stats
             "graph_node_count": len(report.correlation_graph.nodes),
@@ -247,12 +256,9 @@ class PDFReportGenerator:
         try:
             # Import here so WeasyPrint's GTK/pango init doesn't run at
             # module load time (important for testing environments).
-            from weasyprint import CSS, HTML  # type: ignore[import]
+            from weasyprint import HTML  # type: ignore[import]
         except ImportError as exc:
-            raise RuntimeError(
-                "WeasyPrint is not installed. "
-                "Run: pip install weasyprint"
-            ) from exc
+            raise RuntimeError("WeasyPrint is not installed. Run: pip install weasyprint") from exc
 
         html_content = self.render_html(report)
 
@@ -282,9 +288,7 @@ class PDFReportGenerator:
             ) from exc
 
         if not pdf_bytes:
-            raise RuntimeError(
-                f"WeasyPrint produced an empty PDF for report {report.report_id}"
-            )
+            raise RuntimeError(f"WeasyPrint produced an empty PDF for report {report.report_id}")
 
         logger.info(
             "PDF generated successfully: report_id=%s size=%d bytes",
