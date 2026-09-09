@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Add directory containing this file to sys.path
+_current_dir = str(Path(__file__).resolve().parent)
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 

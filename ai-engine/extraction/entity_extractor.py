@@ -5,7 +5,8 @@ import tldextract
 def extract_entities(email_body, headers):
     text = email_body + "\n" + headers
 
-    urls = re.findall(r'https?://[^\s<>"\']+', text)
+    raw_urls = re.findall(r'https?://[^\s<>"\'\)]+', text)
+    urls = [re.sub(r'[.,;:!]+$', '', u) for u in raw_urls]
     ips = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text)
 
     domains = []
