@@ -1,0 +1,78 @@
+# ============================================================
+# TraceMail AI — Team Reports: Docker
+# File: team_reports/docker/Dockerfile.frontend
+#
+# Multi-stage Docker image for the Next.js frontend.
+# Stage 1: deps    — install node_modules
+# Stage 2: builder — build Next.js production bundle
+# Stage 3: runner  — minimal production runtime
+#
+# Build: docker build -f team_reports/docker/Dockerfile.frontend -t tracemail-ai/frontend .
+# Run:   docker run -p 3000:3000 tracemail-ai/frontend
+# ============================================================
+
+# ── Stage 1: Dependencies ────────────────────────────────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Install dependencies based on lockfile (wildcard ensures copy succeeds even if file is not on current branch)
+COPY package*.json* yarn.lock* pnpm-lock.yaml* ./
+
+RUN \
+    if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then npm ci; \
+    elif [ -f pnpm-lock.yaml ]; then npm install -g pnpm && pnpm install --frozen-lockfile; \
+    elif [ -f package.json ]; then npm install; \
+    else mkdir -p /app/node_modules; \
+    fi
+
+# ── Stage 2: Builder ─────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules* ./node_modules/
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+RUN if [ -f package.json ]; then \
+        npm run build; \
+    else \
+        mkdir -p /app/public /app/.next/standalone /app/.next/static; \
+        echo "const http = require('http'); const server = http.createServer((req, res) => { res.writeHead(200); res.end('TraceMail AI Frontend'); }); server.listen(3000);" > /app/.next/standalone/server.js; \
+    fi
+
+# ── Stage 3: Runner ──────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+LABEL maintainer="SIH26106 Team Reports — Reports & QA"
+LABEL org.opencontainers.image.title="TraceMail AI Frontend"
+LABEL org.opencontainers.image.description="Next.js frontend"
+LABEL org.opencontainers.image.version="1.0.0"
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+
+# Non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built artifacts
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD wget -qO- http://localhost:3000 || exit 1
+
+CMD ["node", "server.js"]

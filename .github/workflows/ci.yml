@@ -1,28 +1,45 @@
-name: TraceMail AI CI Pipeline
+# ============================================================
+# TraceMail AI — Master Continuous Integration Pipeline
+# File: .github/workflows/ci.yml
+# Triggers on push and pull requests for develop and main
+# ============================================================
+
+name: "CI — TraceMail AI Master Pipeline"
 
 on:
   push:
-    branches: [ develop, main ]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [ develop, main ]
+    branches:
+      - main
+      - develop
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test-threat-intelligence-and-shared:
-    name: Threat Intel & Shared Contract Verification
+  # ──────────────────────────────────────────────────────────
+  # JOB 1: Threat Intelligence & Shared Contracts
+  # ──────────────────────────────────────────────────────────
+  test-threat-intel-and-shared:
+    name: "🛡️ Threat Intel & Shared Contracts"
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -30,7 +47,7 @@ jobs:
           pip install -r shared/requirements.txt
           pip install -r threat_intelligence/requirements.txt
 
-      - name: Verify Code Syntax
+      - name: Verify syntax
         run: |
           python -m py_compile $(find shared threat_intelligence -name "*.py")
 
@@ -46,22 +63,21 @@ jobs:
         run: |
           python scripts/testing/integration_test.py
 
+  # ──────────────────────────────────────────────────────────
+  # JOB 2: Backend API & Orchestration
+  # ──────────────────────────────────────────────────────────
   test-backend:
-    name: Backend API & Orchestration Verification
+    name: "⚙️ Backend API & Services"
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -70,7 +86,7 @@ jobs:
           pip install -r threat_intelligence/requirements.txt
           pip install -r backend/requirements.txt
 
-      - name: Verify Backend Code Syntax
+      - name: Verify Backend Syntax
         run: |
           python -m py_compile $(find backend -name "*.py")
 
@@ -80,14 +96,272 @@ jobs:
         run: |
           pytest backend/tests -v
 
-  docker-lint-and-validate:
-    name: Dockerfile & Compose Syntax Check
+  # ──────────────────────────────────────────────────────────
+  # JOB 3: AI Engine Phishing & Entity Extraction
+  # ──────────────────────────────────────────────────────────
+  test-ai-engine:
+    name: "🤖 AI Engine Phishing Detector"
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ai-engine/requirements.txt
+
+      - name: Verify AI Engine Syntax
+        run: |
+          python -m py_compile $(find ai-engine -name "*.py")
+
+      - name: Run AI Engine Test Suite
+        env:
+          PYTHONPATH: ai-engine
+        run: |
+          pytest ai-engine/tests -v
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 4: Team Reports Python Lint (ruff + mypy)
+  # ──────────────────────────────────────────────────────────
+  lint-python:
+    name: "🐍 Python Lint (ruff + mypy)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install lint dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ruff mypy pydantic==2.9.2
+
+      - name: Run ruff linter
+        run: |
+          ruff check team_reports/ --output-format=github
+
+      - name: Run ruff formatter check
+        run: |
+          ruff format team_reports/ --check
+
+      - name: Run mypy type checker
+        run: |
+          mypy team_reports/ \
+            --ignore-missing-imports \
+            --exclude team_reports/tests/e2e
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 5: TypeScript Lint / Compilation
+  # ──────────────────────────────────────────────────────────
+  lint-typescript:
+    name: "📘 TypeScript Lint (tsc)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: team_reports/tests/e2e/package.json
+
+      - name: Install E2E dependencies
+        working-directory: team_reports/tests/e2e
+        run: npm ci
+
+      - name: TypeScript compile check (E2E)
+        working-directory: team_reports/tests/e2e
+        run: npx tsc --noEmit
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 6: Team Reports Unit Tests + Coverage
+  # ──────────────────────────────────────────────────────────
+  test-team-reports-unit:
+    name: "🧪 Team Reports Unit Tests"
+    runs-on: ubuntu-latest
+    needs: [lint-python]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest \
+            pytest-cov \
+            pytest-asyncio \
+            pydantic==2.9.2 \
+            jinja2 \
+            jsonschema \
+            httpx \
+            fastapi
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest team_reports/tests/unit/ \
+            -v \
+            --tb=short \
+            -m "not pdf" \
+            --cov=team_reports/reports \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:coverage-html \
+            --cov-fail-under=80 \
+            --junitxml=test-results/unit-results.xml
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 7: Team Reports Integration Tests
+  # ──────────────────────────────────────────────────────────
+  test-team-reports-integration:
+    name: "🔗 Team Reports Integration Tests"
+    runs-on: ubuntu-latest
+    needs: [test-team-reports-unit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest \
+            pytest-asyncio \
+            pydantic==2.9.2 \
+            jinja2 \
+            jsonschema \
+            httpx \
+            fastapi
+
+      - name: Run integration tests
+        run: |
+          pytest team_reports/tests/integration/ \
+            -v \
+            --tb=short \
+            -m "not pdf" \
+            --junitxml=test-results/integration-results.xml
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 8: Team Reports Contract Tests
+  # ──────────────────────────────────────────────────────────
+  test-team-reports-contract:
+    name: "📋 Team Reports Contract Tests"
+    runs-on: ubuntu-latest
+    needs: [test-team-reports-unit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest \
+            pydantic==2.9.2 \
+            jinja2 \
+            jsonschema \
+            httpx \
+            fastapi
+
+      - name: Run contract tests
+        run: |
+          pytest team_reports/tests/contract/ \
+            -v \
+            --tb=short \
+            --junitxml=test-results/contract-results.xml
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 9: JSON Schema Drift Check
+  # ──────────────────────────────────────────────────────────
+  schema-drift:
+    name: "📐 Schema Drift Check"
+    runs-on: ubuntu-latest
+    needs: [lint-python]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install pydantic==2.9.2 jsonschema
+
+      - name: Check schema drift
+        run: |
+          python -m team_reports.reports.schemas.report_schema --check-drift
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 10: Docker Compose Configuration Validation
+  # ──────────────────────────────────────────────────────────
+  docker-validate:
+    name: "🐳 Docker Compose Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Validate Docker Compose Configuration
         run: |
           docker compose config
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 11: Final Status Gate
+  # ──────────────────────────────────────────────────────────
+  ci-passed:
+    name: "✅ All CI Checks Passed"
+    runs-on: ubuntu-latest
+    needs:
+      - test-threat-intel-and-shared
+      - test-backend
+      - test-ai-engine
+      - lint-python
+      - lint-typescript
+      - test-team-reports-unit
+      - test-team-reports-integration
+      - test-team-reports-contract
+      - schema-drift
+      - docker-validate
+    if: always()
+    steps:
+      - name: Evaluate All Checks
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "❌ One or more CI jobs failed. Merge is blocked."
+            exit 1
+          fi
+          echo "🎉 All CI checks successfully passed!"
