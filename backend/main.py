@@ -3,6 +3,16 @@ TraceMail AI — Master Backend Gateway Microservice
 Smart India Hackathon 2026 (SIH26106)
 Owned and Maintained by the Backend Team.
 """
+import sys
+from pathlib import Path
+
+# Add repository root and backend directory to sys.path
+_repo_root = str(Path(__file__).resolve().parent.parent)
+_backend_dir = str(Path(__file__).resolve().parent)
+for _p in [_repo_root, _backend_dir]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 

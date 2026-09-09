@@ -1,1 +1,5 @@
+# TraceMail AI — Consolidated Python Backend Dependencies
+-r backend/requirements.txt
+-r threat_intelligence/requirements.txt
+-r ai-engine/requirements.txt
 -r team_reports/requirements.txt
