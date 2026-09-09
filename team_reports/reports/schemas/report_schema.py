@@ -137,6 +137,23 @@ def assert_valid_report(data: dict[str, Any]) -> None:
         )
 
 
+def _normalize_schema(obj: Any) -> Any:
+    """
+    Normalize schema representation for comparison across Pydantic minor versions.
+    In JSON Schema Draft-07, an object without additionalProperties defaults to True.
+    Some Pydantic versions emit 'additionalProperties': True explicitly while others omit it.
+    """
+    if isinstance(obj, dict):
+        return {
+            k: _normalize_schema(v)
+            for k, v in obj.items()
+            if not (k == "additionalProperties" and v is True)
+        }
+    if isinstance(obj, list):
+        return [_normalize_schema(item) for item in obj]
+    return obj
+
+
 def check_schema_drift(path: Path = _SCHEMA_FILE) -> bool:
     """
     Compare the schema currently generated from code against the committed
@@ -156,7 +173,7 @@ def check_schema_drift(path: Path = _SCHEMA_FILE) -> bool:
 
     committed = load_schema_file(path)
 
-    if current != committed:
+    if _normalize_schema(current) != _normalize_schema(committed):
         print(
             "[DRIFT] Schema has changed. Run: python -m team_reports.reports.schemas.report_schema",
             file=sys.stderr,

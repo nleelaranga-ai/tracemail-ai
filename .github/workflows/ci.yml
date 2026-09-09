@@ -60,7 +60,7 @@ jobs:
       - name: Install lint dependencies
         run: |
           pip install --upgrade pip
-          pip install ruff mypy pydantic
+          pip install ruff mypy pydantic==2.9.2
 
       - name: Run ruff linter
         run: |
@@ -125,7 +125,7 @@ jobs:
             pytest \
             pytest-cov \
             pytest-asyncio \
-            pydantic \
+            pydantic==2.9.2 \
             jinja2 \
             jsonschema \
             httpx \
@@ -189,7 +189,7 @@ jobs:
           pip install \
             pytest \
             pytest-asyncio \
-            pydantic \
+            pydantic==2.9.2 \
             jinja2 \
             jsonschema \
             httpx \
@@ -232,7 +232,7 @@ jobs:
           pip install --upgrade pip
           pip install \
             pytest \
-            pydantic \
+            pydantic==2.9.2 \
             jinja2 \
             jsonschema \
             httpx \
@@ -270,7 +270,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install pydantic jsonschema
+        run: pip install pydantic==2.9.2 jsonschema
 
       - name: Check schema drift
         run: |
