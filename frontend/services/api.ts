@@ -16,13 +16,19 @@ import {
   getMockTimeline
 } from "./mockData";
 
-// Resolve Base URL dynamically: clean whitespace and trailing slashes
-const rawBase = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL?.trim()) ?? "";
+function sanitizeApiBase(raw?: string): string {
+  if (!raw) return "";
+  let url = String(raw).trim().replace(/^["']|["']$/g, "").replace(/\/+$/, "");
+  if (!url) return "";
+  if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("/")) {
+    url = `https://${url}`;
+  }
+  return url;
+}
 
+const rawBase = typeof process !== "undefined" ? process.env?.NEXT_PUBLIC_API_URL : "";
 export const BASE_URL =
-  rawBase && rawBase !== "/"
-    ? rawBase.replace(/\/+$/, "")
-    : "";
+  sanitizeApiBase(rawBase) || "https://tracemail-ai-production.up.railway.app";
 
 export const USE_MOCKS = !BASE_URL || BASE_URL.length === 0;
 
