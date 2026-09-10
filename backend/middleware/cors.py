@@ -9,6 +9,7 @@ from backend.utils.config import settings
 
 def setup_cors(app: FastAPI) -> None:
     allowed_origins = [
+        "https://tracemail-ai-84ho.vercel.app",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8000",

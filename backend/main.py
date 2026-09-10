@@ -13,14 +13,15 @@ for _p in [_repo_root, _backend_dir]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from backend.utils.constants import PROJECT_NAME, VERSION
 from backend.utils.logger import logger
 from backend.database.connection import init_db
 from backend.database.seed import seed_database
-from backend.middleware.cors import setup_cors
 from backend.middleware.logging import RequestLoggingMiddleware
 from backend.middleware.error_handler import setup_error_handlers
 from backend.middleware.rate_limit import RateLimitMiddleware
@@ -61,10 +62,38 @@ app = FastAPI(
 init_db()
 seed_database()
 
-# Register Middleware
-setup_cors(app)
+# Allowed frontend origins
+allowed_origins = [
+    "https://tracemail-ai-84ho.vercel.app",   # Your Vercel production URL
+    "http://localhost:3000",                  # Local development
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+# Optional: allow custom domain later
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url.rstrip("/") not in allowed_origins:
+    allowed_origins.append(frontend_url.rstrip("/"))
+
+cors_env = os.getenv("CORS_ORIGINS")
+if cors_env:
+    for o in cors_env.split(","):
+        cleaned = o.strip().rstrip("/")
+        if cleaned and cleaned != "*" and cleaned not in allowed_origins:
+            allowed_origins.append(cleaned)
+
+# Register Middleware (Note: In Starlette, the last added middleware runs first on requests)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 setup_error_handlers(app)
 
 # Register API Routers
