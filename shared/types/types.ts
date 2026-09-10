@@ -142,3 +142,100 @@ export interface InvestigationDetailResponse {
   graphUrl?: string;
   reportUrl?: string;
 }
+
+export interface InvestigationTimelineStep {
+  time: string;
+  event: string;
+}
+
+export interface IOCItem {
+  type: 'url' | 'ip' | 'domain' | 'hash' | 'attachment';
+  value: string;
+  category: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface VirusTotalSummary {
+  malicious_vendors: number;
+  total_vendors: number;
+  scan_date: string;
+  positives: number;
+}
+
+export interface AbuseIPDBSummary {
+  confidence_score: number;
+  isp: string;
+  total_reports: number;
+  is_malicious: boolean;
+}
+
+export interface WHOISSummary {
+  registrar: string;
+  created_date: string;
+  expiry_date: string;
+  domain_age: string;
+  domain_age_days: number;
+}
+
+export interface DNSSummary {
+  spf: string;
+  dkim: string;
+  dmarc: string;
+}
+
+export interface URLScanSummary {
+  verdict: string;
+  score: number;
+  page_title: string;
+  screenshot_url?: string | null;
+  technologies: string[];
+}
+
+export interface AIAnalysisSummary {
+  prediction: string;
+  confidence: number;
+  summary: string;
+  reasons: string[];
+}
+
+export interface UnifiedInvestigationResponse {
+  scan_id: string;
+  sender: string;
+  domain: string;
+  ip: string;
+  country: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  threat_score: number;
+  risk_level: 'Low' | 'Medium' | 'High' | 'Critical';
+  ai_summary: string;
+  timeline: InvestigationTimelineStep[];
+  virus_total: VirusTotalSummary;
+  abuse_ipdb: AbuseIPDBSummary;
+  whois: WHOISSummary;
+  dns: DNSSummary;
+  urlscan: URLScanSummary;
+  ai_analysis: AIAnalysisSummary;
+  ioc: IOCItem[];
+
+  // Aliases for compatibility
+  id?: string;
+  investigationId?: string;
+  status?: string;
+  recipient?: string;
+  subject?: string;
+  receivedAt?: string;
+  phishingScore?: number;
+  verdict?: string;
+  explanation?: string;
+  aiResult?: any;
+  threatResults?: any[];
+  mapUrl?: string;
+  timelineUrl?: string;
+  graphUrl?: string;
+  reportUrl?: string;
+  geojson_map?: any;
+  attack_graph?: any;
+}
+

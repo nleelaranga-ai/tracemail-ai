@@ -36,8 +36,13 @@ async def create_investigation(
 
     return EmailUploadResponse(
         investigationId=inv.id,
+        scan_id=inv.id,
         status=inv.status,
-        message="Email processed and analyzed successfully."
+        message="Email processed and analyzed successfully.",
+        threat_score=inv.threat_score,
+        risk_level=inv.risk_level,
+        origin_city=inv.origin_city,
+        origin_country=inv.origin_country
     )
 
 
@@ -54,7 +59,7 @@ def list_investigations(db: Session = Depends(get_db)):
             subject=r.subject,
             receivedAt=r.received_at.isoformat() if r.received_at else "",
             verdict=r.verdict,
-            phishingScore=r.phishing_score
+            phishingScore=r.threat_score if r.threat_score is not None else r.phishing_score
         )
         for r in records
     ]
@@ -69,16 +74,17 @@ def get_investigation_detail(id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Investigation {id} not found.")
 
     entities_data = inv.entities or {}
+    score = inv.threat_score if inv.threat_score is not None else inv.phishing_score
     ai_result = AIResult(
-        phishingScore=inv.phishing_score,
+        phishingScore=score,
         verdict=inv.verdict,
         explanation=inv.explanation or "Analysis complete.",
         entities=ExtractedEntities(
-            urls=entities_data.get("urls", []),
-            ips=entities_data.get("ips", []),
-            domains=entities_data.get("domains", []),
-            senderClaim=entities_data.get("senderClaim"),
-            senderActual=entities_data.get("senderActual")
+            urls=entities_data.get("urls", []) if isinstance(entities_data, dict) else [],
+            ips=entities_data.get("ips", []) if isinstance(entities_data, dict) else [],
+            domains=entities_data.get("domains", []) if isinstance(entities_data, dict) else [],
+            senderClaim=entities_data.get("senderClaim") if isinstance(entities_data, dict) else None,
+            senderActual=entities_data.get("senderActual") if isinstance(entities_data, dict) else None
         )
     )
 
@@ -105,5 +111,23 @@ def get_investigation_detail(id: str, db: Session = Depends(get_db)):
         mapUrl=f"/api/geo/map/{inv.id}",
         timelineUrl=f"/api/geo/timeline/{inv.id}",
         graphUrl=f"/api/geo/graph/{inv.id}",
-        reportUrl=f"/api/report/pdf/{inv.id}"
+        reportUrl=f"/api/report/pdf/{inv.id}",
+        threat_score=score,
+        threatScore=score,
+        risk_level=inv.risk_level,
+        riskLevel=inv.risk_level,
+        origin_ip=inv.origin_ip,
+        origin_city=inv.origin_city,
+        origin_country=inv.origin_country,
+        latitude=inv.latitude,
+        longitude=inv.longitude,
+        threat_intel=inv.threat_intel,
+        threatIntel=inv.threat_intel,
+        ai_analysis=inv.ai_analysis,
+        aiAnalysis=inv.ai_analysis,
+        timeline=inv.timeline,
+        iocs=inv.iocs,
+        entities=inv.entities,
+        auth_results=inv.auth_results,
+        authResults=inv.auth_results
     )

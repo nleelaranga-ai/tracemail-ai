@@ -41,6 +41,27 @@ class InvestigationDetailResponse(BaseModel):
     timelineUrl: str
     graphUrl: str
     reportUrl: str
+    threat_score: Optional[int] = None
+    threatScore: Optional[int] = None
+    risk_level: Optional[str] = None
+    riskLevel: Optional[str] = None
+    origin_ip: Optional[str] = None
+    origin_city: Optional[str] = None
+    origin_country: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    threat_intel: Optional[Dict[str, Any]] = None
+    threatIntel: Optional[Dict[str, Any]] = None
+    ai_analysis: Optional[Dict[str, Any]] = None
+    aiAnalysis: Optional[Dict[str, Any]] = None
+    timeline: Optional[List[Dict[str, Any]]] = None
+    iocs: Optional[List[Dict[str, Any]]] = None
+    entities: Optional[Any] = None
+    auth_results: Optional[Dict[str, Any]] = None
+    authResults: Optional[Dict[str, Any]] = None
+
+    class Config:
+        extra = "allow"
 
 
 class InvestigationSummary(BaseModel):

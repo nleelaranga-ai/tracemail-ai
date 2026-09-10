@@ -46,8 +46,134 @@ class ReportService:
             "threat_indicators": inv.threat_results or [],
             "server_hop_timeline": inv.hop_timeline or [],
             "attack_graph": inv.attack_graph or {},
-            "geojson_map": inv.geojson_map or {}
+            "geojson_map": inv.geojson_map or {},
+            "threat_score": inv.threat_score if inv.threat_score is not None else inv.phishing_score,
+            "risk_level": inv.risk_level or "Unknown",
+            "origin_ip": inv.origin_ip,
+            "origin_city": inv.origin_city,
+            "origin_country": inv.origin_country,
+            "threat_intel": inv.threat_intel or {},
+            "ai_analysis": inv.ai_analysis or {},
+            "timeline": inv.timeline or [],
+            "iocs": inv.iocs or []
         }
+
+    @classmethod
+    def generate_html_report(cls, inv: Investigation) -> str:
+        """Generates a standalone forensic HTML report with dark cyber styling."""
+        score = inv.threat_score if inv.threat_score is not None else inv.phishing_score
+        risk = (inv.risk_level or "UNKNOWN").upper()
+        risk_color = "#ef4444" if risk == "CRITICAL" else "#f97316" if risk == "HIGH" else "#eab308" if risk == "MEDIUM" else "#10b981"
+
+        vt = (inv.threat_intel or {}).get("virustotal", {})
+        abuse = (inv.threat_intel or {}).get("abuseipdb", {})
+        whois_data = (inv.threat_intel or {}).get("whois", {})
+        dns_data = (inv.threat_intel or {}).get("dns", {})
+        geoip_data = (inv.threat_intel or {}).get("geoip", {})
+        ai_data = inv.ai_analysis or {}
+        reasons_html = "".join([f"<li>{r}</li>" for r in ai_data.get("reasons", [])]) or "<li>No critical flags detected.</li>"
+
+        ioc_rows = ""
+        for ioc in (inv.iocs or []):
+            m_badge = '<span style="color:#ef4444;font-weight:bold;">MALICIOUS</span>' if ioc.get("malicious") else '<span style="color:#10b981;">BENIGN</span>'
+            ioc_rows += f"<tr><td style='padding:8px;border:1px solid #334155;'>{ioc.get('type','').upper()}</td><td style='padding:8px;border:1px solid #334155;font-family:monospace;'>{ioc.get('value','')}</td><td style='padding:8px;border:1px solid #334155;'>{m_badge}</td></tr>"
+
+        if not ioc_rows:
+            ioc_rows = "<tr><td colspan='3' style='padding:8px;border:1px solid #334155;text-align:center;'>No IOCs recorded</td></tr>"
+
+        timeline_steps = ""
+        for step in (inv.timeline or []):
+            st = step.get("status", "completed")
+            timeline_steps += f"""
+            <div style="margin-bottom:12px;padding-left:14px;border-left:3px solid #3b82f6;">
+                <div style="font-weight:600;font-size:14px;color:#f8fafc;">Step {step.get('step', 1)}: {step.get('name', '')}</div>
+                <div style="font-size:12px;color:#94a3b8;">{step.get('detail', '')} &bull; <span style="color:#38bdf8;">{st}</span></div>
+            </div>
+            """
+
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TraceMail AI — Forensic Report [{inv.id}]</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1120; color: #e2e8f0; margin: 0; padding: 24px; }}
+        .container {{ max-width: 960px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 16px; margin-bottom: 24px; }}
+        .title {{ font-size: 24px; font-weight: 700; color: #f8fafc; letter-spacing: -0.5px; }}
+        .subtitle {{ font-size: 13px; color: #94a3b8; margin-top: 4px; }}
+        .badge {{ display: inline-block; padding: 6px 14px; border-radius: 9999px; font-weight: 700; font-size: 13px; letter-spacing: 0.5px; }}
+        .card {{ background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px; }}
+        .card h3 {{ margin-top: 0; font-size: 16px; color: #38bdf8; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+        th {{ background-color: #0f172a; color: #94a3b8; text-align: left; padding: 10px 8px; border: 1px solid #334155; }}
+        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
+        .metric {{ font-size: 28px; font-weight: 800; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title">🛡️ TraceMail AI — Email Threat Forensic Report</div>
+                <div class="subtitle">Smart India Hackathon 2026 &bull; Case ID: <code>{inv.id}</code> &bull; Classification: TLP:AMBER</div>
+            </div>
+            <div>
+                <span class="badge" style="background-color: {risk_color}22; color: {risk_color}; border: 1px solid {risk_color};">{risk} RISK ({score}/100)</span>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Case Summary</h3>
+                <p><strong>Sender:</strong> {inv.sender or 'Unknown'}</p>
+                <p><strong>Recipient:</strong> {inv.recipient or 'Unknown'}</p>
+                <p><strong>Subject:</strong> {inv.subject or 'No Subject'}</p>
+                <p><strong>Origin City:</strong> {inv.origin_city or 'Unknown'}, {inv.origin_country or 'Unknown'} ({inv.origin_ip or 'N/A'})</p>
+                <p><strong>Verdict:</strong> <span style="color: {risk_color}; font-weight: 700;">{inv.verdict.upper()}</span></p>
+            </div>
+            <div class="card">
+                <h3>Threat Intelligence Summary</h3>
+                <p><strong>VirusTotal:</strong> {vt.get('positives', 0)}/{vt.get('total_engines', 88)} malicious flags</p>
+                <p><strong>AbuseIPDB Score:</strong> {abuse.get('abuse_confidence_score', 0)}% confidence</p>
+                <p><strong>Domain Age:</strong> {whois_data.get('domain_age_days', 'N/A')} days (Registrar: {whois_data.get('registrar', 'N/A')})</p>
+                <p><strong>DNS Auth:</strong> SPF={dns_data.get('spf','none')}, DKIM={dns_data.get('dkim','none')}, DMARC={dns_data.get('dmarc','none')}</p>
+                <p><strong>Origin ISP:</strong> {geoip_data.get('isp', 'N/A')} (ASN: {geoip_data.get('asn', 'N/A')})</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>AI Threat Analysis & Findings</h3>
+            <p><strong>Model Prediction:</strong> {ai_data.get('prediction', inv.verdict)} (Confidence: {int(ai_data.get('confidence', 0.95) * 100)}%)</p>
+            <p><strong>Executive Summary:</strong> {ai_data.get('summary', inv.explanation)}</p>
+            <ul>{reasons_html}</ul>
+        </div>
+
+        <div class="card">
+            <h3>Indicators of Compromise (IOCs)</h3>
+            <table>
+                <thead>
+                    <tr><th>Type</th><th>Indicator</th><th>Verdict</th></tr>
+                </thead>
+                <tbody>
+                    {ioc_rows}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Investigation Execution Timeline</h3>
+            {timeline_steps}
+        </div>
+
+        <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #64748b;">
+            Generated by TraceMail AI Defense Intelligence Platform &bull; Automated Forensic Report &bull; {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        return html
 
     @classmethod
     def generate_pdf_report_bytes(cls, inv: Investigation) -> bytes:

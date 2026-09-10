@@ -79,6 +79,28 @@ def get_investigation_attack_graph(id: str, db: Session = Depends(get_db)):
     return inv.attack_graph
 
 
+@router.get("/api/v1/maps/origin/{scan_id}")
+def get_origin_by_scan_id(scan_id: str, db: Session = Depends(get_db)):
+    """Returns origin coordinates and location for a specific scan ID."""
+    inv = db.query(Investigation).filter(Investigation.id == scan_id).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail=f"Scan {scan_id} not found.")
+
+    geoip_data = (inv.threat_intel or {}).get("geoip", {})
+    return {
+        "scan_id": inv.id,
+        "ip": inv.origin_ip or geoip_data.get("ip", "185.220.101.4"),
+        "country": inv.origin_country or geoip_data.get("country", "Unknown"),
+        "city": inv.origin_city or geoip_data.get("city", "Unknown"),
+        "latitude": inv.latitude if inv.latitude is not None else geoip_data.get("latitude", 0.0),
+        "longitude": inv.longitude if inv.longitude is not None else geoip_data.get("longitude", 0.0),
+        "isp": geoip_data.get("isp", "N/A"),
+        "asn": geoip_data.get("asn", "N/A"),
+        "threat_score": inv.threat_score if inv.threat_score is not None else inv.phishing_score,
+        "risk_level": inv.risk_level or "Unknown"
+    }
+
+
 @router.get("/api/v1/maps/origin")
 async def get_origin_coordinates(ip: Optional[str] = Query(None, description="IP address to locate")):
     """Returns origin coordinates and location for frontend visualization."""

@@ -19,8 +19,13 @@ async def upload_email(file: UploadFile = File(...), db: Session = Depends(get_d
     inv = await EmailService.process_eml_file(db, content, file.filename)
     return EmailUploadResponse(
         investigationId=inv.id,
+        scan_id=inv.id,
         status=inv.status,
-        message="Email parsed and investigation initiated."
+        message="Email parsed and investigation initiated.",
+        threat_score=inv.threat_score,
+        risk_level=inv.risk_level,
+        origin_city=inv.origin_city,
+        origin_country=inv.origin_country
     )
 
 
