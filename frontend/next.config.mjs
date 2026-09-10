@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
+const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+
 const nextConfig = {
   reactStrictMode: false,
   allowedDevOrigins: ["localhost", "127.0.0.1"],
   async rewrites() {
-    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || "").trim().replace(/\/+$/, "");
-    if (!backendUrl || backendUrl === "/") {
+    if (!backendUrl.startsWith("https://")) {
       return [];
     }
+
     return [
       {
         source: "/api/:path*",
@@ -21,3 +25,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
