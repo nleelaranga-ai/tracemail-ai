@@ -1,10 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || ""
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
+  async rewrites() {
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || "").trim().replace(/\/+$/, "");
+    if (!backendUrl || backendUrl === "/") {
+      return [];
+    }
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
+      },
+      {
+        source: "/health",
+        destination: `${backendUrl}/health`,
+      },
+    ];
   },
-  allowedDevOrigins: ["localhost", "127.0.0.1"]
 };
 
 export default nextConfig;

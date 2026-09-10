@@ -10,4 +10,4 @@ echo "=================================================="
 
 export PYTHONPATH="..:$PYTHONPATH"
 
-exec uvicorn main:app --host "$HOST" --port "$PORT"
+exec python -m uvicorn main:app --host "$HOST" --port "$PORT"
