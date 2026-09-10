@@ -17,12 +17,17 @@ import {
 } from "./mockData";
 
 // Resolve Base URL dynamically: clean whitespace and trailing slashes
-const rawBase = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL)
-  ? process.env.NEXT_PUBLIC_API_URL.trim()
-  : "";
+const rawBase = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL?.trim()) ?? "";
 
-export const BASE_URL = rawBase && rawBase !== "/" ? rawBase.replace(/\/+$/, "") : "";
+export const BASE_URL =
+  rawBase && rawBase !== "/"
+    ? rawBase.replace(/\/+$/, "")
+    : "";
+
 export const USE_MOCKS = !BASE_URL || BASE_URL.length === 0;
+
+export const apiUrl = (path: string) =>
+  `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
 function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
@@ -31,7 +36,7 @@ function authHeaders(): HeadersInit {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${BASE_URL}${path}`;
+  const url = apiUrl(path);
   const res = await fetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers || {}) }
@@ -98,7 +103,7 @@ export const api = {
     const form = new FormData();
     form.append("file", file);
     try {
-      const res = await fetch(`${BASE_URL}/api/investigations`, {
+      const res = await fetch(apiUrl("/api/investigations"), {
         method: "POST",
         headers: { ...authHeaders() },
         body: form
@@ -179,7 +184,7 @@ export const api = {
     }
     const endpoint = format === "html" ? `/api/report/html/${id}` : format === "json" ? `/api/report/json/${id}` : `/api/report/pdf/${id}`;
     try {
-      const res = await fetch(`${BASE_URL}${endpoint}`, { headers: { ...authHeaders() } });
+      const res = await fetch(apiUrl(endpoint), { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error(`Report download failed (${res.status})`);
       return await res.blob();
     } catch (err) {
