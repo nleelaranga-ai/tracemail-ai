@@ -72,10 +72,7 @@ export const api = {
     try {
       return await request<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
     } catch (err) {
-      console.warn("Live backend login failed, evaluating demo fallback:", err);
-      if (email === "analyst@tracemail.ai" && password === "Password123!") {
-        return delay({ token: "demo-jwt-token", user: { id: "u1", email: "analyst@tracemail.ai", name: "Security Analyst" } });
-      }
+      console.error("Backend login failed:", err);
       throw err;
     }
   },
@@ -90,8 +87,8 @@ export const api = {
     try {
       return await request<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ email, password }) });
     } catch (err) {
-      console.warn("Live backend register failed, evaluating demo fallback:", err);
-      return delay({ token: "demo-jwt-token", user: { id: "u1", email, name: email.split("@")[0] } });
+      console.error("Backend registration failed:", err);
+      throw err;
     }
   },
 
@@ -100,8 +97,8 @@ export const api = {
     try {
       return await request<Investigation[]>("/api/investigations");
     } catch (err) {
-      console.warn("Backend listInvestigations failed, falling back to mock:", err);
-      return delay(MOCK_INVESTIGATIONS, 300);
+      console.error("Backend investigation history failed:", err);
+      throw err;
     }
   },
 
@@ -153,8 +150,8 @@ export const api = {
     try {
       return await request<GeoJSON>(`/api/geo/map/${id}`);
     } catch (err) {
-      const inv = MOCK_INVESTIGATIONS.find((i) => i.id === id);
-      return delay(getMockGeo(id, inv), 300);
+      console.error(`Backend map request failed for ${id}:`, err);
+      throw err;
     }
   },
 
@@ -166,8 +163,8 @@ export const api = {
     try {
       return await request<TimelineStep[]>(`/api/geo/timeline/${id}`);
     } catch (err) {
-      const inv = MOCK_INVESTIGATIONS.find((i) => i.id === id);
-      return delay(getMockTimeline(id, inv), 300);
+      console.error(`Backend timeline request failed for ${id}:`, err);
+      throw err;
     }
   },
 
@@ -179,8 +176,8 @@ export const api = {
     try {
       return await request<AttackGraph>(`/api/geo/graph/${id}`);
     } catch (err) {
-      const inv = MOCK_INVESTIGATIONS.find((i) => i.id === id);
-      return delay(getMockGraph(id, inv), 300);
+      console.error(`Backend graph request failed for ${id}:`, err);
+      throw err;
     }
   },
 
@@ -203,9 +200,8 @@ export const api = {
       if (!res.ok) throw new Error(`Report download failed (${res.status})`);
       return await res.blob();
     } catch (err) {
-      console.warn("Report download failed, serving fallback format:", err);
-      const fallback = `TraceMail AI — Forensic Report\nInvestigation: ${id}\nGenerated: ${new Date().toISOString()}`;
-      return new Blob([fallback], { type: "text/plain" });
+      console.error(`Backend report request failed for ${id}:`, err);
+      throw err;
     }
   },
 
