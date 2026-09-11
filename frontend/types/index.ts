@@ -132,6 +132,8 @@ export interface Investigation {
   subject: string;
   receivedAt: string;
   aiResult: AiResult | null;
+  verdict?: Verdict;
+  phishingScore?: number;
   threatResults: ThreatResult[];
   mapUrl: string | null;
   timelineUrl: string | null;

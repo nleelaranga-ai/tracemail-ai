@@ -26,14 +26,17 @@ function sanitizeApiBase(raw?: string): string {
   return url;
 }
 
-const rawBase = typeof process !== "undefined" ? process.env?.NEXT_PUBLIC_API_URL : "";
+const rawBase = typeof process !== "undefined" ? process.env?.NEXT_PUBLIC_API_URL : undefined;
 export const BASE_URL =
-  sanitizeApiBase(rawBase) || "https://tracemail-ai-production.up.railway.app";
+  rawBase !== undefined ? sanitizeApiBase(rawBase) : "https://tracemail-ai-production.up.railway.app";
 
-export const USE_MOCKS = !BASE_URL || BASE_URL.length === 0;
+export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
-export const apiUrl = (path: string) =>
-  `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+export const apiUrl = (path: string) => {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  if (!BASE_URL) return cleanPath;
+  return `${BASE_URL}${cleanPath}`;
+};
 
 function authHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
@@ -135,9 +138,10 @@ export const api = {
     try {
       return await request<Investigation>(`/api/investigations/${id}`);
     } catch (err) {
-      console.warn(`Backend getInvestigation(${id}) failed, falling back to mock:`, err);
-      const found = MOCK_INVESTIGATIONS.find((i) => i.id === id) || MOCK_INVESTIGATIONS[0];
-      return delay(found, 400);
+      console.error(`Backend getInvestigation(${id}) failed:`, err);
+      // In live backend mode, do NOT fall back to MOCK_INVESTIGATIONS[0] (PayPal).
+      // Throwing allows UI to report the true error state rather than fake data.
+      throw err;
     }
   },
 

@@ -77,29 +77,34 @@ export default function ReportsPage() {
                   </td>
                 </tr>
               )}
-              {filtered.map((inv) => (
-                <tr key={inv.id} className="hover:bg-bg-raised">
-                  <td className="max-w-[220px] truncate px-4 py-3">{inv.subject}</td>
-                  <td className="max-w-[200px] truncate px-4 py-3 font-mono text-xs text-ink-muted">{inv.sender}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-muted">
-                    {new Date(inv.receivedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <VerdictBadge
-                      verdict={inv.aiResult?.verdict || "phishing"}
-                      score={inv.threat_score ?? inv.threatScore ?? inv.aiResult?.phishingScore ?? 0}
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <ReportButton investigationId={inv.id} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/investigation/${inv.id}`} className="inline-flex items-center gap-1 text-trace hover:underline">
-                      Open <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((inv) => {
+                const verdict = inv.verdict || inv.aiResult?.verdict || "suspicious";
+                const score = inv.phishingScore ?? inv.threat_score ?? inv.threatScore ?? inv.aiResult?.phishingScore ?? 0;
+                return (
+                  <tr key={inv.id} className="hover:bg-bg-raised">
+                    <td className="max-w-[220px] truncate px-4 py-3">{inv.subject || "(No Subject)"}</td>
+                    <td className="max-w-[200px] truncate px-4 py-3 font-mono text-xs text-ink-muted">{inv.sender || "Unknown"}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-ink-muted">
+                      {inv.receivedAt ? new Date(inv.receivedAt).toLocaleDateString() : "N/A"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <VerdictBadge
+                        verdict={verdict}
+                        score={score}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <ReportButton investigationId={inv.id} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={`/investigation/${inv.id}`} className="inline-flex items-center gap-1 text-trace hover:underline">
+                        Open <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+
             </tbody>
           </table>
         </div>

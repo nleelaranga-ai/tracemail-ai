@@ -36,6 +36,7 @@ from backend.api.maps import router as maps_router
 from backend.api.report import router as report_router
 from backend.api.admin import router as admin_router
 from backend.api.health import router as health_router
+from backend.api.campaigns import router as campaigns_router
 
 
 @asynccontextmanager
@@ -106,6 +107,7 @@ app.include_router(threat_router)
 app.include_router(maps_router)
 app.include_router(report_router)
 app.include_router(admin_router)
+app.include_router(campaigns_router)
 
 
 if __name__ == "__main__":

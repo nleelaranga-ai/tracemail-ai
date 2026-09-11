@@ -23,6 +23,7 @@ COPY --from=builder /usr/local /usr/local
 COPY backend /app/backend
 COPY shared /app/shared
 COPY threat_intelligence /app/threat_intelligence
+COPY ai-engine /app/ai-engine
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
@@ -34,4 +35,4 @@ USER tracemail
 
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "python -m uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

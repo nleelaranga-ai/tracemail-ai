@@ -52,23 +52,28 @@ export default function DashboardPage() {
             {!isLoading && data?.length === 0 && (
               <p className="px-4 py-6 text-sm text-ink-muted">No investigations yet — upload your first email above.</p>
             )}
-            {data?.slice(0, 5).map((inv) => (
-              <Link
-                key={inv.id}
-                href={`/investigation/${inv.id}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-bg-raised"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm">{inv.subject}</p>
-                  <p className="truncate font-mono text-xs text-ink-muted">{inv.sender}</p>
-                </div>
-                <div className="flex flex-none items-center gap-3">
-                  {inv.aiResult && <VerdictBadge verdict={inv.aiResult.verdict} score={inv.aiResult.phishingScore} />}
-                  <ChevronRight className="h-4 w-4 text-ink-faint" />
-                </div>
-              </Link>
-            ))}
+            {data?.slice(0, 5).map((inv) => {
+              const verdict = inv.verdict || inv.aiResult?.verdict || "suspicious";
+              const score = inv.phishingScore ?? inv.threat_score ?? inv.threatScore ?? inv.aiResult?.phishingScore ?? 0;
+              return (
+                <Link
+                  key={inv.id}
+                  href={`/investigation/${inv.id}`}
+                  className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-bg-raised"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">{inv.subject || "(No Subject)"}</p>
+                    <p className="truncate font-mono text-xs text-ink-muted">{inv.sender || "Unknown Sender"}</p>
+                  </div>
+                  <div className="flex flex-none items-center gap-3">
+                    <VerdictBadge verdict={verdict} score={score} />
+                    <ChevronRight className="h-4 w-4 text-ink-faint" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
+
           {data && data.length > 5 && (
             <Link href="/reports" className="mt-3 inline-block text-sm text-trace hover:underline">
               View all {data.length} cases →
