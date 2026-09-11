@@ -1,4 +1,4 @@
-﻿// Mock data matching the exact contracts in Section 6 of the master plan.
+// Mock data matching the exact contracts in Section 6 of the master plan.
 import type {
   AttackGraph,
   GeoJSON,
@@ -300,6 +300,23 @@ export const MOCK_GRAPH: Record<string, AttackGraph> = {
 
 function fallbackGeo(inv: Investigation): GeoJSON {
   const points = inv.threatResults.filter((t) => t.geo?.lat && t.geo?.lon);
+  if (points.length === 0 && (inv.latitude || inv.longitude)) {
+    return {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [inv.longitude || 78.9629, inv.latitude || 20.5937] },
+          properties: {
+            hop: 1,
+            ip: inv.origin_ip || inv.ip || "Origin Host",
+            city: inv.origin_city || inv.city || "Origin Node",
+            malicious: inv.threat_score ? inv.threat_score >= 65 : false
+          }
+        }
+      ]
+    };
+  }
   return {
     type: "FeatureCollection",
     features: points.map((t, i) => ({

@@ -186,7 +186,7 @@ class GeoClient:
         # Fallback to free public ipapi.co
         try:
             url = f"https://ipapi.co/{clean_ip}/json/"
-            data = await async_http_get(url, timeout=4.0)
+            data = await async_http_get(url, timeout=3.0)
             if data and "country_name" in data:
                 resp = IPThreatResponse(
                     ip=clean_ip,
@@ -196,6 +196,27 @@ class GeoClient:
                     lon=float(data.get("longitude", 0.0)),
                     isp=data.get("org", "Unknown"),
                     asn=data.get("asn", "Unknown"),
+                    abuseScore=abuse_score,
+                    malicious=is_malicious,
+                )
+                ip_cache.set(cache_key, resp)
+                return resp
+        except Exception:
+            pass
+
+        # Fallback to high-availability ip-api.com
+        try:
+            url = f"http://ip-api.com/json/{clean_ip}"
+            data = await async_http_get(url, timeout=3.0)
+            if data and data.get("status") == "success":
+                resp = IPThreatResponse(
+                    ip=clean_ip,
+                    country=data.get("country", "Unknown"),
+                    city=data.get("city", "Unknown"),
+                    lat=float(data.get("lat", 0.0)),
+                    lon=float(data.get("lon", 0.0)),
+                    isp=data.get("isp") or data.get("org") or "Internet Service Provider",
+                    asn=data.get("as", "Unknown"),
                     abuseScore=abuse_score,
                     malicious=is_malicious,
                 )

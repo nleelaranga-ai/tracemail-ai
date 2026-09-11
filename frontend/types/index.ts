@@ -146,6 +146,9 @@ export interface Investigation {
   origin_ip?: string;
   origin_city?: string;
   origin_country?: string;
+  ip?: string;
+  city?: string;
+  country?: string;
   latitude?: number;
   longitude?: number;
   threat_intel?: ThreatIntelBundle;
@@ -156,6 +159,8 @@ export interface Investigation {
   iocs?: IOCChipItem[];
   entities?: Entity[] | { urls?: string[]; ips?: string[]; domains?: string[] };
   auth_results?: { spf?: string; dkim?: string; dmarc?: string };
+  action_items?: string[];
+  evidence_hash?: string;
 }
 
 export interface GeoFeature {

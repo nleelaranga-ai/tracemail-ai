@@ -1,3 +1,5 @@
+import hashlib
+import socket
 from backend.database.connection import Session
 from typing import Dict, Any
 from datetime import datetime, timezone
@@ -17,6 +19,7 @@ class EmailService:
         Parses email, orchestrates threat and AI analysis, computes weighted threat score,
         and saves to database matching the unified master architecture.
         """
+        evidence_hash = hashlib.sha256(content_bytes).hexdigest()
         parsed = EmailParser.parse_eml_bytes(content_bytes)
         
         sender = parsed.get("sender") or "unknown@sender.net"
@@ -38,7 +41,18 @@ class EmailService:
             extracted_domains.append(domain)
 
         # 1. Determine origin IP and enrich all IP hops
-        origin_ip = parsed.get("origin_ip") or (extracted_ips[0] if extracted_ips else "185.220.101.42")
+        origin_ip = parsed.get("origin_ip")
+        if not origin_ip and extracted_ips:
+            origin_ip = extracted_ips[0]
+        if not origin_ip and domain and domain != "unknown.net":
+            try:
+                resolved_ip = socket.gethostbyname(domain)
+                if not (resolved_ip.startswith("10.") or resolved_ip.startswith("127.") or resolved_ip.startswith("192.168.")):
+                    origin_ip = resolved_ip
+            except Exception:
+                pass
+        if not origin_ip:
+            origin_ip = "127.0.0.1"
         
         threat_items = []
         hop_objects = []
@@ -93,13 +107,18 @@ class EmailService:
         # 4. Query Auth Alignment (SPF, DKIM, DMARC)
         auth_data = await ScanService.query_auth_check(raw_headers)
 
-        # 5. Query AI Engine
+        # 5. Query AI Engine with Identity Spoofing & BEC context
         ai_data = await ScanService.query_ai_engine(
             email_body=body_text,
             headers=raw_headers,
             extracted_urls=extracted_urls,
             extracted_ips=extracted_ips,
-            sender=sender
+            sender=sender,
+            display_name=parsed.get("display_name"),
+            display_name_spoofing=parsed.get("display_name_spoofing", False),
+            impersonated_brand=parsed.get("impersonated_brand"),
+            reply_to_mismatch=parsed.get("reply_to_mismatch", False),
+            return_path_mismatch=parsed.get("return_path_mismatch", False)
         )
 
         # 6. Calculate Dynamic Weighted Threat Score (Section 2.E)
@@ -136,10 +155,23 @@ class EmailService:
             threat_results=threat_items
         )
 
-        # 8. Generate GeoJSON, Hop Timeline, Attack Graph
-        geojson = ScanService.generate_geojson(hop_objects)
-        hop_timeline = ScanService.generate_timeline(hop_objects)
-        attack_graph = ScanService.generate_attack_graph(sender, recipient, hop_objects)
+        # 8. Generate GeoJSON, Hop Timeline, Attack Graph, and Action Items
+        geojson = ScanService.generate_geojson(
+            hop_objects,
+            origin_city=origin_threat.get("city", "Origin Node"),
+            origin_lat=float(origin_threat.get("lat") or 0.0),
+            origin_lon=float(origin_threat.get("lon") or 0.0)
+        )
+        hop_timeline = ScanService.generate_timeline(hop_objects, default_ip=origin_ip)
+        attack_graph = ScanService.generate_attack_graph(sender, recipient, hop_objects, is_phishing=is_phish)
+        action_items = ScanService.generate_action_items(
+            threat_score=final_threat_score,
+            risk_level=final_risk_level,
+            domain=domain,
+            origin_ip=origin_ip,
+            is_phishing=is_phish,
+            display_name_spoofing=parsed.get("display_name_spoofing", False)
+        )
 
         # Assemble summary structures
         vt_summary = {
@@ -198,7 +230,9 @@ class EmailService:
             dns=dns_summary,
             urlscan=urlscan_data,
             ai_analysis=ai_summary_obj,
-            ioc=ioc_chips
+            ioc=ioc_chips,
+            evidence_hash=evidence_hash,
+            action_items=action_items
         )
         db.add(investigation)
         db.commit()

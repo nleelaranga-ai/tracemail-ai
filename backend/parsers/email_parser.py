@@ -80,16 +80,24 @@ class EmailParser:
 
         return {
             "sender": sender,
+            "display_name": header_analysis.get("display_name", ""),
             "recipient": recipient,
             "subject": subject,
             "domain": domain,
             "origin_ip": origin_ip,
             "reply_to": header_analysis.get("reply_to", ""),
+            "return_path": header_analysis.get("return_path", ""),
             "message_id": header_analysis.get("message_id", ""),
             "body_text": body_text,
             "body_html": body_html,
             "raw_headers": raw_text[:5000],  # Header block excerpt
             "headers": header_analysis,
+            "display_name_spoofing": header_analysis.get("display_name_spoofing", False),
+            "impersonated_brand": header_analysis.get("impersonated_brand"),
+            "spoofing_detail": header_analysis.get("spoofing_detail", ""),
+            "reply_to_mismatch": header_analysis.get("reply_to_mismatch", False),
+            "return_path_mismatch": header_analysis.get("return_path_mismatch", False),
+            "structured_hops": header_analysis.get("structured_hops", []),
             "attachments": attachments,
             "iocs": iocs
         }

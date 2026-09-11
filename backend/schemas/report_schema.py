@@ -43,6 +43,7 @@ class InvestigationDetailResponse(BaseModel):
     reportUrl: str
     threat_score: Optional[int] = None
     threatScore: Optional[int] = None
+    verdict: Optional[str] = None
     risk_level: Optional[str] = None
     riskLevel: Optional[str] = None
     origin_ip: Optional[str] = None
@@ -59,6 +60,11 @@ class InvestigationDetailResponse(BaseModel):
     entities: Optional[Any] = None
     auth_results: Optional[Dict[str, Any]] = None
     authResults: Optional[Dict[str, Any]] = None
+    evidence_hash: Optional[str] = None
+    action_items: Optional[List[str]] = None
+    ip: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
 
     class Config:
         extra = "allow"

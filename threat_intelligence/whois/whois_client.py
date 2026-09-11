@@ -26,6 +26,12 @@ KNOWN_DOMAINS = {
         "registrar": "Porkbun LLC",
         "created": "2026-09-01",
     },
+    "internshala.com": {
+        "domainAge": "5734 days",
+        "domainAgeDays": 5734,
+        "registrar": "GoDaddy.com LLC",
+        "created": "2010-12-29",
+    },
     "paypal.com": {
         "domainAge": "9800 days",
         "domainAgeDays": 9800,
@@ -37,6 +43,24 @@ KNOWN_DOMAINS = {
         "domainAgeDays": 10500,
         "registrar": "MarkMonitor Inc.",
         "created": "1997-09-15",
+    },
+    "amazon.in": {
+        "domainAge": "6000 days",
+        "domainAgeDays": 6000,
+        "registrar": "MarkMonitor Inc.",
+        "created": "2008-01-10",
+    },
+    "sbi.co.in": {
+        "domainAge": "8500 days",
+        "domainAgeDays": 8500,
+        "registrar": "National Informatics Centre",
+        "created": "2003-04-10",
+    },
+    "github.com": {
+        "domainAge": "6800 days",
+        "domainAgeDays": 6800,
+        "registrar": "MarkMonitor Inc.",
+        "created": "2007-10-09",
     },
 }
 

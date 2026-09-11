@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Map as MapIcon, Clock, Share2, Shield, Activity, ListOrdered } from "lucide-react";
+import { Loader2, ArrowLeft, Map as MapIcon, Clock, Share2, Shield, ShieldCheck, Activity, ListOrdered } from "lucide-react";
 import { clsx } from "clsx";
 import { Navbar } from "@/components/Navbar";
 import { ThreatSummaryCard } from "@/components/ThreatSummaryCard";
@@ -43,11 +43,11 @@ export default function InvestigationPage() {
 
   const score = inv?.threat_score ?? inv?.threatScore ?? inv?.aiResult?.phishingScore ?? 0;
   const risk = inv?.risk_level ?? inv?.riskLevel ?? (score >= 85 ? "Critical" : score >= 65 ? "High" : score >= 35 ? "Medium" : "Low");
-  const originCity = inv?.origin_city || inv?.threat_intel?.geoip?.city || "Frankfurt";
-  const originCountry = inv?.origin_country || inv?.threat_intel?.geoip?.country || "Germany";
-  const originIp = inv?.origin_ip || inv?.threat_intel?.geoip?.ip || "185.220.101.4";
-  const originLat = inv?.latitude || inv?.threat_intel?.geoip?.latitude || 50.1109;
-  const originLon = inv?.longitude || inv?.threat_intel?.geoip?.longitude || 8.6821;
+  const originCity = inv?.origin_city || inv?.city || inv?.threat_intel?.geoip?.city || (score < 30 ? "Origin Host" : "Suspicious Node");
+  const originCountry = inv?.origin_country || inv?.country || inv?.threat_intel?.geoip?.country || (score < 30 ? "Verified Origin" : "External Network");
+  const originIp = inv?.origin_ip || inv?.ip || inv?.threat_intel?.geoip?.ip || "127.0.0.1";
+  const originLat = inv?.latitude ?? inv?.threat_intel?.geoip?.latitude ?? 20.5937;
+  const originLon = inv?.longitude ?? inv?.threat_intel?.geoip?.longitude ?? 78.9629;
 
   return (
     <div className="min-h-screen bg-bg">
@@ -111,6 +111,31 @@ export default function InvestigationPage() {
                   iocs={inv.iocs}
                   fallbackEntities={inv.entities || inv.aiResult?.entities}
                 />
+
+                {/* 4.5 Incident Response Remediation Plan & Chain of Custody (SIH 26106 Root Causes 13 & 15) */}
+                {inv.action_items && inv.action_items.length > 0 && (
+                  <div className="rounded-xl border border-trace/20 bg-bg-surface/40 p-6 shadow-lg">
+                    <div className="flex items-center justify-between border-b border-bg-border pb-3">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-trace" />
+                        Incident Response Remediation Plan
+                      </h3>
+                      {inv.evidence_hash && (
+                        <span className="font-mono text-[10px] text-ink-muted bg-bg-raised px-2.5 py-1 rounded border border-bg-border">
+                          SHA-256: {inv.evidence_hash.substring(0, 16)}...{inv.evidence_hash.substring(inv.evidence_hash.length - 8)}
+                        </span>
+                      )}
+                    </div>
+                    <ul className="mt-4 space-y-2 text-xs">
+                      {inv.action_items.map((item: string, idx: number) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-ink-muted">
+                          <span className="text-trace font-mono font-bold">{idx + 1}.</span>
+                          <span className="text-ink">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* 5. Visualization Workspace (Map / Timeline / Attack Graph) */}
                 <div className="rounded-xl border border-bg-border bg-bg-surface/30 p-6 shadow-lg">

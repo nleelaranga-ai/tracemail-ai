@@ -104,7 +104,9 @@ export const api = {
 
   async createInvestigation(file: File): Promise<CreateInvestigationResponse> {
     if (USE_MOCKS) {
-      return delay({ investigationId: MOCK_INVESTIGATIONS[0].id, status: "complete" }, 1200);
+      const isInternshala = file.name.toLowerCase().includes("internshala");
+      const mockId = isInternshala ? "inv-1039" : MOCK_INVESTIGATIONS[0].id;
+      return delay({ investigationId: mockId, status: "complete" }, 1200);
     }
     const form = new FormData();
     form.append("file", file);
@@ -114,11 +116,14 @@ export const api = {
         headers: { ...authHeaders() },
         body: form
       });
-      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Upload failed (${res.status}): ${errText || res.statusText}`);
+      }
       return await res.json();
     } catch (err) {
-      console.warn("Backend upload failed, falling back to mock investigation:", err);
-      return delay({ investigationId: MOCK_INVESTIGATIONS[0].id, status: "complete" }, 1200);
+      console.error("Backend upload failed:", err);
+      throw err;
     }
   },
 
