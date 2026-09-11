@@ -1,13 +1,20 @@
 // The ONLY file that talks to the network. Every component/hook goes through here.
-// Per Definition of Done (Section 9.1): zero direct calls to AI/Threat-Intel/Maps/Reports —
-// backend only, and everything must work against mock data before the backend is live.
+// Per Definition of Done: zero direct calls to third-party services from frontend —
+// all telemetry flows through the backend gateway microservice.
 import type {
   AttackGraph,
   AuthResponse,
   CreateInvestigationResponse,
   GeoJSON,
   Investigation,
-  TimelineStep
+  TimelineStep,
+  SocOverview,
+  DepartmentMetric,
+  InboxEmailItem,
+  EvidenceRecordItem,
+  ExplainabilityResponse,
+  GraphNodeDetail,
+  AttachmentScanResponse
 } from "@/types";
 import {
   MOCK_INVESTIGATIONS,
@@ -136,8 +143,6 @@ export const api = {
       return await request<Investigation>(`/api/investigations/${id}`);
     } catch (err) {
       console.error(`Backend getInvestigation(${id}) failed:`, err);
-      // In live backend mode, do NOT fall back to MOCK_INVESTIGATIONS[0] (PayPal).
-      // Throwing allows UI to report the true error state rather than fake data.
       throw err;
     }
   },
@@ -203,6 +208,70 @@ export const api = {
       console.error(`Backend report request failed for ${id}:`, err);
       throw err;
     }
+  },
+
+  // --- Master Plan v2 Client API Methods ---
+
+  async getSocOverview(): Promise<SocOverview> {
+    return await request<SocOverview>("/api/soc/overview");
+  },
+
+  async getOrgHeatmap(): Promise<DepartmentMetric[]> {
+    return await request<DepartmentMetric[]>("/api/org/heatmap");
+  },
+
+  async getInboxResults(email?: string): Promise<InboxEmailItem[]> {
+    const q = email ? `?email=${encodeURIComponent(email)}` : "";
+    return await request<InboxEmailItem[]>(`/api/inbox/results${q}`);
+  },
+
+  async scanInbox(email?: string): Promise<any> {
+    const q = email ? `?email=${encodeURIComponent(email)}` : "";
+    return await request<any>(`/api/inbox/scan${q}`, { method: "POST" });
+  },
+
+  async getGoogleLoginUrl(): Promise<{ authUrl: string }> {
+    return await request<{ authUrl: string }>("/api/auth/google/login");
+  },
+
+  async connectGoogleInbox(email: string): Promise<any> {
+    return await request<any>(`/api/auth/google/callback?email=${encodeURIComponent(email)}`);
+  },
+
+  async listEvidence(): Promise<EvidenceRecordItem[]> {
+    return await request<EvidenceRecordItem[]>("/api/evidence");
+  },
+
+  async getEvidence(investigationId: string): Promise<EvidenceRecordItem> {
+    return await request<EvidenceRecordItem>(`/api/evidence/${investigationId}`);
+  },
+
+  async verifyEvidence(investigationId: string, simulatedCorrupt = false): Promise<any> {
+    const q = simulatedCorrupt ? "?simulated_corrupt=true" : "";
+    return await request<any>(`/api/evidence/${investigationId}/verify${q}`, { method: "POST" });
+  },
+
+  async getExplainability(investigationId: string): Promise<ExplainabilityResponse> {
+    return await request<ExplainabilityResponse>(`/api/ai/explainability/${investigationId}`);
+  },
+
+  async getNodeDetail(nodeId: string): Promise<GraphNodeDetail> {
+    return await request<GraphNodeDetail>(`/api/graph/node/${encodeURIComponent(nodeId)}`);
+  },
+
+  async scanAttachment(filename: string, sha256?: string): Promise<AttachmentScanResponse> {
+    return await request<AttachmentScanResponse>("/api/threat/attachment", {
+      method: "POST",
+      body: JSON.stringify({ filename, sha256 })
+    });
+  },
+
+  async listCampaigns(): Promise<any[]> {
+    return await request<any[]>("/api/campaigns");
+  },
+
+  async getCampaignDetail(id: string): Promise<any> {
+    return await request<any>(`/api/campaigns/${id}`);
   },
 
   isMockMode: USE_MOCKS

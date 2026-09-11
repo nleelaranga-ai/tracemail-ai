@@ -163,6 +163,10 @@ export interface Investigation {
   auth_results?: { spf?: string; dkim?: string; dmarc?: string };
   action_items?: string[];
   evidence_hash?: string;
+  attack_graph?: {
+    nodes: Array<{ id: string; label: string; type: "sender" | "smtp" | "domain" | "ip" | "url" | "attachment"; risk?: string; details?: Record<string, any> }>;
+    edges: Array<{ source: string; target: string; label?: string }>;
+  };
 }
 
 export interface GeoFeature {
@@ -201,4 +205,127 @@ export interface GraphEdge {
 export interface AttackGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
+}
+
+
+// --- Master Plan v2 Types (SIH 26106) ---
+
+export interface SocAlertItem {
+  id: string;
+  subject: string;
+  sender: string;
+  verdict: string;
+  score: number;
+  riskLevel: string;
+  timestamp: string;
+}
+
+export interface SocOverview {
+  totalScanned: number;
+  phishingDetected: number;
+  safeEmails: number;
+  suspiciousEmails: number;
+  criticalThreats: number;
+  riskDistribution: {
+    Critical: number;
+    High: number;
+    Medium: number;
+    Low: number;
+  };
+  topCountries: { country: string; count: number }[];
+  topBrands: { brand: string; count: number }[];
+  topDomains: { domain: string; count: number }[];
+  recentAlerts: SocAlertItem[];
+}
+
+export interface DepartmentMetric {
+  department: string;
+  threatCount: number;
+  phishingCount: number;
+  safeCount: number;
+  riskLevel: "Critical" | "High" | "Medium" | "Low";
+  vulnerabilityScore: number;
+  topAttackType: string;
+  lastAttack: string;
+  primaryTarget: string;
+}
+
+export interface InboxEmailItem {
+  id: string;
+  messageId: string;
+  sender: string;
+  subject: string;
+  snippet?: string;
+  risk: "Safe" | "Suspicious" | "Critical";
+  threatScore: number;
+  verdict: string;
+  scannedAt: string;
+}
+
+export interface CustodyLogEvent {
+  step: number;
+  action: string;
+  timestamp: string;
+  actor: string;
+  hash: string;
+  verified: boolean;
+}
+
+export interface EvidenceRecordItem {
+  id: string;
+  investigationId: string;
+  sha256: string;
+  originalHash: string;
+  investigator: string;
+  status: "Verified" | "Tampered" | "Exported";
+  subject?: string;
+  sender?: string;
+  createdAt: string;
+  verifiedAt: string;
+  custodyLog: CustodyLogEvent[];
+}
+
+export interface ExplainabilityReason {
+  label: string;
+  weight: number;
+  category: string;
+  description: string;
+}
+
+export interface ExplainabilityResponse {
+  investigationId: string;
+  score: number;
+  confidence: number;
+  verdict: string;
+  summary: string;
+  reasons: ExplainabilityReason[];
+}
+
+export interface GraphNodeDetail {
+  nodeId: string;
+  type: string;
+  label: string;
+  reputation: "clean" | "suspicious" | "malicious";
+  abuseScore: number;
+  verdict: string;
+  country: string;
+  city: string;
+  asn: string;
+  whois: {
+    registrar: string;
+    creationDate: string;
+    registrantCountry: string;
+  };
+  timeline: { step: number; action: string; time: string }[];
+}
+
+export interface AttachmentScanResponse {
+  filename: string;
+  sha256: string;
+  fileType: string;
+  malicious: boolean;
+  verdict: string;
+  engine: string;
+  positives: number;
+  totalEngines: number;
 }

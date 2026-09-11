@@ -11,6 +11,8 @@ import { IOCChips } from "@/components/IOCChips";
 import { MapPanel } from "@/components/MapPanel";
 import { TimelinePanel } from "@/components/TimelinePanel";
 import { GraphPanel } from "@/components/GraphPanel";
+import { AttackGraph } from "@/components/AttackGraph";
+import { ExplainabilityMeter } from "@/components/ExplainabilityMeter";
 import { ReportButton } from "@/components/ReportButton";
 import { useAuth } from "@/hooks/useAuth";
 import { useInvestigation } from "@/hooks/useInvestigation";
@@ -112,7 +114,10 @@ export default function InvestigationPage() {
                   fallbackEntities={inv.entities || inv.aiResult?.entities}
                 />
 
-                {/* 4.5 Incident Response Remediation Plan & Chain of Custody (SIH 26106 Root Causes 13 & 15) */}
+                {/* 4.5 AI Explainability Breakdown (SIH 26106 Master Plan v2) */}
+                <ExplainabilityMeter investigationId={inv.id} />
+
+                {/* 4.6 Incident Response Remediation Plan & Chain of Custody (SIH 26106 Root Causes 13 & 15) */}
                 {inv.action_items && inv.action_items.length > 0 && (
                   <div className="rounded-xl border border-trace/20 bg-bg-surface/40 p-6 shadow-lg">
                     <div className="flex items-center justify-between border-b border-bg-border pb-3">
@@ -175,12 +180,18 @@ export default function InvestigationPage() {
                         timeline={inv.timeline}
                       />
                     )}
-                    {tab === "graph" && <GraphPanel investigationId={inv.id} />}
+                    {tab === "graph" && (
+                      <div className="space-y-6">
+                        <AttackGraph graph={inv.attack_graph as any} />
+                        <GraphPanel investigationId={inv.id} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
             )}
           </div>
+
         )}
       </main>
     </div>
