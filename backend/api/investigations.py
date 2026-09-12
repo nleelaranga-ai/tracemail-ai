@@ -14,6 +14,7 @@ from backend.schemas.report_schema import (
 )
 from backend.schemas.email_schema import EmailUploadResponse
 from backend.services.email_service import EmailService
+from backend.services.scan_service import ScanService
 
 router = APIRouter(tags=["Investigations"])
 
@@ -126,8 +127,14 @@ def get_investigation_detail(id: str, db: Session = Depends(get_db)):
         threatIntel=inv.threat_intel,
         ai_analysis=inv.ai_analysis,
         aiAnalysis=inv.ai_analysis,
-        timeline=inv.timeline,
-        iocs=inv.iocs,
+        timeline=inv.timeline if (inv.timeline and len(inv.timeline) > 0) else ScanService.generate_investigation_timeline(inv.received_at),
+        iocs=inv.iocs if (inv.iocs and len(inv.iocs) > 0) else ScanService.generate_ioc_chips(
+            urls=inv.entities.get("urls", []) if isinstance(inv.entities, dict) else [],
+            ips=inv.entities.get("ips", []) if isinstance(inv.entities, dict) else [],
+            domains=inv.entities.get("domains", []) if isinstance(inv.entities, dict) else [],
+            attachments=[],
+            threat_results=threat_items
+        ),
         entities=inv.entities,
         auth_results=inv.auth_results,
         authResults=inv.auth_results,

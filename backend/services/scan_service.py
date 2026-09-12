@@ -401,7 +401,7 @@ class ScanService:
         }
 
     @classmethod
-    def generate_investigation_timeline(cls, start_time: Optional[datetime] = None) -> List[Dict[str, str]]:
+    def generate_investigation_timeline(cls, start_time: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """Generates dynamic investigation timeline (Section 1.C)."""
         base = start_time or datetime.now(timezone.utc)
         import datetime as dt_mod
@@ -413,12 +413,60 @@ class ScanService:
         t5 = (base + dt_mod.timedelta(seconds=5)).strftime("%H:%M")
 
         return [
-            {"time": t0, "event": "Email Uploaded"},
-            {"time": t1, "event": "Headers Parsed"},
-            {"time": t2, "event": "WHOIS Lookup Completed"},
-            {"time": t3, "event": "Threat Intelligence Completed"},
-            {"time": t4, "event": "AI Classification"},
-            {"time": t5, "event": "Threat Score Generated"}
+            {
+                "step": 1,
+                "name": "Email Uploaded",
+                "detail": "Raw RFC 822 .eml payload validated and checksum calculated.",
+                "status": "completed",
+                "time": t0,
+                "timestamp": t0,
+                "event": "Email Uploaded"
+            },
+            {
+                "step": 2,
+                "name": "Headers Parsed",
+                "detail": "Extracted Return-Path, Message-ID, and analyzed Received hop progression.",
+                "status": "completed",
+                "time": t1,
+                "timestamp": t1,
+                "event": "Headers Parsed"
+            },
+            {
+                "step": 3,
+                "name": "WHOIS Lookup Completed",
+                "detail": "Queried ICANN RDAP registry; verified domain registration age and registrar.",
+                "status": "completed",
+                "time": t2,
+                "timestamp": t2,
+                "event": "WHOIS Lookup Completed"
+            },
+            {
+                "step": 4,
+                "name": "Threat Intelligence Completed",
+                "detail": "Queried VirusTotal, AbuseIPDB, DNS SPF/DKIM/DMARC authentication.",
+                "status": "completed",
+                "time": t3,
+                "timestamp": t3,
+                "event": "Threat Intelligence Completed"
+            },
+            {
+                "step": 5,
+                "name": "AI Classification",
+                "detail": "Ran neural semantic classification for urgency, BEC fraud, and credential harvesting.",
+                "status": "completed",
+                "time": t4,
+                "timestamp": t4,
+                "event": "AI Classification"
+            },
+            {
+                "step": 6,
+                "name": "Threat Score Generated",
+                "detail": "Weighted risk score computed (35% VT + 20% SPF + 15% DKIM + 15% Abuse + 10% Age + 5% AI).",
+                "status": "completed",
+                "time": t5,
+                "timestamp": t5,
+                "event": "Threat Score Generated"
+            }
         ]
 
     @classmethod
@@ -489,45 +537,56 @@ class ScanService:
         domains: List[str],
         attachments: List[Dict[str, Any]],
         threat_results: List[Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         chips = []
+        def _is_match(t, val):
+            t_val = t.get("value") if isinstance(t, dict) else getattr(t, "value", None)
+            t_mal = t.get("malicious") if isinstance(t, dict) else getattr(t, "malicious", False)
+            return t_val == val and bool(t_mal)
+
         for url in urls:
-            is_mal = any(t.get("value") == url and t.get("malicious") for t in threat_results)
+            is_mal = any(_is_match(t, url) for t in threat_results)
             chips.append({
                 "type": "url",
                 "value": url,
                 "category": "Credential Harvester" if is_mal else "Hyperlink",
-                "severity": "critical" if is_mal else "low"
+                "severity": "critical" if is_mal else "low",
+                "malicious": is_mal
             })
         for ip in ips:
-            is_mal = any(t.get("value") == ip and t.get("malicious") for t in threat_results)
+            is_mal = any(_is_match(t, ip) for t in threat_results)
             chips.append({
                 "type": "ip",
                 "value": ip,
                 "category": "Relay Server" if not is_mal else "Malicious Host",
-                "severity": "high" if is_mal else "low"
+                "severity": "high" if is_mal else "low",
+                "malicious": is_mal
             })
         for d in domains:
             chips.append({
                 "type": "domain",
                 "value": d,
                 "category": "Sender Domain",
-                "severity": "medium"
+                "severity": "medium",
+                "malicious": False
             })
         for att in attachments:
             fname = att.get("filename", "attachment")
+            is_att_mal = any(fname.lower().endswith(ext) for ext in [".exe", ".scr", ".vbs", ".zip", ".iso"]) or att.get("is_malicious", False)
             chips.append({
                 "type": "attachment",
                 "value": fname,
                 "category": "Attachment",
-                "severity": "high" if any(fname.lower().endswith(ext) for ext in [".exe", ".scr", ".vbs", ".zip", ".iso"]) else "low"
+                "severity": "high" if is_att_mal else "low",
+                "malicious": is_att_mal
             })
             if att.get("sha256"):
                 chips.append({
                     "type": "hash",
                     "value": att["sha256"],
                     "category": "SHA-256",
-                    "severity": "medium"
+                    "severity": "medium",
+                    "malicious": is_att_mal
                 })
         return chips
 

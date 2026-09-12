@@ -103,8 +103,8 @@ export default function InvestigationPage() {
                 {/* 3. AI Forensic Reasoning Summary */}
                 <AISummaryCard
                   aiAnalysis={inv.ai_analysis || inv.aiAnalysis}
-                  verdict={inv.aiResult?.verdict}
-                  explanation={inv.aiResult?.explanation}
+                  verdict={inv.verdict || inv.aiResult?.verdict}
+                  explanation={inv.explanation || inv.ai_summary || inv.aiResult?.explanation}
                   confidence={inv.ai_analysis?.confidence}
                 />
 

@@ -44,24 +44,42 @@ export interface ThreatResult {
 export interface VirusTotalSummary {
   positives?: number;
   total_engines?: number;
+  malicious?: number;
+  suspicious?: number;
+  harmless?: number;
+  is_malicious?: boolean;
   reputation?: number;
   scan_date?: string;
   permalink?: string;
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
 }
 
 export interface AbuseIPDBSummary {
   abuse_confidence_score?: number;
+  abuse_score?: number;
+  confidence_score?: number;
   total_reports?: number;
   is_whitelisted?: boolean;
+  is_malicious?: boolean;
   last_reported_at?: string;
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
 }
 
 export interface WHOISSummary {
   domain?: string;
+  name?: string;
   registrar?: string;
   creation_date?: string;
   domain_age_days?: number | null;
+  age_days?: number | null;
   registrant_country?: string;
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
 }
 
 export interface DNSSummary {
@@ -69,11 +87,21 @@ export interface DNSSummary {
   dkim?: string;
   dmarc?: string;
   mx_records?: string[];
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
 }
 
 export interface URLScanSummary {
   malicious?: boolean;
+  is_malicious?: boolean;
   score?: number;
+  verdict?: string;
+  page_title?: string;
+  screenshot_url?: string;
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
   verdicts?: {
     overall?: {
       malicious?: boolean;
@@ -91,6 +119,9 @@ export interface GeoIPSummary {
   longitude?: number;
   isp?: string;
   asn?: string;
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
 }
 
 export interface GoogleSafeBrowsingSummary {
@@ -98,6 +129,9 @@ export interface GoogleSafeBrowsingSummary {
   threat_types?: string[];
   matches_count?: number;
   provider?: string;
+  mode?: string;
+  provider_status?: string;
+  fallback_used?: boolean;
 }
 
 export interface ThreatIntelBundle {
@@ -126,6 +160,8 @@ export interface DynamicTimelineStep {
   detail: string;
   status: "completed" | "in_progress" | "pending" | "failed";
   timestamp?: string;
+  event?: string;
+  time?: string;
 }
 
 export interface IOCChipItem {
@@ -168,6 +204,8 @@ export interface Investigation {
   threatIntel?: ThreatIntelBundle;
   ai_analysis?: AIAnalysisSummary;
   aiAnalysis?: AIAnalysisSummary;
+  explanation?: string;
+  ai_summary?: string;
   timeline?: DynamicTimelineStep[];
   iocs?: IOCChipItem[];
   entities?: Entity[] | { urls?: string[]; ips?: string[]; domains?: string[] };

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState } from "react";
 import { Link2, Globe2, Network, Hash, Paperclip, Copy, Check } from "lucide-react";
 import type { IOCChipItem } from "@/types";
@@ -72,7 +72,7 @@ export function IOCChips({ iocs = [], fallbackEntities }: Props) {
         <div className="mt-4 flex flex-wrap gap-2.5">
           {items.map((ioc, idx) => {
             const isCopied = copiedValue === ioc.value;
-            const isMalicious = ioc.malicious;
+            const isMalicious = ioc.malicious ?? ((ioc as any).severity === "critical" || (ioc as any).severity === "high");
 
             return (
               <div

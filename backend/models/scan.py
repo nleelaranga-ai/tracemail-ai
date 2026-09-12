@@ -94,19 +94,47 @@ class Investigation(Base):
 
     @property
     def threat_intel(self):
+        vt = self.virus_total or {}
+        abuse = self.abuse_ipdb or {}
+        whois_data = self.whois or {}
+        dns_data = self.dns or {}
+        urlscan_data = self.urlscan or {}
+        gsb_data = self.google_safe_browsing or {}
+
+        any_live = any(
+            x.get("mode") == "live" or x.get("provider_status") == "live" or x.get("fallback_used") is False
+            for x in [vt, abuse, whois_data, dns_data, urlscan_data, gsb_data]
+            if isinstance(x, dict)
+        )
+        all_fallback = all(
+            x.get("fallback_used", True) is not False
+            for x in [vt, abuse, urlscan_data, gsb_data]
+            if isinstance(x, dict) and x
+        )
+
         return {
-            "virustotal": self.virus_total or {},
-            "abuseipdb": self.abuse_ipdb or {},
-            "whois": self.whois or {},
-            "dns": self.dns or {},
-            "urlscan": self.urlscan or {},
-            "google_safe_browsing": self.google_safe_browsing or {},
+            "virustotal": vt,
+            "abuseipdb": abuse,
+            "whois": whois_data,
+            "dns": dns_data,
+            "urlscan": urlscan_data,
+            "google_safe_browsing": gsb_data,
             "geoip": {
                 "ip": self.ip,
                 "city": self.city,
                 "country": self.country,
                 "latitude": self.latitude,
                 "longitude": self.longitude
+            },
+            "mode": "live" if any_live else "fallback",
+            "fallback_used": all_fallback,
+            "provider_statuses": {
+                "virustotal": vt.get("provider_status", "simulated") if isinstance(vt, dict) else "simulated",
+                "abuseipdb": abuse.get("provider_status", "simulated") if isinstance(abuse, dict) else "simulated",
+                "whois": whois_data.get("provider_status", "live" if whois_data else "simulated") if isinstance(whois_data, dict) else "simulated",
+                "dns": dns_data.get("provider_status", "live" if dns_data else "simulated") if isinstance(dns_data, dict) else "simulated",
+                "urlscan": urlscan_data.get("provider_status", "simulated") if isinstance(urlscan_data, dict) else "simulated",
+                "google_safe_browsing": gsb_data.get("provider_status", "simulated") if isinstance(gsb_data, dict) else "simulated"
             }
         }
 

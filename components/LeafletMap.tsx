@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, CircleMarker, Polyline, Popup } from "react-leaflet";
 import type { Map as LeafletMapInstance } from "leaflet";
@@ -62,8 +62,8 @@ export function LeafletMap({
         scrollWheelZoom={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         {/* Origin Circle Marker */}

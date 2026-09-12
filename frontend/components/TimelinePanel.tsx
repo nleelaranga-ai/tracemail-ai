@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState } from "react";
 import { useGeoTimeline } from "@/hooks/useInvestigation";
 import { Loader2, Server, CheckCircle2, Clock, ShieldAlert, Cpu } from "lucide-react";
@@ -94,27 +94,38 @@ export function TimelinePanel({ investigationId, timeline }: Props) {
 
       {view === "lifecycle" ? (
         <ol className="relative space-y-0 pl-2">
-          {steps.map((step, i) => (
-            <li key={step.step} className="relative flex gap-4 pb-6 pl-2 last:pb-0">
-              {i < steps.length - 1 && (
-                <span className="absolute left-[15px] top-6 h-full w-px bg-trace/30" />
-              )}
-              <span className="z-10 flex h-8 w-8 flex-none items-center justify-center rounded-full border border-trace/40 bg-trace/10 text-trace shadow-[0_0_10px_rgba(0,217,192,0.2)]">
-                <CheckCircle2 className="h-4 w-4" />
-              </span>
-              <div className="flex-1 rounded-xl border border-bg-border bg-bg-raised px-4 py-3 shadow transition hover:border-trace/30">
-                <div className="flex items-center justify-between">
-                  <span className="font-display text-sm font-semibold text-ink">
-                    Step {step.step}: {step.name}
-                  </span>
-                  <span className="font-mono text-xs text-trace uppercase tracking-wider">
-                    {step.status}
-                  </span>
+          {steps.map((step, i) => {
+            const stepIndex = step.step ?? (i + 1);
+            const stepName = step.name || (step as any).event || (step as any).title || `Investigation Step ${stepIndex}`;
+            const stepStatus = step.status || "completed";
+            const stepDetail = step.detail || (step as any).description || ((step as any).time ? `Executed at ${(step as any).time}` : "Forensic step completed successfully.");
+            const stepTime = step.timestamp || (step as any).time || `Step ${stepIndex}/6`;
+
+            return (
+              <li key={stepIndex} className="relative flex gap-4 pb-6 pl-2 last:pb-0">
+                {i < steps.length - 1 && (
+                  <span className="absolute left-[15px] top-6 h-full w-px bg-trace/30" />
+                )}
+                <span className="z-10 flex h-8 w-8 flex-none items-center justify-center rounded-full border border-trace/40 bg-trace/10 text-trace shadow-[0_0_10px_rgba(0,217,192,0.2)]">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+                <div className="flex-1 rounded-xl border border-bg-border bg-bg-raised px-4 py-3 shadow transition hover:border-trace/30">
+                  <div className="flex items-center justify-between">
+                    <span className="font-display text-sm font-semibold text-ink">
+                      Step {stepIndex}: {stepName}
+                    </span>
+                    <span className="font-mono text-xs text-trace uppercase tracking-wider">
+                      {stepStatus}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-muted">{stepDetail}</p>
+                  {stepTime && (
+                    <p className="mt-1 font-mono text-[10px] text-ink-faint">{stepTime}</p>
+                  )}
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-ink-muted">{step.detail}</p>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ol>
       ) : (
         <div>

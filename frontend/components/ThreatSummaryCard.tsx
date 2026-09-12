@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React from "react";
 import { ShieldAlert, ShieldCheck, MapPin, Globe, Mail, Calendar } from "lucide-react";
 import type { Investigation } from "@/types";
@@ -87,7 +87,7 @@ export function ThreatSummaryCard({ investigation }: Props) {
               {investigation.subject || "Email Threat Assessment"}
             </h2>
             <p className="mt-1 font-mono text-xs text-ink-muted">
-              Verdict: <span className="font-semibold uppercase text-ink">{investigation.aiResult?.verdict || "ANALYZED"}</span>
+              Verdict: <span className="font-semibold uppercase text-ink">{investigation.verdict || investigation.aiResult?.verdict || "ANALYZED"}</span>
             </p>
           </div>
         </div>
