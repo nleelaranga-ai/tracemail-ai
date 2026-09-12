@@ -93,6 +93,9 @@ graph TD
   <a href="https://github.com/RadhaReshma" target="_blank">
     <img src="https://github.com/RadhaReshma.png" width="75px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="RadhaReshma" title="RadhaReshma • Reports & Forensics Lead"/>
   </a>
+  <a href="https://github.com/venky01082" target="_blank">
+    <img src="https://github.com/venky01082.png" width="75px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="venky01082" title="venky01082 • Backend Architecture & Security Lead"/>
+  </a>
 </p>
 
 > Detailed individual responsibility profiles and commit guidelines: [**docs/CONTRIBUTORS.md**](docs/CONTRIBUTORS.md).
@@ -104,7 +107,7 @@ graph TD
 | 3 | **AI Engine Lead** | **[@kollitarak06-hub](https://github.com/kollitarak06-hub)** | `ai-engine/` | Hugging Face Transformers, PyTorch, Groq LLaMA-3 |
 | 4 | **Maps & Attack Graph Lead** | **[@Nagasri](https://github.com/Nagasri)** | `maps_engine/`, `maps-engine/` | GeoJSON Hop Tracing, Flight Paths, DAG Topology, Port 8003 Microservice |
 | 5 | **Reports & Forensics Lead** | **[@RadhaReshma](https://github.com/RadhaReshma)** | `team_reports/`, `reports/` | WeasyPrint, ReportLab, Jinja2, Cryptography, SHA-256 Custody |
-| 6 | **Backend Architecture & Security** | **Venkaiah Naidu Pallapolu** | `backend/` | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, JWT Auth |
+| 6 | **Backend Architecture & Security Lead** | **Venkaiah Naidu Pallapolu ([@venky01082](https://github.com/venky01082))** | `backend/` | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, JWT Auth |
 
 ---
 
