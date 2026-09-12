@@ -112,7 +112,30 @@ Live probes executed against `https://tracemail-ai-production.up.railway.app` co
 
 ---
 
-## 4. Are These APIs Enough? (Gap Analysis)
+## 4. Maps Engine & Attack Graph Integration (Member 5: Nagasri)
+
+The Maps & Attack Graph core from branch `feature/maps-engine` (authored by teammate Nagasri) has been integrated into the repository and aligned with the backend orchestration flow and frontend visualizers:
+
+### 4.1 Architecture & Module Ownership
+- **Module Directory**: `maps_engine/` (with backward-compatible alias `maps-engine/`)
+- **Assigned Team**: Maps & Attack Graph Team (Member 5)
+- **Core Components**:
+  1. `geo/geo_builder.py` (`build_geojson`): Converts email relay hops into GeoJSON `FeatureCollection` with `Point` features for every located mail server and a connecting `LineString` representing the email transmission flight path (`properties: {"type": "email_path"}`).
+  2. `timeline/timeline_builder.py` (`build_timeline`): Parses and chronologically sorts mail server hops by ISO timestamp (`replace("Z", "+00:00")`), assigning sequential `step` indexes and flagging malicious relay nodes.
+  3. `graph/graph_builder.py` (`build_attack_graph`): Generates a directed acyclic graph (DAG) representing the complete infrastructure topology: `sender` → `hop1` → `hop2` → ... → `victim`, preserving node classification (`sender`, `relay`, `recipient`) and threat status.
+  4. `main.py`: Standalone FastAPI microservice running on port `8003` (matching `team_reports/docker/docker-compose.yml`), exposing `/health`, `/api/geo/build-map`, `/api/geo/build-timeline`, and `/api/geo/build-graph`.
+
+### 4.2 Integration into Core Platform Flow
+- **Backend Hub Orchestration**: `backend/services/scan_service.py` delegates `generate_geojson()`, `generate_timeline()`, and `generate_attack_graph()` directly to `maps_engine`, with seamless fallback if run outside the mono-repo.
+- **REST API Endpoints**: `backend/api/maps.py` routes (`GET /api/geo/map/{id}`, `GET /api/geo/timeline/{id}`, `GET /api/geo/graph/{id}`) invoke `maps_engine` builders to populate live investigative responses.
+- **Frontend UI Binding**:
+  - `LeafletMap.tsx`: Renders the GeoJSON `FeatureCollection` points and flight path polyline.
+  - `AttackGraph.tsx`: Interactive SVG/Cytoscape node-link visualization allowing drilldown into IP/domain reputation, WHOIS, and ASN telemetry.
+  - `TimelinePanel.tsx`: Dual-tab panel showing the 6-Step Investigation Lifecycle and chronological server hops route.
+
+---
+
+## 5. Are These APIs Enough? (Gap Analysis)
 
 **Verdict: YES, they are completely sufficient.**
 
@@ -121,35 +144,39 @@ Live probes executed against `https://tracemail-ai-production.up.railway.app` co
 - **Web & Landing Infrastructure**: Covered by VirusTotal (Blacklist) + Google Safe Browsing (Malware/Social Engineering) + URLScan (Visual screenshots, DOM, and redirects).
 - **Payloads & Attachments**: Covered by VirusTotal v3 File Hash Analysis.
 - **Forensics & Chain of Custody**: Entirely local cryptographic operations (SHA-256 HMAC) — zero external reliance required.
+- **Spatial Telemetry & Topologies**: Fully handled by the local/microservice `maps_engine`.
 
 **Optional Enhancement**:
 - Adding a `GROQ_API_KEY` enables generative natural-language summaries via Llama-3-70B. However, TraceMail AI's mathematical explainability model already generates comprehensive, deterministic forensic reasoning without external LLM latency or cost.
 
 ---
 
-## 5. Verification & Test Suite Matrix (100% Green)
+## 6. Verification & Test Suite Matrix (100% Green)
 
 ```bash
-# 1. Threat API Matrix (14/14 tests)
+# 1. Maps Engine Standalone Suite (4/4 tests)
+python maps-engine/test_maps_engine.py            -> 100% Pass (GeoJSON, Timeline, Graph)
+
+# 2. Maps Engine Integration Suite (7/7 tests)
+pytest backend/tests/test_maps_engine_integration.py -v -> 7 passed (1.05s)
+
+# 3. Threat API Matrix (14/14 tests)
 pytest backend/tests/test_threat_apis.py -v       -> 14 passed (1.03s)
 
-# 2. Comprehensive Backend Suite (40/40 tests)
-pytest backend/tests/ -v                          -> 40 passed (21.16s)
+# 4. Comprehensive Backend Suite (48/48 tests)
+pytest backend/tests/ -q                          -> 48 passed (22.75s)
 
-# 3. Forensics & PDF Report Suite (146/146 tests)
-pytest team_reports/ -q                           -> 146 passed (2.63s)
+# 5. Forensics & PDF Report Suite (146/146 tests)
+pytest team_reports/ -q                           -> 146 passed (2.67s)
 
-# 4. Master Contract Suite
-python scripts/testing/run_all_tests.py           -> 100% Pass (All Modules)
-python scripts/testing/integration_test.py        -> 100% Pass (Master Contracts)
-
-# 5. Production Next.js Compilation
-npm run build (Root & Frontend)                   -> 11 routes cleanly compiled
+# 6. Production Next.js Compilation (Dual Tree Parity)
+npm run build (Root)                              -> Compiled in 5.2s (11 routes)
+npm run build (frontend/)                         -> Compiled in 2.7s (11 routes)
 ```
 
 ---
 
-## 6. Runtime Operating Mode Recommendation
+## 7. Runtime Operating Mode Recommendation
 
 The backend currently operates in **hybrid mode** (`USE_MOCK_THREAT_INTEL=true`) with live keys active.
 - **Why Hybrid is Recommended for Hackathon Demos**: If a third-party provider experiences an HTTP 429 rate limit or network timeout during live jury presentation, hybrid mode guarantees that the application degrades gracefully to offline threat intelligence rather than returning an error to the judges.
