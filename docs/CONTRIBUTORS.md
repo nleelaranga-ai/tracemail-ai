@@ -16,8 +16,11 @@
   <a href="https://github.com/kollitarak06-hub" target="_blank">
     <img src="https://github.com/kollitarak06-hub.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="kollitarak06-hub" title="kollitarak06-hub • AI Engine Lead"/>
   </a>
+  <a href="https://github.com/Nagasri" target="_blank">
+    <img src="https://github.com/Nagasri.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="Nagasri" title="Nagasri • Maps & Attack Graph Lead"/>
+  </a>
   <a href="https://github.com/RadhaReshma" target="_blank">
-    <img src="https://github.com/RadhaReshma.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="RadhaReshma" title="RadhaReshma • Maps & Reports Lead"/>
+    <img src="https://github.com/RadhaReshma.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="RadhaReshma" title="RadhaReshma • Reports & Forensics Lead"/>
   </a>
 </p>
 
@@ -79,22 +82,24 @@ REST Gateway • Authentication • MIME Parsing • Downstream Orchestration
 </td>
 
 <td align="center" width="33%">
-<a href="https://github.com/RadhaReshma">
-<img src="https://github.com/RadhaReshma.png" width="130px" style="border-radius: 50%;" alt="RadhaReshma"/>
+<a href="https://github.com/Nagasri">
+<img src="https://github.com/Nagasri.png" width="130px" style="border-radius: 50%;" alt="Nagasri"/>
 </a>
 
 ### Maps & Attack Graph Lead
-**[@RadhaReshma](https://github.com/RadhaReshma)**
+**[@Nagasri](https://github.com/Nagasri)**
 
-GeoJSON Paths • Server Hop Timeline • Attack Graph Topology
+GeoJSON Hop Tracing • Server Timeline • Attack Topology • Maps Engine Core
 
 </td>
 
 <td align="center" width="33%">
-<img src="../assets/team/reports.jpg" width="130px" style="border-radius: 50%;" alt="Reports Team"/>
+<a href="https://github.com/RadhaReshma">
+<img src="https://github.com/RadhaReshma.png" width="130px" style="border-radius: 50%;" alt="RadhaReshma"/>
+</a>
 
-### Reports & QA Lead
-**Forensics & CI/CD**
+### Reports & Forensics Lead
+**[@RadhaReshma](https://github.com/RadhaReshma)**
 
 PDF/JSON Forensic Reports • CERT-In Schema • Automated Testing
 
@@ -112,9 +117,9 @@ PDF/JSON Forensic Reports • CERT-In Schema • Automated Testing
 | **[@nleelaranga-ai](https://github.com/nleelaranga-ai)** | Threat Intelligence Engine, IOC Enrichment, Master API Contracts, Docker Infrastructure | Python 3.12, VirusTotal, AbuseIPDB, dnspython, Docker |
 | **[@anisha1777](https://github.com/anisha1777)** | Next.js 15 Web Dashboard, Email Upload interface, Verdict badges, UI/UX | Next.js 15, Tailwind CSS, TypeScript, TanStack Query |
 | **[@kollitarak06-hub](https://github.com/kollitarak06-hub)** | Machine Learning phishing model, NLP feature extraction, explanation engine | Transformers, Scikit-learn, PyTorch, Groq LLaMA 3 |
+| **[@Nagasri](https://github.com/Nagasri)** | Maps Engine core architecture, GeoJSON relay paths, chronological hop timeline, attack topology | Python 3.12, GeoJSON, Leaflet / NetworkX, FastAPI |
 | **Backend Team** | Central REST API gateway, JWT auth, PostgreSQL/Redis, MIME parsing, downstream orchestration | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, Docker |
-| **[@RadhaReshma](https://github.com/RadhaReshma)** | Mail server relay path tracing, GeoJSON generation, attack graph node/edge topology | GeoJSON, Leaflet / D3.js data structures, NetworkX |
-| **Reports & Forensics Team** | Executive and technical PDF report generation, machine-readable JSON exports, CI/CD pipelines | ReportLab, Jinja2, Pytest, GitHub Actions |
+| **[@RadhaReshma](https://github.com/RadhaReshma)** | Forensic PDF/JSON reports, legal evidence custody, CERT-In compliance schema | ReportLab, Jinja2, Pytest, Cryptography |
 
 ---
 
