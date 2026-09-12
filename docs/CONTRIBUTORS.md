@@ -22,6 +22,9 @@
   <a href="https://github.com/RadhaReshma" target="_blank">
     <img src="https://github.com/RadhaReshma.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="RadhaReshma" title="RadhaReshma • Reports & Forensics Lead"/>
   </a>
+  <a href="https://github.com/venky01082" target="_blank">
+    <img src="https://github.com/venky01082.png" width="80px" style="border-radius: 50%; margin: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);" alt="venky01082" title="venky01082 • Backend Architecture & Security Lead"/>
+  </a>
 </p>
 
 ---
@@ -72,12 +75,14 @@ Machine Learning • Phishing Classifiers • NLP Explanations
 <tr>
 
 <td align="center" width="33%">
-<img src="../assets/team/backend.jpg" width="130px" style="border-radius: 50%;" alt="Backend Team"/>
+<a href="https://github.com/venky01082">
+<img src="https://github.com/venky01082.png" width="130px" style="border-radius: 50%;" alt="venky01082"/>
+</a>
 
-### Backend Team
-**FastAPI • PostgreSQL • Redis**
+### Backend Architecture & Security Lead
+**Venkaiah Naidu Pallapolu ([@venky01082](https://github.com/venky01082))**
 
-REST Gateway • Authentication • MIME Parsing • Downstream Orchestration
+FastAPI • PostgreSQL 16 • SQLAlchemy • Redis • JWT Auth • MIME Parsing
 
 </td>
 
@@ -117,8 +122,8 @@ PDF/JSON Forensic Reports • CERT-In Schema • Automated Testing
 | **[@nleelaranga-ai](https://github.com/nleelaranga-ai)** | Threat Intelligence Engine, IOC Enrichment, Master API Contracts, Docker Infrastructure | Python 3.12, VirusTotal, AbuseIPDB, dnspython, Docker |
 | **[@anisha1777](https://github.com/anisha1777)** | Next.js 15 Web Dashboard, Email Upload interface, Verdict badges, UI/UX | Next.js 15, Tailwind CSS, TypeScript, TanStack Query |
 | **[@kollitarak06-hub](https://github.com/kollitarak06-hub)** | Machine Learning phishing model, NLP feature extraction, explanation engine | Transformers, Scikit-learn, PyTorch, Groq LLaMA 3 |
+| **Venkaiah Naidu Pallapolu ([@venky01082](https://github.com/venky01082))** | Central REST API gateway, JWT auth, PostgreSQL/Redis, MIME parsing, downstream orchestration | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, Docker |
 | **[@Nagasri](https://github.com/Nagasri)** | Maps Engine core architecture, GeoJSON relay paths, chronological hop timeline, attack topology | Python 3.12, GeoJSON, Leaflet / NetworkX, FastAPI |
-| **Backend Team** | Central REST API gateway, JWT auth, PostgreSQL/Redis, MIME parsing, downstream orchestration | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, Docker |
 | **[@RadhaReshma](https://github.com/RadhaReshma)** | Forensic PDF/JSON reports, legal evidence custody, CERT-In compliance schema | ReportLab, Jinja2, Pytest, Cryptography |
 
 ---
