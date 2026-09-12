@@ -274,5 +274,12 @@ export const api = {
     return await request<any>(`/api/campaigns/${id}`);
   },
 
+  async getCompositeThreatIntel(payload: { ip?: string; domain?: string; urls?: string[]; rawHeaders?: string; attachments?: any[] }): Promise<any> {
+    return await request<any>("/api/threat/composite-intel", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
   isMockMode: USE_MOCKS
 };

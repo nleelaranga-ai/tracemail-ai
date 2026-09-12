@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     # External APIs
     VIRUSTOTAL_API_KEY: str = os.getenv("VIRUSTOTAL_API_KEY", "")
     ABUSEIPDB_API_KEY: str = os.getenv("ABUSEIPDB_API_KEY", "")
+    IPINFO_API_KEY: str = os.getenv("IPINFO_API_KEY", "")
     URLSCAN_API_KEY: str = os.getenv("URLSCAN_API_KEY", "")
+    GOOGLE_SAFE_BROWSING_API_KEY: str = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     
     # Service Endpoints

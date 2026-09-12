@@ -48,6 +48,7 @@ class Settings(BaseModel):
     ABUSEIPDB_API_KEY: Optional[str] = Field(default=None)
     IPINFO_API_KEY: Optional[str] = Field(default=None)
     URLSCAN_API_KEY: Optional[str] = Field(default=None)
+    GOOGLE_SAFE_BROWSING_API_KEY: Optional[str] = Field(default=None)
     GROQ_API_KEY: Optional[str] = Field(default=None)
 
     # Operational Flags

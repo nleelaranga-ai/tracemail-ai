@@ -93,12 +93,20 @@ export interface GeoIPSummary {
   asn?: string;
 }
 
+export interface GoogleSafeBrowsingSummary {
+  is_malicious?: boolean;
+  threat_types?: string[];
+  matches_count?: number;
+  provider?: string;
+}
+
 export interface ThreatIntelBundle {
   virustotal?: VirusTotalSummary;
   abuseipdb?: AbuseIPDBSummary;
   whois?: WHOISSummary;
   dns?: DNSSummary;
   urlscan?: URLScanSummary;
+  google_safe_browsing?: GoogleSafeBrowsingSummary;
   geoip?: GeoIPSummary;
 }
 

@@ -8,6 +8,7 @@ from backend.models.scan import Investigation, EmailRecord, ScanRecord, AIResult
 from backend.models.threat import ThreatResult
 from backend.parsers.email_parser import EmailParser
 from backend.services.scan_service import ScanService
+from backend.services.threat_intelligence import ThreatIntelligenceGateway
 from backend.services.notification_service import NotificationService
 from backend.utils.logger import logger
 
@@ -101,8 +102,15 @@ class EmailService:
         # 2. Query WHOIS & RDAP for Domain
         whois_data = await ScanService.query_whois(domain)
 
-        # 3. Query URLScan
-        urlscan_data = await ScanService.query_urlscan(first_url)
+        # 3. Query Unified Threat Intelligence Gateway across all 7 providers
+        threat_report = await ThreatIntelligenceGateway.enrich_threat_intel(
+            ip=origin_threat.get("ip", origin_ip),
+            domain=domain,
+            urls=extracted_urls,
+            raw_headers=raw_headers,
+            attachments=attachments
+        )
+        urlscan_data = threat_report.urlscan.dict()
 
         # 4. Query Auth Alignment (SPF, DKIM, DMARC)
         auth_data = await ScanService.query_auth_check(raw_headers)
@@ -224,11 +232,12 @@ class EmailService:
             geojson_map=geojson,
             attack_graph=attack_graph,
             threat_results=threat_items,
-            virus_total=vt_summary,
-            abuse_ipdb=abuse_summary,
-            whois=whois_data,
-            dns=dns_summary,
-            urlscan=urlscan_data,
+            virus_total=threat_report.virus_total.model_dump(),
+            abuse_ipdb=threat_report.ip.model_dump(),
+            whois=threat_report.domain.model_dump(),
+            dns=threat_report.authentication.model_dump(),
+            urlscan=threat_report.urlscan.model_dump(),
+            google_safe_browsing=threat_report.google_safe_browsing.model_dump(),
             ai_analysis=ai_summary_obj,
             ioc=ioc_chips,
             evidence_hash=evidence_hash,

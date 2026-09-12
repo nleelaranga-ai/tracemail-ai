@@ -43,6 +43,7 @@ class Investigation(Base):
     whois = Column(JSON, default=dict, nullable=True)
     dns = Column(JSON, default=dict, nullable=True)
     urlscan = Column(JSON, default=dict, nullable=True)
+    google_safe_browsing = Column(JSON, default=dict, nullable=True)
     ai_analysis = Column(JSON, default=dict, nullable=True)
     ioc = Column(JSON, default=list, nullable=True)
     evidence_hash = Column(String(64), default="", nullable=True)
@@ -99,6 +100,7 @@ class Investigation(Base):
             "whois": self.whois or {},
             "dns": self.dns or {},
             "urlscan": self.urlscan or {},
+            "google_safe_browsing": self.google_safe_browsing or {},
             "geoip": {
                 "ip": self.ip,
                 "city": self.city,
