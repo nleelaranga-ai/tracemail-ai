@@ -68,7 +68,7 @@ Email remains the primary initial attack vector in >80% of sophisticated cyber i
 | `backend/` | Backend Hub & Database | **Backend Team** | PostgreSQL schema, Prisma/SQLAlchemy models, auth, orchestration pipeline. |
 | `frontend/` | Web Dashboard | **Frontend Team** | Next.js 15 App Router, Tailwind CSS, shadcn/ui, Leaflet map, attack graph UI. |
 | `ai-engine/` | AI Phishing Classifier | **AI Engine Team** | Transformers phishing model, LLaMA-3 explainer via Groq API. |
-| `maps-engine/` | Visualization Data | **Maps & Attack Graph Team** | GeoJSON hop builder, timeline builder, attack graph node/edge generator. |
+| `maps_engine/` | Visualization Data | **Maps & Attack Graph Team** | GeoJSON hop builder, timeline builder, attack graph node/edge generator. |
 | `reports/` | Digital Forensics Reports | **Reports & Forensics Team** | PDF generation (ReportLab / WeasyPrint) and JSON export. |
 
 ---

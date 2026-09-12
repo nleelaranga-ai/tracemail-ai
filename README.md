@@ -105,7 +105,7 @@ graph TD
 | 1 | **Threat Intelligence & Integration Lead** | **[@nleelaranga-ai](https://github.com/nleelaranga-ai)** | `threat_intelligence/`, `shared/` | VirusTotal v3, AbuseIPDB, IPinfo, GSB, dnspython, Docker |
 | 2 | **Frontend UI Lead** | **[@anisha1777](https://github.com/anisha1777)** | `frontend/`, `components/` | Next.js 15, React 19, Tailwind CSS, shadcn/ui, TanStack Query |
 | 3 | **AI Engine Lead** | **[@kollitarak06-hub](https://github.com/kollitarak06-hub)** | `ai-engine/` | Hugging Face Transformers, PyTorch, Groq LLaMA-3 |
-| 4 | **Maps & Attack Graph Lead** | **[@Nagasri](https://github.com/Nagasri)** | `maps_engine/`, `maps-engine/` | GeoJSON Hop Tracing, Flight Paths, DAG Topology, Port 8003 Microservice |
+| 4 | **Maps & Attack Graph Lead** | **[@Nagasri](https://github.com/Nagasri)** | `maps_engine/` | GeoJSON Hop Tracing, Flight Paths, DAG Topology, Port 8003 Microservice |
 | 5 | **Reports & Forensics Lead** | **[@RadhaReshma](https://github.com/RadhaReshma)** | `team_reports/`, `reports/` | WeasyPrint, ReportLab, Jinja2, Cryptography, SHA-256 Custody |
 | 6 | **Backend Architecture & Security Lead** | **Venkaiah Naidu Pallapolu ([@venky01082](https://github.com/venky01082))** | `backend/` | FastAPI, PostgreSQL 16, SQLAlchemy, Redis, JWT Auth |
 
@@ -175,7 +175,7 @@ All inter-module communication is locked to strict Section 6 JSON contracts:
 
 ```bash
 # 1. Maps Engine Standalone Suite (4/4 tests)
-python maps-engine/test_maps_engine.py                  -> 100% Pass (GeoJSON, Timeline, Graph)
+python maps_engine/test_maps_engine.py                  -> 100% Pass (GeoJSON, Timeline, Graph)
 
 # 2. Maps Engine Integration Suite (7/7 tests)
 pytest backend/tests/test_maps_engine_integration.py -v -> 7 passed (1.05s)
