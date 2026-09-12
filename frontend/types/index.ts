@@ -108,6 +108,9 @@ export interface ThreatIntelBundle {
   urlscan?: URLScanSummary;
   google_safe_browsing?: GoogleSafeBrowsingSummary;
   geoip?: GeoIPSummary;
+  mode?: "live" | "fallback";
+  fallback_used?: boolean;
+  provider_statuses?: Record<string, string>;
 }
 
 export interface AIAnalysisSummary {

@@ -18,6 +18,7 @@ services:
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
       - IPINFO_API_KEY=${IPINFO_API_KEY:-}
       - URLSCAN_API_KEY=${URLSCAN_API_KEY:-}
+      - GOOGLE_SAFE_BROWSING_API_KEY=${GOOGLE_SAFE_BROWSING_API_KEY:-}
       - USE_MOCK_THREAT_INTEL=${USE_MOCK_THREAT_INTEL:-true}
     networks:
       - tracemail-net
@@ -85,6 +86,13 @@ services:
       - THREAT_INTEL_URL=http://threat-intelligence:8001
       - AI_ENGINE_URL=http://ai-engine:8002
       - JWT_SECRET=${JWT_SECRET:-tracemail-hackathon-jwt-secret-key-sih26106}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
+      - IPINFO_API_KEY=${IPINFO_API_KEY:-}
+      - URLSCAN_API_KEY=${URLSCAN_API_KEY:-}
+      - GOOGLE_SAFE_BROWSING_API_KEY=${GOOGLE_SAFE_BROWSING_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - USE_MOCK_THREAT_INTEL=${USE_MOCK_THREAT_INTEL:-true}
     depends_on:
       postgres:
         condition: service_healthy

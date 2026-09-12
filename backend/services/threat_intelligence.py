@@ -45,6 +45,10 @@ class NormalizedIPThreat(BaseModel):
     isp: str = "Unknown Provider"
     abuse_score: int = 0
     is_malicious: bool = False
+    source: str = "ipinfo/abuseipdb"
+    mode: str = "fallback"
+    provider_status: str = "simulated"
+    fallback_used: bool = True
 
 
 class NormalizedDomainThreat(BaseModel):
@@ -53,6 +57,10 @@ class NormalizedDomainThreat(BaseModel):
     registrar: str = "Unknown Registrar"
     creation_date: str = "Unknown"
     expiry_date: str = "Unknown"
+    source: str = "whois/rdap"
+    mode: str = "fallback"
+    provider_status: str = "simulated"
+    fallback_used: bool = True
 
 
 class NormalizedAuthThreat(BaseModel):
@@ -60,6 +68,10 @@ class NormalizedAuthThreat(BaseModel):
     dkim: str = "NONE"
     dmarc: str = "NONE"
     mx_records: List[str] = Field(default_factory=list)
+    source: str = "dns/authentication"
+    mode: str = "live"
+    provider_status: str = "verified"
+    fallback_used: bool = False
 
 
 class NormalizedVirusTotal(BaseModel):
@@ -70,6 +82,10 @@ class NormalizedVirusTotal(BaseModel):
     total_engines: int = 72
     scan_date: str = ""
     is_malicious: bool = False
+    source: str = "virustotal"
+    mode: str = "fallback"
+    provider_status: str = "simulated"
+    fallback_used: bool = True
 
 
 class NormalizedGoogleSafeBrowsing(BaseModel):
@@ -77,6 +93,10 @@ class NormalizedGoogleSafeBrowsing(BaseModel):
     threat_types: List[str] = Field(default_factory=list)
     matches_count: int = 0
     provider: str = "Google Safe Browsing v4"
+    source: str = "google_safe_browsing"
+    mode: str = "fallback"
+    provider_status: str = "simulated"
+    fallback_used: bool = True
 
 
 class NormalizedURLScan(BaseModel):
@@ -85,6 +105,10 @@ class NormalizedURLScan(BaseModel):
     page_title: str = ""
     screenshot_url: Optional[str] = None
     is_malicious: bool = False
+    source: str = "urlscan"
+    mode: str = "fallback"
+    provider_status: str = "simulated"
+    fallback_used: bool = True
 
 
 class NormalizedAttachmentThreat(BaseModel):
@@ -95,6 +119,10 @@ class NormalizedAttachmentThreat(BaseModel):
     verdict: str = "Clean"
     positives: int = 0
     total_engines: int = 72
+    source: str = "virustotal_hash"
+    mode: str = "fallback"
+    provider_status: str = "simulated"
+    fallback_used: bool = True
 
 
 class CanonicalThreatIntelligenceReport(BaseModel):
@@ -108,6 +136,9 @@ class CanonicalThreatIntelligenceReport(BaseModel):
     threat_score: int = 10
     risk_level: str = "Low"
     summary: str = ""
+    mode: str = "fallback"
+    fallback_used: bool = True
+    provider_statuses: Dict[str, str] = Field(default_factory=dict)
 
 
 # ==============================================================================
@@ -180,6 +211,25 @@ class ThreatIntelligenceGateway:
         else:
             summary += "Standard email transmission without active threat indicators."
 
+        provider_statuses = {
+            "virustotal": norm_vt.provider_status,
+            "abuseipdb": norm_ip.provider_status,
+            "ipinfo": norm_ip.provider_status,
+            "google_safe_browsing": norm_gsb.provider_status,
+            "urlscan": norm_urlscan.provider_status,
+            "whois": norm_domain.provider_status,
+            "dns": norm_auth.provider_status,
+        }
+
+        any_live = any(
+            p in ("live", "verified")
+            for p in [norm_vt.mode, norm_ip.mode, norm_gsb.mode, norm_urlscan.mode, norm_domain.mode]
+        )
+        report_mode = "live" if any_live else "fallback"
+        overall_fallback_used = any(
+            [norm_vt.fallback_used, norm_ip.fallback_used, norm_gsb.fallback_used, norm_urlscan.fallback_used, norm_domain.fallback_used]
+        )
+
         return CanonicalThreatIntelligenceReport(
             ip=norm_ip,
             domain=norm_domain,
@@ -190,7 +240,10 @@ class ThreatIntelligenceGateway:
             attachments=norm_att,
             threat_score=composite_score,
             risk_level=risk_level,
-            summary=summary
+            summary=summary,
+            mode=report_mode,
+            fallback_used=overall_fallback_used,
+            provider_statuses=provider_statuses
         )
 
     # --------------------------------------------------------------------------
@@ -208,11 +261,21 @@ class ThreatIntelligenceGateway:
                 asn=res.asn,
                 isp=res.isp,
                 abuse_score=res.abuseScore,
-                is_malicious=res.malicious or res.abuseScore >= 25
+                is_malicious=res.malicious or res.abuseScore >= 25,
+                source=getattr(res, "source", "ipinfo/abuseipdb"),
+                mode=getattr(res, "mode", "fallback"),
+                provider_status=getattr(res, "provider_status", "simulated"),
+                fallback_used=getattr(res, "fallback_used", True)
             )
         except Exception as e:
             logger.warning(f"IP threat adapter fallback for {ip}: {e}")
-            return NormalizedIPThreat(address=ip)
+            return NormalizedIPThreat(
+                address=ip,
+                source="error_fallback",
+                mode="fallback",
+                provider_status="degraded",
+                fallback_used=True
+            )
 
     @classmethod
     async def _adapt_whois(cls, domain: str) -> NormalizedDomainThreat:
@@ -223,11 +286,21 @@ class ThreatIntelligenceGateway:
                 age_days=int(res.get("domainAgeDays", 180)),
                 registrar=str(res.get("registrar", "ICANN Accredited Registrar")),
                 creation_date=str(res.get("creationDate", "Unknown")),
-                expiry_date=str(res.get("expiryDate", "Unknown"))
+                expiry_date=str(res.get("expiryDate", "Unknown")),
+                source=str(res.get("source", "whois/rdap")),
+                mode=str(res.get("mode", "fallback")),
+                provider_status=str(res.get("provider_status", "simulated")),
+                fallback_used=bool(res.get("fallback_used", True))
             )
         except Exception as e:
             logger.warning(f"WHOIS adapter fallback for {domain}: {e}")
-            return NormalizedDomainThreat(name=domain)
+            return NormalizedDomainThreat(
+                name=domain,
+                source="error_fallback",
+                mode="fallback",
+                provider_status="degraded",
+                fallback_used=True
+            )
 
     @classmethod
     async def _adapt_auth(cls, raw_headers: str, domain: str) -> NormalizedAuthThreat:
@@ -251,16 +324,31 @@ class ThreatIntelligenceGateway:
                 spf=spf,
                 dkim=dkim,
                 dmarc=dmarc,
-                mx_records=mx_records
+                mx_records=mx_records,
+                source="dns/spf_dkim_dmarc",
+                mode="live",
+                provider_status="verified",
+                fallback_used=False
             )
         except Exception as e:
             logger.warning(f"DNS Auth adapter fallback: {e}")
-            return NormalizedAuthThreat()
+            return NormalizedAuthThreat(
+                source="error_fallback",
+                mode="fallback",
+                provider_status="degraded",
+                fallback_used=True
+            )
 
     @classmethod
     async def _adapt_virustotal_url(cls, url: str) -> NormalizedVirusTotal:
         if not url:
-            return NormalizedVirusTotal(scan_date=datetime.datetime.now(datetime.timezone.utc).isoformat())
+            return NormalizedVirusTotal(
+                scan_date=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                source="empty_url",
+                mode="fallback",
+                provider_status="simulated",
+                fallback_used=True
+            )
         try:
             res = await asyncio.wait_for(vt_client.scan_url(url), timeout=4.5)
             positives = res.vtPositives
@@ -275,32 +363,62 @@ class ThreatIntelligenceGateway:
                 positives=positives,
                 total_engines=total,
                 scan_date=res.scanDate or datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                is_malicious=res.malicious
+                is_malicious=res.malicious,
+                source=getattr(res, "source", "virustotal"),
+                mode=getattr(res, "mode", "fallback"),
+                provider_status=getattr(res, "provider_status", "simulated"),
+                fallback_used=getattr(res, "fallback_used", True)
             )
         except Exception as e:
             logger.warning(f"VirusTotal URL adapter fallback for {url}: {e}")
-            return NormalizedVirusTotal(scan_date=datetime.datetime.now(datetime.timezone.utc).isoformat())
+            return NormalizedVirusTotal(
+                scan_date=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                source="error_fallback",
+                mode="fallback",
+                provider_status="degraded",
+                fallback_used=True
+            )
 
     @classmethod
     async def _adapt_google_safe_browsing(cls, url: str) -> NormalizedGoogleSafeBrowsing:
         if not url:
-            return NormalizedGoogleSafeBrowsing()
+            return NormalizedGoogleSafeBrowsing(
+                source="empty_url",
+                mode="fallback",
+                provider_status="simulated",
+                fallback_used=True
+            )
         try:
             res = await asyncio.wait_for(gsb_client.check_url(url), timeout=3.5)
+            is_live = res.get("source") == "live"
             return NormalizedGoogleSafeBrowsing(
                 is_malicious=res.get("is_malicious", False),
                 threat_types=res.get("threat_types", []),
                 matches_count=res.get("matches_count", 0),
-                provider=res.get("provider", "Google Safe Browsing v4")
+                provider=res.get("provider", "Google Safe Browsing v4"),
+                source=res.get("source", "google_safe_browsing"),
+                mode="live" if is_live else "fallback",
+                provider_status="live" if is_live else "simulated",
+                fallback_used=not is_live
             )
         except Exception as e:
             logger.warning(f"Google Safe Browsing adapter fallback for {url}: {e}")
-            return NormalizedGoogleSafeBrowsing()
+            return NormalizedGoogleSafeBrowsing(
+                source="error_fallback",
+                mode="fallback",
+                provider_status="degraded",
+                fallback_used=True
+            )
 
     @classmethod
     async def _adapt_urlscan(cls, url: str) -> NormalizedURLScan:
         if not url:
-            return NormalizedURLScan()
+            return NormalizedURLScan(
+                source="empty_url",
+                mode="fallback",
+                provider_status="simulated",
+                fallback_used=True
+            )
         try:
             res = await asyncio.wait_for(urlscan_client.scan_url(url), timeout=4.0)
             score = int(res.get("score", 0))
@@ -310,11 +428,20 @@ class ThreatIntelligenceGateway:
                 verdict="malicious" if is_mal else "clean",
                 page_title=res.get("pageTitle", ""),
                 screenshot_url=res.get("screenshotUrl"),
-                is_malicious=is_mal
+                is_malicious=is_mal,
+                source=res.get("source", "urlscan"),
+                mode=res.get("mode", "fallback"),
+                provider_status=res.get("provider_status", "simulated"),
+                fallback_used=res.get("fallback_used", True)
             )
         except Exception as e:
             logger.warning(f"URLScan adapter fallback for {url}: {e}")
-            return NormalizedURLScan()
+            return NormalizedURLScan(
+                source="error_fallback",
+                mode="fallback",
+                provider_status="degraded",
+                fallback_used=True
+            )
 
     @classmethod
     async def _adapt_attachments(cls, attachments: List[Dict[str, Any]]) -> List[NormalizedAttachmentThreat]:
@@ -329,11 +456,19 @@ class ThreatIntelligenceGateway:
                 is_mal = vt_res.get("malicious", False)
                 positives = vt_res.get("positives", 0)
                 verdict = vt_res.get("verdict", "Clean")
+                src = vt_res.get("source", "virustotal_hash")
+                m = vt_res.get("mode", "fallback")
+                p_status = vt_res.get("provider_status", "simulated")
+                fb = vt_res.get("fallback_used", True)
             except Exception as e:
                 logger.warning(f"Attachment hash check fallback for {fname}: {e}")
                 is_mal = any(fname.lower().endswith(ext) for ext in [".exe", ".scr", ".vbs", ".bat", ".iso"])
                 positives = 46 if is_mal else 0
                 verdict = "Trojan.Downloader.Generic (Heuristic)" if is_mal else "Clean"
+                src = "error_fallback"
+                m = "fallback"
+                p_status = "degraded"
+                fb = True
 
             normalized.append(NormalizedAttachmentThreat(
                 filename=fname,
@@ -342,7 +477,11 @@ class ThreatIntelligenceGateway:
                 is_malicious=is_mal,
                 verdict=verdict,
                 positives=positives,
-                total_engines=72
+                total_engines=72,
+                source=src,
+                mode=m,
+                provider_status=p_status,
+                fallback_used=fb
             ))
         return normalized
 

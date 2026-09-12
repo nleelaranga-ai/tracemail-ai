@@ -4,13 +4,18 @@ TraceMail AI Backend — Configuration Loader
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+# Automatically load .env from root or backend directory if present
+load_dotenv(ROOT_DIR / ".env")
+load_dotenv(ROOT_DIR / "backend" / ".env")
 
 
 class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "true").lower() in ("true", "1", "yes")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tracemail-sih-2026-super-secret-key-32chars")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
     

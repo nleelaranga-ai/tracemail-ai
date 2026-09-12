@@ -77,6 +77,10 @@ class VirusTotalClient:
                         scanDate=scan_date,
                         vtPositives=positives,
                         vtTotal=max(total, 1),
+                        source="virustotal_api",
+                        mode="live",
+                        provider_status="live",
+                        fallback_used=False,
                     )
                     url_cache.set(url, result)
                     return result
@@ -120,6 +124,10 @@ class VirusTotalClient:
             scanDate=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             vtPositives=positives,
             vtTotal=total,
+            source="heuristic",
+            mode="fallback",
+            provider_status="simulated",
+            fallback_used=True,
         )
 
     async def scan_file_hash(self, sha256: str) -> Dict[str, Any]:
@@ -136,7 +144,11 @@ class VirusTotalClient:
                 "totalEngines": 72,
                 "verdict": "Invalid or Empty Hash",
                 "engine": "VirusTotal v3",
-                "scanDate": datetime.datetime.now(datetime.timezone.utc).isoformat()
+                "scanDate": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "source": "empty_input",
+                "mode": "fallback",
+                "provider_status": "simulated",
+                "fallback_used": True,
             }
 
         cache_key = f"vt_file:{clean_hash}"
@@ -170,7 +182,11 @@ class VirusTotalClient:
                         "totalEngines": max(total, 1),
                         "verdict": verdict,
                         "engine": "VirusTotal v3 (Live Feed)",
-                        "scanDate": scan_date
+                        "scanDate": scan_date,
+                        "source": "virustotal_api",
+                        "mode": "live",
+                        "provider_status": "live",
+                        "fallback_used": False,
                     }
                     url_cache.set(cache_key, result)
                     return result
@@ -191,7 +207,11 @@ class VirusTotalClient:
             "totalEngines": 72,
             "verdict": "Trojan.Downloader.Generic (Heuristic Signature)" if is_known_bad else "Clean (No Known Threats)",
             "engine": "VirusTotal Heuristic Signature",
-            "scanDate": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            "scanDate": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "source": "heuristic",
+            "mode": "fallback",
+            "provider_status": "simulated",
+            "fallback_used": True,
         }
         url_cache.set(cache_key, result)
         return result

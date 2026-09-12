@@ -34,10 +34,10 @@ class AbuseIPDBClient:
         Returns: { abuseScore: int, isMalicious: bool, isp: str, countryCode: str, totalReports: int }
         """
         if not is_valid_ip(ip):
-            return {"abuseScore": 0, "isMalicious": False, "isp": "Invalid IP", "countryCode": "XX", "totalReports": 0}
+            return {"abuseScore": 0, "isMalicious": False, "isp": "Invalid IP", "countryCode": "XX", "totalReports": 0, "source": "validation", "mode": "fallback", "provider_status": "simulated", "fallback_used": True}
 
         if not is_public_ip(ip):
-            return {"abuseScore": 0, "isMalicious": False, "isp": "Private/Local Network", "countryCode": "LOCAL", "totalReports": 0}
+            return {"abuseScore": 0, "isMalicious": False, "isp": "Private/Local Network", "countryCode": "LOCAL", "totalReports": 0, "source": "rfc1918", "mode": "fallback", "provider_status": "simulated", "fallback_used": True}
 
         cache_key = f"abuseipdb:{ip}"
         cached = ip_cache.get(cache_key)
@@ -60,6 +60,10 @@ class AbuseIPDBClient:
                         "isp": data.get("isp", "Unknown"),
                         "countryCode": data.get("countryCode", "Unknown"),
                         "totalReports": data.get("totalReports", 0),
+                        "source": "abuseipdb_api",
+                        "mode": "live",
+                        "provider_status": "live",
+                        "fallback_used": False,
                     }
                     ip_cache.set(cache_key, result)
                     return result
@@ -82,13 +86,17 @@ class AbuseIPDBClient:
                 "isp": info["isp"],
                 "countryCode": info["country"],
                 "totalReports": 42,
+                "source": "known_threat_dataset",
+                "mode": "fallback",
+                "provider_status": "simulated",
+                "fallback_used": True,
             }
 
         # Safe defaults for common public DNS
         if clean_ip in ("8.8.8.8", "8.8.4.4"):
-            return {"abuseScore": 0, "isMalicious": False, "isp": "Google LLC", "countryCode": "US", "totalReports": 0}
+            return {"abuseScore": 0, "isMalicious": False, "isp": "Google LLC", "countryCode": "US", "totalReports": 0, "source": "known_dns", "mode": "fallback", "provider_status": "simulated", "fallback_used": True}
         if clean_ip in ("1.1.1.1", "1.0.0.1"):
-            return {"abuseScore": 0, "isMalicious": False, "isp": "Cloudflare, Inc.", "countryCode": "US", "totalReports": 0}
+            return {"abuseScore": 0, "isMalicious": False, "isp": "Cloudflare, Inc.", "countryCode": "US", "totalReports": 0, "source": "known_dns", "mode": "fallback", "provider_status": "simulated", "fallback_used": True}
 
         return {
             "abuseScore": 0,
@@ -96,6 +104,10 @@ class AbuseIPDBClient:
             "isp": "Standard Internet Relay",
             "countryCode": "US",
             "totalReports": 0,
+            "source": "heuristic",
+            "mode": "fallback",
+            "provider_status": "simulated",
+            "fallback_used": True,
         }
 
 

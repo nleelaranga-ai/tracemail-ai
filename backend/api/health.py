@@ -40,9 +40,33 @@ def database_health():
 @router.get("/api/v1/health/apis", include_in_schema=False)
 def apis_health():
     """External threat intelligence APIs and feeds availability status."""
+    has_live_keys = any([
+        settings.VIRUSTOTAL_API_KEY,
+        settings.ABUSEIPDB_API_KEY,
+        settings.IPINFO_API_KEY,
+        settings.URLSCAN_API_KEY,
+        settings.GOOGLE_SAFE_BROWSING_API_KEY,
+    ])
+    all_live_keys = all([
+        settings.VIRUSTOTAL_API_KEY,
+        settings.ABUSEIPDB_API_KEY,
+        settings.IPINFO_API_KEY,
+        settings.URLSCAN_API_KEY,
+        settings.GOOGLE_SAFE_BROWSING_API_KEY,
+    ])
+    
+    if not settings.USE_MOCK_THREAT_INTEL and all_live_keys:
+        mode = "live"
+    elif has_live_keys:
+        mode = "hybrid"
+    else:
+        mode = "simulation"
+
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": mode,
+        "use_mock_threat_intel": settings.USE_MOCK_THREAT_INTEL,
         "apis": {
             "virustotal": {
                 "name": "VirusTotal v3",
@@ -54,13 +78,33 @@ def apis_health():
                 "configured": bool(settings.ABUSEIPDB_API_KEY),
                 "status": "live" if settings.ABUSEIPDB_API_KEY else "simulation_ready"
             },
+            "ipinfo": {
+                "name": "IPinfo Geolocation & ASN",
+                "configured": bool(settings.IPINFO_API_KEY),
+                "status": "live" if settings.IPINFO_API_KEY else "simulation_ready"
+            },
             "urlscan": {
                 "name": "URLScan.io",
                 "configured": bool(settings.URLSCAN_API_KEY),
                 "status": "live" if settings.URLSCAN_API_KEY else "simulation_ready"
             },
+            "google_safe_browsing": {
+                "name": "Google Safe Browsing v4",
+                "configured": bool(settings.GOOGLE_SAFE_BROWSING_API_KEY),
+                "status": "live" if settings.GOOGLE_SAFE_BROWSING_API_KEY else "simulation_ready"
+            },
+            "groq": {
+                "name": "Groq Cloud Llama-3 AI Engine",
+                "configured": bool(settings.GROQ_API_KEY),
+                "status": "live" if settings.GROQ_API_KEY else "simulation_ready"
+            },
             "rdap_whois": {
                 "name": "ICANN RDAP / WHOIS",
+                "configured": True,
+                "status": "live"
+            },
+            "dns_resolver": {
+                "name": "SPF / DKIM / DMARC DNS Resolver",
                 "configured": True,
                 "status": "live"
             },
@@ -71,3 +115,4 @@ def apis_health():
             }
         }
     }
+

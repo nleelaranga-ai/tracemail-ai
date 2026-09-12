@@ -27,6 +27,10 @@ class IPThreatResponse(BaseModel):
     asn: str = Field("Unknown", description="Autonomous System Number")
     abuseScore: int = Field(0, ge=0, le=100, description="Confidence of abuse score from AbuseIPDB (0-100)")
     malicious: bool = Field(False, description="Flag indicating malicious reputation")
+    source: str = Field("heuristic", description="Intelligence data source (live | heuristic | known_dataset)")
+    mode: str = Field("fallback", description="Execution mode: live or fallback")
+    provider_status: str = Field("simulated", description="Provider status: live | verified | simulated")
+    fallback_used: bool = Field(True, description="Whether fallback was used")
 
     model_config = {
         "json_schema_extra": {
@@ -63,6 +67,10 @@ class URLThreatResponse(BaseModel):
     scanDate: str = Field(..., description="ISO 8601 scan timestamp")
     vtPositives: int = Field(0, description="Number of security vendors flagging as malicious")
     vtTotal: int = Field(0, description="Total security vendors evaluated")
+    source: str = Field("virustotal", description="Provider data source")
+    mode: str = Field("fallback", description="Execution mode: live or fallback")
+    provider_status: str = Field("simulated", description="Provider status: live | verified | simulated")
+    fallback_used: bool = Field(True, description="Whether fallback was used")
 
     model_config = {
         "json_schema_extra": {

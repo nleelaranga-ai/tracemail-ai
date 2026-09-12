@@ -23,7 +23,7 @@ class URLScanClient:
     async def scan_url(self, url: str) -> Dict[str, Any]:
         """
         Scan or search for existing scan results for target URL.
-        Returns: { malicious: bool, score: int, pageTitle: str, screenshotUrl: Optional[str], redirects: list }
+        Returns: { malicious: bool, score: int, pageTitle: str, screenshotUrl: Optional[str], redirects: list, source: str, mode: str, provider_status: str, fallback_used: bool }
         """
         cache_key = f"urlscan:{url}"
         cached = url_cache.get(cache_key)
@@ -32,9 +32,11 @@ class URLScanClient:
 
         if self.api_key:
             try:
-                # Query recent scans for this URL first (faster than submitting new scan)
-                search_url = f"{self.base_url}/search/?q=page.url:%22{url.strip()}%22&size=1"
                 headers = {"API-Key": self.api_key}
+                clean_url = url.strip()
+
+                # 1. Query recent scans for this URL first (faster than submitting new scan)
+                search_url = f"{self.base_url}/search/?q=page.url:%22{clean_url}%22&size=1"
                 res = await async_http_get(search_url, headers=headers, timeout=5.0)
 
                 if res and "results" in res and len(res["results"]) > 0:
@@ -50,11 +52,38 @@ class URLScanClient:
                         "pageTitle": page.get("title", ""),
                         "screenshotUrl": item.get("screenshot"),
                         "redirects": [],
+                        "status": "completed",
+                        "source": "live",
+                        "mode": "live",
+                        "provider_status": "live",
+                        "fallback_used": False,
+                    }
+                    url_cache.set(cache_key, result)
+                    return result
+
+                # 2. If no prior scan found in search, actively submit scan
+                scan_endpoint = f"{self.base_url}/scan/"
+                payload = {"url": clean_url, "visibility": "public"}
+                scan_res = await async_http_post(scan_endpoint, payload=payload, headers=headers, timeout=5.0)
+                if scan_res and ("uuid" in scan_res or "result" in scan_res or "message" in scan_res):
+                    result = {
+                        "malicious": False,
+                        "score": 0,
+                        "pageTitle": "Scan In Progress (URLScan.io)",
+                        "screenshotUrl": None,
+                        "redirects": [],
+                        "scanUuid": scan_res.get("uuid"),
+                        "resultUrl": scan_res.get("result"),
+                        "status": "submitted",
+                        "source": "live",
+                        "mode": "live",
+                        "provider_status": "live",
+                        "fallback_used": False,
                     }
                     url_cache.set(cache_key, result)
                     return result
             except Exception as e:
-                logger.warning(f"URLScan query failed for {url}: {e}")
+                logger.warning(f"URLScan query/submission failed for {url}: {e}")
 
         # Heuristic / Fallback detection
         is_malicious = "paypa1" in url.lower() or "suspicious" in url.lower()
@@ -64,6 +93,11 @@ class URLScanClient:
             "pageTitle": "Login - PayPal Security Verification" if is_malicious else "Corporate Portal",
             "screenshotUrl": None,
             "redirects": [url],
+            "status": "simulated",
+            "source": "heuristic",
+            "mode": "fallback",
+            "provider_status": "simulated",
+            "fallback_used": True,
         }
         url_cache.set(cache_key, result)
         return result

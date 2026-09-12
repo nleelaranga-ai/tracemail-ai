@@ -4,9 +4,15 @@ Loads environment variables, API keys, database URLs, and port configurations.
 """
 
 import os
+from pathlib import Path
 from functools import lru_cache
 from typing import Optional
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+
+# Automatically load .env if available
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent.parent / "backend" / ".env")
 
 
 class Settings(BaseModel):
@@ -82,6 +88,7 @@ class Settings(BaseModel):
             ABUSEIPDB_API_KEY=os.getenv("ABUSEIPDB_API_KEY"),
             IPINFO_API_KEY=os.getenv("IPINFO_API_KEY"),
             URLSCAN_API_KEY=os.getenv("URLSCAN_API_KEY"),
+            GOOGLE_SAFE_BROWSING_API_KEY=os.getenv("GOOGLE_SAFE_BROWSING_API_KEY"),
             GROQ_API_KEY=os.getenv("GROQ_API_KEY"),
             USE_MOCK_THREAT_INTEL=os.getenv("USE_MOCK_THREAT_INTEL", "true").lower() in ("true", "1", "yes"),
         )

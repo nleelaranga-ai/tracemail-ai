@@ -91,7 +91,13 @@ class WHOISClient:
 
         # Check known testing domains first
         if domain_clean in KNOWN_DOMAINS:
-            result = KNOWN_DOMAINS[domain_clean]
+            result = dict(KNOWN_DOMAINS[domain_clean])
+            result.update({
+                "source": "known_dataset",
+                "mode": "fallback",
+                "provider_status": "simulated",
+                "fallback_used": True
+            })
             whois_cache.set(domain_clean, result)
             return result
 
@@ -99,6 +105,12 @@ class WHOISClient:
         try:
             result = await asyncio.to_thread(self._sync_whois_lookup, domain_clean)
             if result:
+                result.update({
+                    "source": "python_whois_live",
+                    "mode": "live",
+                    "provider_status": "live",
+                    "fallback_used": False
+                })
                 whois_cache.set(domain_clean, result)
                 return result
         except Exception as e:
@@ -133,7 +145,11 @@ class WHOISClient:
                         "domainAgeDays": age_days,
                         "registrar": str(registrar_name),
                         "creationDate": reg_date_str[:10],
-                        "expiryDate": exp_date_str[:10] if exp_date_str else "2027-01-01"
+                        "expiryDate": exp_date_str[:10] if exp_date_str else "2027-01-01",
+                        "source": "rdap_icann",
+                        "mode": "live",
+                        "provider_status": "live",
+                        "fallback_used": False
                     }
                     whois_cache.set(domain_clean, res)
                     return res
@@ -154,7 +170,11 @@ class WHOISClient:
                 "domainAgeDays": days,
                 "registrar": "NameCheap Inc." if days % 2 == 0 else "Porkbun LLC",
                 "creationDate": reg_date,
-                "expiryDate": exp_date
+                "expiryDate": exp_date,
+                "source": "heuristic",
+                "mode": "fallback",
+                "provider_status": "simulated",
+                "fallback_used": True
             }
         else:
             days = 450 + (abs(hash(domain_clean)) % 3000)
@@ -165,7 +185,11 @@ class WHOISClient:
                 "domainAgeDays": days,
                 "registrar": "MarkMonitor Inc." if "google" in domain_clean or "microsoft" in domain_clean else "GoDaddy.com LLC",
                 "creationDate": reg_date,
-                "expiryDate": exp_date
+                "expiryDate": exp_date,
+                "source": "heuristic",
+                "mode": "fallback",
+                "provider_status": "simulated",
+                "fallback_used": True
             }
 
         whois_cache.set(domain_clean, default_res)

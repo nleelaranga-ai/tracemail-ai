@@ -138,24 +138,7 @@ class GeoClient:
         abuse_score = abuse_info.get("abuseScore", 0)
         is_malicious = abuse_info.get("isMalicious", False) or abuse_score >= 20
 
-        # Check known dataset first
-        if clean_ip in KNOWN_GEO_IPS:
-            geo = KNOWN_GEO_IPS[clean_ip]
-            resp = IPThreatResponse(
-                ip=clean_ip,
-                country=geo["country"],
-                city=geo["city"],
-                lat=geo["lat"],
-                lon=geo["lon"],
-                isp=geo["isp"],
-                asn=geo["asn"],
-                abuseScore=abuse_score,
-                malicious=is_malicious,
-            )
-            ip_cache.set(cache_key, resp)
-            return resp
-
-        # Query live IPinfo API if key present
+        # 1. Query live IPinfo API first if live key is present
         if self.api_key:
             try:
                 url = f"{self.base_url}/{clean_ip}/json?token={self.api_key}"
@@ -177,11 +160,36 @@ class GeoClient:
                         asn=asn,
                         abuseScore=abuse_score,
                         malicious=is_malicious,
+                        source="ipinfo_api",
+                        mode="live",
+                        provider_status="live",
+                        fallback_used=False,
                     )
                     ip_cache.set(cache_key, resp)
                     return resp
             except Exception as e:
                 logger.warning(f"Live IPinfo lookup failed for {clean_ip}: {e}")
+
+        # 2. Check known dataset if no API key or live lookup failed
+        if clean_ip in KNOWN_GEO_IPS:
+            geo = KNOWN_GEO_IPS[clean_ip]
+            resp = IPThreatResponse(
+                ip=clean_ip,
+                country=geo["country"],
+                city=geo["city"],
+                lat=geo["lat"],
+                lon=geo["lon"],
+                isp=geo["isp"],
+                asn=geo["asn"],
+                abuseScore=abuse_score,
+                malicious=is_malicious,
+                source="known_dataset",
+                mode="fallback",
+                provider_status="simulated",
+                fallback_used=True,
+            )
+            ip_cache.set(cache_key, resp)
+            return resp
 
         # Fallback to free public ipapi.co
         try:
@@ -198,6 +206,10 @@ class GeoClient:
                     asn=data.get("asn", "Unknown"),
                     abuseScore=abuse_score,
                     malicious=is_malicious,
+                    source="ipapi_public",
+                    mode="live",
+                    provider_status="live",
+                    fallback_used=False,
                 )
                 ip_cache.set(cache_key, resp)
                 return resp
@@ -219,6 +231,10 @@ class GeoClient:
                     asn=data.get("as", "Unknown"),
                     abuseScore=abuse_score,
                     malicious=is_malicious,
+                    source="ip_api_com_public",
+                    mode="live",
+                    provider_status="live",
+                    fallback_used=False,
                 )
                 ip_cache.set(cache_key, resp)
                 return resp
@@ -239,6 +255,10 @@ class GeoClient:
             asn=hub["asn"],
             abuseScore=abuse_score,
             malicious=is_malicious,
+            source="regional_relay_heuristic",
+            mode="fallback",
+            provider_status="simulated",
+            fallback_used=True,
         )
         ip_cache.set(cache_key, resp)
         return resp

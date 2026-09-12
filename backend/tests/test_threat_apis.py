@@ -196,7 +196,83 @@ async def test_composite_threat_intel_endpoint():
         assert "virus_total" in data
         assert "google_safe_browsing" in data
         assert "urlscan" in data
-        assert "threat_score" in data
         assert data["ip"]["address"] == "185.220.101.4"
         assert data["domain"]["name"] == "paypa1-secure.com"
         assert data["threat_score"] >= 85
+        assert "mode" in data
+        assert "provider_statuses" in data
+        assert "fallback_used" in data
+
+
+@pytest.mark.asyncio
+async def test_provenance_tracking():
+    """Verify that provenance metadata is preserved and truthfully reported."""
+    report = await ThreatIntelligenceGateway.enrich_threat_intel(
+        ip="185.220.101.4",
+        domain="paypa1-secure.com",
+        urls=["http://paypa1-secure.com/login"],
+        raw_headers="",
+        attachments=[]
+    )
+    assert report.ip.source in ["known_dataset", "ipinfo_api", "ipapi_public", "ip_api_com_public", "ipinfo/abuseipdb"]
+    assert report.ip.mode in ["live", "fallback"]
+    assert report.domain.source in ["known_dataset", "rdap_icann", "python_whois_live", "heuristic", "whois/rdap"]
+    assert report.virus_total.source in ["virustotal_api", "heuristic"]
+    assert report.google_safe_browsing.source in ["live", "heuristic"]
+    assert report.urlscan.source in ["live", "heuristic"]
+    assert "virustotal" in report.provider_statuses
+    assert "abuseipdb" in report.provider_statuses
+    assert "ipinfo" in report.provider_statuses
+    assert "google_safe_browsing" in report.provider_statuses
+    assert "urlscan" in report.provider_statuses
+
+
+@pytest.mark.asyncio
+async def test_health_apis_all_providers():
+    """Verify GET /health/apis returns all 8 providers and runtime config."""
+    from backend.main import app
+    from httpx import AsyncClient, ASGITransport
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        res = await client.get("/health/apis")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "healthy"
+        assert "mode" in data
+        assert "use_mock_threat_intel" in data
+        apis = data["apis"]
+        required_providers = [
+            "virustotal",
+            "abuseipdb",
+            "ipinfo",
+            "urlscan",
+            "google_safe_browsing",
+            "groq",
+            "rdap_whois",
+            "dns_resolver",
+            "geoip",
+        ]
+        for provider in required_providers:
+            assert provider in apis, f"Provider {provider} missing from /health/apis"
+            assert "configured" in apis[provider]
+            assert "status" in apis[provider]
+
+
+@pytest.mark.asyncio
+async def test_urlscan_active_submission():
+    """Verify URLScan actively submits a scan when search yields 0 results."""
+    from threat_intelligence.urlscan.urlscan_client import URLScanClient
+
+    urlscan = URLScanClient(api_key="mock-urlscan-key")
+    with patch("threat_intelligence.urlscan.urlscan_client.async_http_get", return_value={"results": []}), \
+         patch("threat_intelligence.urlscan.urlscan_client.async_http_post", return_value={"uuid": "test-uuid-999", "result": "https://urlscan.io/result/test-uuid-999"}):
+        
+        res = await urlscan.scan_url("https://new-unknown-threat-target.org")
+        assert res["status"] == "submitted"
+        assert res["scanUuid"] == "test-uuid-999"
+        assert res["source"] == "live"
+        assert res["mode"] == "live"
+        assert res["provider_status"] == "live"
+        assert res["fallback_used"] is False
+
