@@ -42,7 +42,7 @@ To prevent merge conflicts:
   - `threat_intelligence/`: Threat Intelligence Team
   - `shared/`: Threat Intelligence Team
   - `scripts/`: Threat Intelligence Team
-  - `maps-engine/`: Maps & Attack Graph Team
+  - `maps_engine/`: Maps & Attack Graph Team
   - `reports/`: Reports & Forensics Team
 
 ---

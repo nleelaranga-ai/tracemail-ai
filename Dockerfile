@@ -25,7 +25,6 @@ COPY shared /app/shared
 COPY threat_intelligence /app/threat_intelligence
 COPY ai-engine /app/ai-engine
 COPY maps_engine /app/maps_engine
-COPY maps-engine /app/maps-engine
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

@@ -8,9 +8,9 @@ if str(_current_dir) not in sys.path:
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from geo.geo_builder import build_geojson
-from timeline.timeline_builder import build_timeline
-from graph.graph_builder import build_attack_graph
+from maps_engine.geo.geo_builder import build_geojson
+from maps_engine.timeline.timeline_builder import build_timeline
+from maps_engine.graph.graph_builder import build_attack_graph
 hops = [
     {
         "server": "mail.example.com",
