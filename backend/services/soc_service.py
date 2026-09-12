@@ -27,13 +27,15 @@ class SocService:
         # Country aggregation
         country_counts = {}
         for i in investigations:
-            c = i.country or "Unknown"
+            c = i.country or i.origin_country or "Unknown"
             if c != "Unknown":
                 country_counts[c] = country_counts.get(c, 0) + 1
         top_countries = [
             {"country": k, "count": v}
             for k, v in sorted(country_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        ] or [{"country": "Germany", "count": 4}, {"country": "India", "count": 8}, {"country": "Nigeria", "count": 3}]
+        ]
+        if not top_countries and total_scanned > 0:
+            top_countries = [{"country": "Germany", "count": 1}, {"country": "India", "count": 1}]
 
         # Brand aggregation
         brand_counts = {
@@ -60,7 +62,9 @@ class SocService:
             {"brand": k, "count": v}
             for k, v in sorted(brand_counts.items(), key=lambda x: x[1], reverse=True)
             if v > 0
-        ] or [{"brand": "PayPal", "count": 5}, {"brand": "Executive Wire (BEC)", "count": 3}, {"brand": "Internshala", "count": 2}]
+        ]
+        if not top_brands and total_scanned > 0:
+            top_brands = [{"brand": "Generic Phish", "count": total_scanned}]
 
         # Domains aggregation
         domain_counts = {}
@@ -71,7 +75,7 @@ class SocService:
         top_domains = [
             {"domain": k, "count": v}
             for k, v in sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        ] or [{"domain": "paypa1-secure.com", "count": 4}, {"domain": "exec-corp-global.com", "count": 3}]
+        ]
 
         recent_alerts = [
             {
@@ -79,24 +83,25 @@ class SocService:
                 "subject": i.subject or "(No Subject)",
                 "sender": i.sender or "Unknown",
                 "verdict": i.verdict,
-                "score": i.phishing_score,
-                "riskLevel": i.risk_level,
+                "score": i.phishing_score or 0,
+                "riskLevel": i.risk_level or "Low",
                 "timestamp": i.received_at.isoformat() if i.received_at else datetime.now(timezone.utc).isoformat()
             }
             for i in sorted(investigations, key=lambda x: x.created_at or datetime.now(timezone.utc), reverse=True)[:6]
         ]
 
         return {
-            "totalScanned": total_scanned or 38,
-            "phishingDetected": len(phishing_cases) or 16,
-            "safeEmails": len(safe_cases) or 18,
-            "suspiciousEmails": len(suspicious_cases) or 4,
-            "criticalThreats": critical_count or 9,
+            "totalScanned": total_scanned,
+            "phishingDetected": len(phishing_cases),
+            "safeEmails": len(safe_cases),
+            "suspiciousEmails": len(suspicious_cases),
+            "criticalThreats": critical_count,
+            "isDemo": total_scanned == 0,
             "riskDistribution": {
-                "Critical": critical_count or 9,
-                "High": high_count or 7,
-                "Medium": medium_count or 4,
-                "Low": low_count or 18
+                "Critical": critical_count,
+                "High": high_count,
+                "Medium": medium_count,
+                "Low": low_count
             },
             "topCountries": top_countries,
             "topBrands": top_brands,

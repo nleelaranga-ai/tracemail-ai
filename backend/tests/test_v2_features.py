@@ -41,6 +41,7 @@ def test_inbox_scan_and_results():
     assert "threatScore" in first_item
     assert "risk" in first_item
     assert "verdict" in first_item
+    assert "investigationId" in first_item
 
 
 def test_soc_overview_endpoint():
@@ -98,6 +99,16 @@ def test_evidence_locker_and_tamper_detection():
     assert tamper_data["verified"] is False
     assert "mismatch" in tamper_data["message"].lower() or "altered" in tamper_data["message"].lower()
 
+    # 4. Verify non-mutating simulation guarantee: database record is STILL Verified!
+    reverify_res = client.post(f"/api/evidence/{case_id}/verify")
+    assert reverify_res.status_code == 200
+    assert reverify_res.json()["status"] == "Verified"
+    assert reverify_res.json()["verified"] is True
+
+    # 5. Nonexistent investigation must return 404
+    missing_res = client.get("/api/evidence/non_existent_case_9999")
+    assert missing_res.status_code == 404
+
 
 def test_ai_explainability_weights():
     case_id = "inv_paypal_phish_demo_01"
@@ -114,6 +125,10 @@ def test_ai_explainability_weights():
         assert "label" in r
         assert "weight" in r
         assert "category" in r
+
+    # Nonexistent investigation must return 404
+    missing_res = client.get("/api/ai/explainability/non_existent_case_9999")
+    assert missing_res.status_code == 404
 
 
 def test_graph_node_detail_endpoint():
@@ -137,6 +152,7 @@ def test_attachment_malware_scanner():
     assert clean_res.status_code == 200
     clean_data = clean_res.json()
     assert clean_data["malicious"] is False
+    assert clean_data["positives"] == 0
     assert "Clean" in clean_data["verdict"]
 
     # 2. Hostile double-extension executable
@@ -147,4 +163,5 @@ def test_attachment_malware_scanner():
     assert mal_res.status_code == 200
     mal_data = mal_res.json()
     assert mal_data["malicious"] is True
+    assert mal_data["heuristic_risk"] is True
     assert "Trojan" in mal_data["verdict"] or "Executable" in mal_data["verdict"]

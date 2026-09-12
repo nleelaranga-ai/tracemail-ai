@@ -121,7 +121,7 @@ export default function InboxPage() {
                       {new Date(m.scannedAt).toLocaleTimeString()}
                     </span>
                     <Link
-                      href={`/investigation/${isCrit ? "inv_paypal_phish_demo_01" : "inv_internshala_demo_02"}`}
+                      href={`/investigation/${m.investigationId || (isCrit ? "inv_paypal_phish_demo_01" : "inv_internshala_demo_02")}`}
                       className="inline-flex items-center gap-1 rounded-lg border border-bg-border bg-bg px-3 py-1.5 text-xs font-semibold text-trace hover:bg-trace/10 transition"
                     >
                       Investigate Case <ExternalLink className="h-3.5 w-3.5" />

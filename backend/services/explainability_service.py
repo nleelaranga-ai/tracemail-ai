@@ -2,18 +2,20 @@
 TraceMail AI Backend — AI Explainability Engine
 Produces mathematically grounded, human-readable reason breakdowns with weighted contribution scores.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from backend.database.connection import Session
 from backend.models.scan import Investigation
 
 
 class ExplainabilityService:
     @staticmethod
-    def get_explainability(investigation_id: str, db: Session) -> Dict[str, Any]:
+    def get_explainability(investigation_id: str, db: Session) -> Optional[Dict[str, Any]]:
         inv = db.query(Investigation).filter(Investigation.id == investigation_id).first()
+        if not inv:
+            return None
         
-        score = inv.phishing_score if (inv and inv.phishing_score is not None) else 85
-        verdict = inv.verdict if (inv and inv.verdict) else "phishing"
+        score = inv.phishing_score if inv.phishing_score is not None else 0
+        verdict = inv.verdict if inv.verdict else "safe"
         
         reasons: List[Dict[str, Any]] = []
 

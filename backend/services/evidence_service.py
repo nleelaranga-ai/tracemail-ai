@@ -13,9 +13,12 @@ from backend.utils.logger import logger
 
 class EvidenceService:
     @staticmethod
-    def get_or_create_record(investigation_id: str, db: Session) -> Dict[str, Any]:
-        rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
+    def get_or_create_record(investigation_id: str, db: Session) -> Optional[Dict[str, Any]]:
         inv = db.query(Investigation).filter(Investigation.id == investigation_id).first()
+        if not inv:
+            return None
+
+        rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
         
         if not rec:
             # Derive raw payload
@@ -24,7 +27,9 @@ class EvidenceService:
                 if inv else f"TraceMail Raw RFC-822 Case Payload: {investigation_id}"
             )
             calc_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
-            orig_hash = inv.evidence_hash if (inv and inv.evidence_hash) else calc_hash
+            orig_hash = calc_hash
+            if inv:
+                inv.evidence_hash = calc_hash
             
             rec = EvidenceRecord(
                 investigation_id=investigation_id,
@@ -83,36 +88,35 @@ class EvidenceService:
         }
 
     @staticmethod
-    def verify_integrity(investigation_id: str, db: Session, simulated_corrupt: bool = False) -> Dict[str, Any]:
+    def verify_integrity(investigation_id: str, db: Session, simulated_corrupt: bool = False) -> Optional[Dict[str, Any]]:
         rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
         if not rec:
-            # Create first
-            EvidenceService.get_or_create_record(investigation_id, db)
+            res = EvidenceService.get_or_create_record(investigation_id, db)
+            if not res:
+                return None
             rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
 
         now = datetime.now(timezone.utc)
         
-        # Test/Demonstration Tamper Detection:
+        # Test/Demonstration Tamper Detection (Read-Only Simulation without DB mutation):
         if simulated_corrupt:
-            rec.sha256 = "000000000000000000000000000000000000000000000000000000000000dead"
-            rec.status = "Tampered"
-            rec.verified_at = now
-            db.commit()
+            simulated_dead_hash = "000000000000000000000000000000000000000000000000000000000000dead"
             return {
                 "investigationId": investigation_id,
                 "status": "Tampered",
                 "verified": False,
-                "message": "ALERT: Cryptographic SHA-256 mismatch detected! Payload has been altered after ingestion.",
+                "message": "ALERT: Cryptographic SHA-256 mismatch detected! Payload has been altered after ingestion (simulation).",
                 "originalHash": rec.original_hash,
-                "computedHash": rec.sha256,
+                "computedHash": simulated_dead_hash,
                 "verifiedAt": now.isoformat()
             }
         
-        # Real hash check against original_hash
+        # Strict real hash recalculation from stored immutable raw content against original_hash
         calc_hash = hashlib.sha256((rec.raw_content or "").encode("utf-8")).hexdigest()
-        is_valid = (calc_hash == rec.original_hash) or (rec.sha256 == rec.original_hash)
+        is_valid = (calc_hash == rec.original_hash)
 
         rec.status = "Verified" if is_valid else "Tampered"
+        rec.sha256 = calc_hash
         rec.verified_at = now
         db.commit()
 
@@ -120,9 +124,9 @@ class EvidenceService:
             "investigationId": investigation_id,
             "status": rec.status,
             "verified": is_valid,
-            "message": "Cryptographic integrity confirmed. Evidence is court-admissible." if is_valid else "Evidence tampered!",
+            "message": "Cryptographic integrity confirmed. Evidence is court-admissible." if is_valid else "ALERT: Cryptographic SHA-256 mismatch detected! Payload has been altered after ingestion.",
             "originalHash": rec.original_hash,
-            "computedHash": rec.original_hash if is_valid else calc_hash,
+            "computedHash": calc_hash,
             "verifiedAt": now.isoformat()
         }
 
@@ -131,5 +135,7 @@ class EvidenceService:
         all_invs = db.query(Investigation).order_by(Investigation.created_at.desc()).all()
         results = []
         for inv in all_invs:
-            results.append(EvidenceService.get_or_create_record(inv.id, db))
+            rec = EvidenceService.get_or_create_record(inv.id, db)
+            if rec:
+                results.append(rec)
         return results

@@ -302,6 +302,7 @@ export interface DepartmentMetric {
 export interface InboxEmailItem {
   id: string;
   messageId: string;
+  investigationId?: string;
   sender: string;
   subject: string;
   snippet?: string;

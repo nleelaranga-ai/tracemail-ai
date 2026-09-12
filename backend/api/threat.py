@@ -58,35 +58,40 @@ async def scan_attachment(payload: Dict[str, Any] = Body(...)):
 
     lower_name = filename.lower()
     dangerous_exts = {".exe", ".scr", ".vbs", ".bat", ".iso", ".apk", ".js", ".ps1", ".hta"}
-    is_dangerous = any(lower_name.endswith(ext) for ext in dangerous_exts) or (".pdf." in lower_name) or (".doc." in lower_name)
+    is_extension_risky = any(lower_name.endswith(ext) for ext in dangerous_exts) or (".pdf." in lower_name) or (".doc." in lower_name)
 
     # Check VirusTotal file hash service
     vt_res = await vt_client.scan_file_hash(sha256)
-    if vt_res.get("malicious"):
-        is_dangerous = True
+    vt_positives = int(vt_res.get("positives", 0))
+    total_engines = int(vt_res.get("totalEngines", 72))
+    vt_malicious = bool(vt_res.get("malicious", False))
 
-    if is_dangerous or "invoice_update.pdf.exe" in lower_name:
-        return {
-            "filename": filename,
-            "sha256": sha256,
-            "fileType": file_type,
-            "malicious": True,
-            "verdict": vt_res.get("verdict") if vt_res.get("malicious") else "Trojan.Downloader.Generic (High Risk Executable)",
-            "engine": vt_res.get("engine", "VirusTotal + Heuristic Static Analyzer"),
-            "positives": max(vt_res.get("positives", 0), 46),
-            "totalEngines": vt_res.get("totalEngines", 72)
-        }
+    is_malicious = vt_malicious or is_extension_risky or ("invoice_update.pdf.exe" in lower_name)
+
+    if vt_malicious:
+        engine_label = vt_res.get("engine", "VirusTotal v3 Multi-Engine")
+        verdict = vt_res.get("verdict", "Malicious Binary Identified by Provider")
+    elif is_extension_risky or "invoice_update.pdf.exe" in lower_name:
+        engine_label = "Local Static Heuristic (Dangerous Executable Extension)"
+        verdict = "Suspicious Executable Extension (Trojan Risk)"
     else:
-        return {
-            "filename": filename,
-            "sha256": sha256,
-            "fileType": file_type,
-            "malicious": False,
-            "verdict": "Clean (No macro or embedded shellcode detected)",
-            "engine": "VirusTotal + Local Static Heuristic",
-            "positives": 0,
-            "totalEngines": 72
-        }
+        engine_label = "VirusTotal + Local Static Heuristic"
+        verdict = "Clean (No macro or embedded shellcode detected)"
+
+    return {
+        "filename": filename,
+        "sha256": sha256,
+        "fileType": file_type,
+        "malicious": is_malicious,
+        "heuristic_risk": is_extension_risky,
+        "provider_malicious": vt_malicious,
+        "provider_status": vt_res.get("status", "live" if vt_malicious else "clean"),
+        "verdict": verdict,
+        "engine": engine_label,
+        "positives": vt_positives,
+        "provider_positives": vt_positives,
+        "totalEngines": total_engines
+    }
 
 
 @router.post("/api/threat/composite-intel")
