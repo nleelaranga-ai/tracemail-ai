@@ -9,6 +9,14 @@ from backend.models.scan import Investigation
 from backend.schemas.report_schema import TimelineStep, AttackGraph
 from backend.services.scan_service import ScanService
 
+try:
+    from maps_engine.geo.geo_builder import build_geojson
+    from maps_engine.timeline.timeline_builder import build_timeline
+    from maps_engine.graph.graph_builder import build_attack_graph
+    _HAS_MAPS_ENGINE = True
+except ImportError:
+    _HAS_MAPS_ENGINE = False
+
 router = APIRouter(tags=["Maps & Visualization"])
 
 
@@ -25,6 +33,15 @@ def get_investigation_map(id: str, db: Session = Depends(get_db)):
         city = inv.origin_city or inv.city or "Transmission Node"
         ip = inv.origin_ip or inv.ip or "Unknown IP"
         is_mal = inv.verdict == "phishing"
+
+        if _HAS_MAPS_ENGINE:
+            return build_geojson(
+                [{"hop": 1, "ip": ip, "city": city, "lat": lat, "lon": lon, "malicious": is_mal}],
+                origin_city=city,
+                origin_lat=lat,
+                origin_lon=lon
+            )
+
         return {
             "type": "FeatureCollection",
             "features": [
@@ -53,6 +70,14 @@ def get_investigation_timeline(id: str, db: Session = Depends(get_db)):
         ip = inv.origin_ip or inv.ip or "127.0.0.1"
         ts = inv.received_at.isoformat() if inv.received_at else "2026-09-11T00:00:00Z"
         is_mal = inv.verdict == "phishing"
+
+        if _HAS_MAPS_ENGINE:
+            steps = build_timeline(
+                [{"step": 1, "server": f"mta-{inv.domain or 'origin'}.network", "ip": ip, "timestamp": ts, "malicious": is_mal}],
+                default_ip=ip
+            )
+            return [TimelineStep(**s) for s in steps]
+
         return [
             TimelineStep(
                 step=1,
@@ -77,11 +102,21 @@ def get_investigation_attack_graph(id: str, db: Session = Depends(get_db)):
         is_mal = inv.verdict == "phishing"
         sender_lbl = inv.sender or "sender@domain.com"
         victim_lbl = inv.recipient or "analyst@tracemail.local"
-        hop_lbl = f"{inv.origin_ip or inv.ip or 'Gateway'} ({inv.origin_city or inv.city or 'Relay'})"
+        hop_ip = inv.origin_ip or inv.ip or "Gateway"
+        hop_city = inv.origin_city or inv.city or "Relay"
+
+        if _HAS_MAPS_ENGINE:
+            return build_attack_graph(
+                [{"ip": hop_ip, "city": hop_city, "malicious": is_mal}],
+                sender=sender_lbl,
+                recipient=victim_lbl,
+                is_phishing=is_mal
+            )
+
         return {
             "nodes": [
                 {"id": "sender", "label": sender_lbl, "type": "sender", "malicious": is_mal},
-                {"id": "hop1", "label": hop_lbl, "type": "relay", "malicious": is_mal},
+                {"id": "hop1", "label": f"{hop_ip} ({hop_city})", "type": "relay", "malicious": is_mal},
                 {"id": "victim", "label": victim_lbl, "type": "recipient", "malicious": False}
             ],
             "edges": [

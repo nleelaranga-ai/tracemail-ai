@@ -24,6 +24,15 @@ try:
 except ImportError:
     _HAS_LOCAL_THREAT_ENGINE = False
 
+# Import maps_engine directly if co-located in repo
+try:
+    from maps_engine.geo.geo_builder import build_geojson as maps_build_geojson
+    from maps_engine.timeline.timeline_builder import build_timeline as maps_build_timeline
+    from maps_engine.graph.graph_builder import build_attack_graph as maps_build_attack_graph
+    _HAS_LOCAL_MAPS_ENGINE = True
+except ImportError:
+    _HAS_LOCAL_MAPS_ENGINE = False
+
 
 
 class ScanService:
@@ -599,23 +608,26 @@ class ScanService:
         origin_lat: float = 0.0,
         origin_lon: float = 0.0
     ) -> Dict[str, Any]:
-        """Builds GeoJSON FeatureCollection dynamically with hops and connecting flight lines."""
+        """Builds GeoJSON FeatureCollection dynamically with hops and connecting flight lines via Maps Engine."""
+        if _HAS_LOCAL_MAPS_ENGINE:
+            return maps_build_geojson(
+                hops=hops,
+                origin_city=origin_city,
+                origin_lat=origin_lat,
+                origin_lon=origin_lon
+            )
+
         features = []
         coords = []
-
         for idx, hop in enumerate(hops):
             lat = hop.get("lat") or hop.get("latitude")
             lon = hop.get("lon") or hop.get("longitude")
-            
-            # Use origin coordinates if hop coordinate is unset
             if (lat is None or lon is None or (lat == 0.0 and lon == 0.0)) and (origin_lat or origin_lon):
                 lat = origin_lat
                 lon = origin_lon
-            
             lat = float(lat) if lat is not None else 20.5937
             lon = float(lon) if lon is not None else 78.9629
             coords.append([lon, lat])
-
             features.append({
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [lon, lat]},
@@ -627,12 +639,12 @@ class ScanService:
                 }
             })
 
-        # Add line connecting hops if 2 or more
         if len(coords) >= 2:
             features.append({
                 "type": "Feature",
                 "geometry": {"type": "LineString", "coordinates": coords},
                 "properties": {
+                    "type": "email_path",
                     "from": hops[0].get("city") or origin_city or "Origin",
                     "to": hops[-1].get("city") or "Destination Gateway"
                 }
@@ -642,6 +654,10 @@ class ScanService:
 
     @classmethod
     def generate_timeline(cls, hops: List[Dict[str, Any]], default_ip: str = "Origin Host") -> List[Dict[str, Any]]:
+        """Constructs chronological mail server hop timeline via Maps Engine."""
+        if _HAS_LOCAL_MAPS_ENGINE:
+            return maps_build_timeline(hops=hops, default_ip=default_ip)
+
         timeline = []
         for idx, hop in enumerate(hops):
             timeline.append({
@@ -661,6 +677,15 @@ class ScanService:
         hops: List[Dict[str, Any]],
         is_phishing: bool = False
     ) -> Dict[str, Any]:
+        """Constructs interactive attack topology graph nodes and edges via Maps Engine."""
+        if _HAS_LOCAL_MAPS_ENGINE:
+            return maps_build_attack_graph(
+                hops=hops,
+                sender=sender,
+                recipient=victim,
+                is_phishing=is_phishing
+            )
+
         nodes = [
             {
                 "id": "sender",

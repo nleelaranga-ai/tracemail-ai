@@ -1,3 +1,13 @@
+import sys
+from pathlib import Path
+
+_current_dir = Path(__file__).resolve().parent
+_repo_root = _current_dir.parent
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
+
 from geo.geo_builder import build_geojson
 from timeline.timeline_builder import build_timeline
 from graph.graph_builder import build_attack_graph
