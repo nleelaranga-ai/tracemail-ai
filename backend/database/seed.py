@@ -1,6 +1,7 @@
 """
 TraceMail AI Backend — Database Seeder
 """
+import hashlib
 from datetime import datetime, timezone
 from backend.database.connection import SessionLocal, init_db
 from backend.models.user import User
@@ -170,13 +171,20 @@ def seed_database():
                     is_malicious=ioc_mal
                 ))
             # Seed Evidence Record
+            raw_ev_content = (
+                "Received: from mail.sketchy-relay.net (185.220.101.4)\n"
+                "Authentication-Results: spf=fail; dkim=fail; dmarc=fail\n\n"
+                "Dear Customer, your account has been restricted due to suspicious logins. "
+                "Please verify at http://paypa1-secure.com/login immediately."
+            )
+            real_ev_hash = hashlib.sha256(raw_ev_content.encode("utf-8")).hexdigest()
             db.add(EvidenceRecord(
                 investigation_id=inv_id_1,
-                sha256="d2c3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
-                original_hash="d2c3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
+                sha256=real_ev_hash,
+                original_hash=real_ev_hash,
                 investigator="Chief SOC Analyst",
                 status="Verified",
-                raw_content="Received: from mail.sketchy-relay.net (185.220.101.4)...",
+                raw_content=raw_ev_content,
                 custody_notes="Chain of custody cryptographically signed on forensic ingestion."
             ))
 
