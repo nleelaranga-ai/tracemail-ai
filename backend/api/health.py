@@ -18,7 +18,7 @@ def health_check():
     return HealthResponse(
         status="healthy" if db_ok else "degraded",
         service="backend-api",
-        version="1.0.0",
+        version="1.1.0-live-intel",
         timestamp=datetime.now(timezone.utc).isoformat()
     )
 
@@ -58,7 +58,12 @@ def apis_health():
         settings.GOOGLE_SAFE_BROWSING_API_KEY,
     ])
     
-    if not settings.USE_MOCK_THREAT_INTEL and all_live_keys:
+    core_live_keys = all([
+        settings.VIRUSTOTAL_API_KEY,
+        settings.ABUSEIPDB_API_KEY,
+        settings.IPINFO_API_KEY,
+    ])
+    if not settings.USE_MOCK_THREAT_INTEL and (all_live_keys or core_live_keys):
         mode = "live"
     elif has_live_keys:
         mode = "hybrid"
