@@ -29,10 +29,22 @@ def resolve_database_url() -> str:
     return url
 
 
+def resolve_use_mock_threat_intel() -> bool:
+    env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development")).lower()
+    has_live_keys = bool(
+        os.getenv("VIRUSTOTAL_API_KEY")
+        or os.getenv("ABUSEIPDB_API_KEY")
+        or os.getenv("IPINFO_API_KEY")
+    )
+    if env in ("production", "prod") or has_live_keys:
+        return False
+    return os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
+
+
 class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
+    USE_MOCK_THREAT_INTEL: bool = resolve_use_mock_threat_intel()
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tracemail-sih-2026-super-secret-key-32chars")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
 

@@ -10,6 +10,7 @@ import uuid
 import base64
 import asyncio
 import pytest
+import httpx
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone, timedelta
@@ -236,6 +237,75 @@ async def test_investigate_message_concurrency():
 
         assert res1["investigationId"] == res2["investigationId"]
         assert res1["investigationId"] != ""
+
+
+@pytest.mark.asyncio
+async def test_investigate_message_concurrent_http_requests():
+    """
+    RC-2 Concurrency & Idempotency Verification:
+    Fires 2 simultaneous HTTP POST requests to /api/inbox/messages/{msg_id}/investigate
+    via asyncio.gather over ASGI transport. Both must return 200 OK with identical
+    investigation IDs, and exactly 1 investigation record must be created in the database.
+    """
+    uid = uuid.uuid4().hex[:6]
+    account_email = f"concurrent_http_{uid}@gmail.com"
+    msg_id = f"msg_http_conc_{uid}"
+
+    db = SessionLocal()
+    try:
+        account = GmailAccount(
+            email=account_email,
+            access_token="ya29.concurrent_http_token",
+            refresh_token="1//concurrent_http_refresh",
+            token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
+            connected=True
+        )
+        db.add(account)
+        scan_row = InboxScanResult(
+            account_email=account_email,
+            message_id=msg_id,
+            investigation_id="",
+            sender="Alert <alert@concurrent-test.org>",
+            subject="Simultaneous HTTP Request Test",
+            snippet="Testing concurrent HTTP requests",
+            risk="Safe",
+            threat_score=10,
+            verdict="safe",
+            scanned_at=datetime.now(timezone.utc)
+        )
+        db.add(scan_row)
+        db.commit()
+    finally:
+        db.close()
+
+    raw_b64 = base64.urlsafe_b64encode(SAMPLE_UNSTOP_EML).decode("ascii")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"id": msg_id, "raw": raw_b64}
+    mock_resp.raise_for_status = lambda: None
+
+    with patch.object(InboxService, "is_oauth_configured", return_value=True), \
+         patch("httpx.AsyncClient.get", return_value=mock_resp):
+
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as ac:
+            req1 = ac.post(f"/api/inbox/messages/{msg_id}/investigate?email={account_email}")
+            req2 = ac.post(f"/api/inbox/messages/{msg_id}/investigate?email={account_email}")
+            res1, res2 = await asyncio.gather(req1, req2)
+
+        assert res1.status_code == 200, f"Req 1 failed: {res1.text}"
+        assert res2.status_code == 200, f"Req 2 failed: {res2.text}"
+
+        d1 = res1.json()
+        d2 = res2.json()
+        assert d1["investigationId"] == d2["investigationId"]
+        assert d1["investigationId"] != ""
+
+        db_check = SessionLocal()
+        try:
+            count = db_check.query(Investigation).filter(Investigation.id == d1["investigationId"]).count()
+            assert count == 1, f"Expected exactly 1 investigation in DB, found {count}"
+        finally:
+            db_check.close()
 
 
 def test_investigate_message_size_guard(db_session):

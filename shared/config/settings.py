@@ -94,7 +94,11 @@ class Settings(BaseModel):
             URLSCAN_API_KEY=os.getenv("URLSCAN_API_KEY"),
             GOOGLE_SAFE_BROWSING_API_KEY=os.getenv("GOOGLE_SAFE_BROWSING_API_KEY"),
             GROQ_API_KEY=os.getenv("GROQ_API_KEY"),
-            USE_MOCK_THREAT_INTEL=os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes"),
+            USE_MOCK_THREAT_INTEL=(
+                os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
+                and not bool(os.getenv("VIRUSTOTAL_API_KEY") or os.getenv("ABUSEIPDB_API_KEY") or os.getenv("IPINFO_API_KEY"))
+                and os.getenv("APP_ENV", "development").lower() not in ("production", "prod")
+            ),
         )
 
 

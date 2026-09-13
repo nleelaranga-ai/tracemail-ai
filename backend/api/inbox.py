@@ -57,37 +57,41 @@ async def google_oauth_callback(
 @router.get("/api/auth/google/status")
 def get_google_status(
     email: Optional[str] = Query(None, description="Account email to check"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Returns current connection status and provider configuration."""
-    return InboxService.get_connection_status(email, db)
+    return InboxService.get_connection_status(email, db, current_user=current_user)
 
 
 @router.post("/api/auth/google/disconnect")
 def disconnect_google_inbox(
     email: Optional[str] = Query(None, description="Account email to disconnect"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Disconnects monitored mailbox."""
-    return InboxService.disconnect_account(email, db)
+    return InboxService.disconnect_account(email, db, current_user=current_user)
 
 
 @router.post("/api/inbox/scan")
 async def trigger_inbox_scan(
     email: Optional[str] = Query("analyst@tracemail.ai", description="Monitored account email"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Triggers background mailbox scan and evaluates incoming email threat levels."""
-    return await InboxService.scan_mailbox(email, db)
+    return await InboxService.scan_mailbox(email, db, current_user=current_user)
 
 
 @router.get("/api/inbox/results")
 def get_inbox_results(
     email: Optional[str] = Query(None, description="Filter results by account email"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Returns past scanned emails from connected inbox."""
-    return InboxService.get_inbox_results(email, db)
+    return InboxService.get_inbox_results(email, db, current_user=current_user)
 
 
 @router.post("/api/inbox/messages/{message_id}/investigate")

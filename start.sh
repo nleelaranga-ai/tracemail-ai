@@ -9,5 +9,6 @@ echo "Starting TraceMail AI Backend Gateway on port $PORT"
 echo "=================================================="
 
 export PYTHONPATH="${PYTHONPATH:-.}"
+export USE_MOCK_THREAT_INTEL="false"
 
 exec python -m uvicorn backend.main:app --host "$HOST" --port "$PORT"

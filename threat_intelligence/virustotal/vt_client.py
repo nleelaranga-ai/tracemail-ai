@@ -50,9 +50,17 @@ class VirusTotalClient:
         if self.api_key:
             try:
                 url_id = self._url_to_id(url)
-                endpoint = f"{self.base_url}/urls/{url_id}"
                 headers = {"x-apikey": self.api_key}
+                endpoint = f"{self.base_url}/urls/{url_id}"
                 data = await async_http_get(endpoint, headers=headers, timeout=5.0)
+
+                if not (data and "data" in data and "attributes" in data["data"]):
+                    # VirusTotal returns 404 for URLs not yet submitted. Query the domain reputation live.
+                    parsed = urlparse(url)
+                    host = parsed.netloc.split(":")[0]
+                    if host:
+                        domain_endpoint = f"{self.base_url}/domains/{host}"
+                        data = await async_http_get(domain_endpoint, headers=headers, timeout=5.0)
 
                 if data and "data" in data and "attributes" in data["data"]:
                     attrs = data["data"]["attributes"]

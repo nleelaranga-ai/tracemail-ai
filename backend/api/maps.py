@@ -6,6 +6,8 @@ from typing import Optional, List, Dict, Any
 
 from backend.database.connection import get_db, Session
 from backend.models.scan import Investigation
+from backend.models.user import User
+from backend.middleware.auth import get_current_user
 from backend.schemas.report_schema import TimelineStep, AttackGraph
 from backend.services.scan_service import ScanService
 from backend.services.maps_service import maps_service
@@ -30,10 +32,23 @@ except ImportError:
 router = APIRouter(tags=["Maps & Visualization"])
 
 
+def _verify_investigation_access(inv: Optional[Investigation], current_user: Optional[User]):
+    if not inv:
+        return
+    if inv.owner_user_id is not None:
+        if not current_user or (current_user.id != inv.owner_user_id and getattr(current_user, "role", "") != "admin"):
+            raise HTTPException(status_code=404, detail="Investigation not found.")
+
+
 @router.get("/api/geo/map/{id}")
-def get_investigation_map(id: str, db: Session = Depends(get_db)):
+def get_investigation_map(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """Returns GeoJSON FeatureCollection showing email path across servers."""
     inv = db.query(Investigation).filter(Investigation.id == id).first()
+    _verify_investigation_access(inv, current_user)
     if inv and inv.geojson_map:
         return inv.geojson_map
 
@@ -70,9 +85,14 @@ def get_investigation_map(id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/api/geo/timeline/{id}", response_model=List[TimelineStep])
-def get_investigation_timeline(id: str, db: Session = Depends(get_db)):
+def get_investigation_timeline(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """Returns chronological timeline of mail server hops."""
     inv = db.query(Investigation).filter(Investigation.id == id).first()
+    _verify_investigation_access(inv, current_user)
     if inv and inv.hop_timeline:
         return [TimelineStep(**step) for step in inv.hop_timeline]
 
@@ -102,9 +122,14 @@ def get_investigation_timeline(id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/api/geo/graph/{id}")
-def get_investigation_attack_graph(id: str, db: Session = Depends(get_db)):
+def get_investigation_attack_graph(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """Returns attack graph topology nodes and edges."""
     inv = db.query(Investigation).filter(Investigation.id == id).first()
+    _verify_investigation_access(inv, current_user)
     if inv and inv.attack_graph:
         return inv.attack_graph
 

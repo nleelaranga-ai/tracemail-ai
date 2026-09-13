@@ -86,11 +86,20 @@ def list_investigations(
 
 @router.get("/api/investigations/{id}", response_model=InvestigationDetailResponse)
 @router.get("/api/v1/investigations/{id}", response_model=InvestigationDetailResponse, include_in_schema=False)
-def get_investigation_detail(id: str, db: Session = Depends(get_db)):
-    """Master API Contract (Section 6 & 9.1): Returns complete case payload."""
+def get_investigation_detail(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """Master API Contract (Section 6 & 9.1): Returns complete case payload with tenant isolation."""
     inv = db.query(Investigation).filter(Investigation.id == id).first()
     if not inv:
         raise HTTPException(status_code=404, detail=f"Investigation {id} not found.")
+
+    # Tenant isolation: private investigations can only be viewed by their owner or an admin
+    if inv.owner_user_id is not None:
+        if not current_user or (current_user.id != inv.owner_user_id and getattr(current_user, "role", "") != "admin"):
+            raise HTTPException(status_code=404, detail=f"Investigation {id} not found.")
 
     entities_data = inv.entities or {}
     score = inv.threat_score if inv.threat_score is not None else inv.phishing_score
