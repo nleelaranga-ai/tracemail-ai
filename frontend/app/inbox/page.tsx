@@ -51,31 +51,62 @@ export default function InboxPage() {
   const checkStatusAndHandleCallback = async () => {
     if (typeof window === "undefined") return;
 
-    // 1. Check if OAuth redirected back with ?connected=true or ?code=...
+    // 1. Check if OAuth redirected back with ?connected=true, error, or ?code=...
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get("code");
     const isConnectedParam = urlParams.get("connected");
     const emailParam = urlParams.get("email");
     const modeParam = urlParams.get("mode");
+    const errorParam = urlParams.get("error");
+
+    if (errorParam) {
+      setActionError(`OAuth Connection Issue: ${decodeURIComponent(errorParam)}`);
+    }
 
     if (isConnectedParam === "true") {
+      const targetEmail = emailParam || "connected";
       setConnected(true);
-      if (emailParam) setAccountEmail(emailParam);
+      setAccountEmail(targetEmail);
       setConnectionMode(modeParam === "live" ? "live" : "demo");
-      setNotice(`Successfully connected ${emailParam || "account"} via Google Workspace OAuth 2.0!`);
+      setNotice(`Successfully connected ${targetEmail} via Google Workspace OAuth 2.0! Fetching live emails...`);
       window.history.replaceState({}, document.title, window.location.pathname);
+
+      setScanning(true);
+      try {
+        await api.scanInbox(targetEmail);
+      } catch (scanErr) {
+        console.error("Initial mailbox scan failed:", scanErr);
+      } finally {
+        setScanning(false);
+      }
+
+      await loadInbox(targetEmail);
+      return;
     } else if (authCode) {
       setConnecting(true);
       setNotice("Exchanging Google authorization code for live tokens...");
       try {
         const res = await api.connectGoogleInboxWithCode(authCode);
+        const targetEmail = res.email || "analyst@tracemail.ai";
         setConnected(true);
-        setAccountEmail(res.email || "analyst@tracemail.ai");
+        setAccountEmail(targetEmail);
         setConnectionMode(res.live_oauth ? "live" : "demo");
-        setNotice(`Successfully connected ${res.email || "account"} via Google Workspace OAuth 2.0!`);
+        setNotice(`Successfully connected ${targetEmail} via Google Workspace OAuth 2.0! Fetching live emails...`);
 
         // Clean query string from browser address bar
         window.history.replaceState({}, document.title, window.location.pathname);
+
+        setScanning(true);
+        try {
+          await api.scanInbox(targetEmail);
+        } catch (scanErr) {
+          console.error("Initial mailbox scan failed:", scanErr);
+        } finally {
+          setScanning(false);
+        }
+
+        await loadInbox(targetEmail);
+        return;
       } catch (err) {
         console.error("Google OAuth exchange error:", err);
         setNotice("OAuth exchange failed; connected via local fallback mode.");
@@ -85,11 +116,13 @@ export default function InboxPage() {
     }
 
     // 2. Fetch current status from backend
+    let activeEmail: string | undefined;
     try {
       const status = await api.getGoogleInboxStatus();
       if (status.connected) {
         setConnected(true);
-        setAccountEmail(status.email || "analyst@tracemail.ai");
+        activeEmail = status.email || "analyst@tracemail.ai";
+        setAccountEmail(activeEmail);
         setConnectionMode(status.mode === "live" ? "live" : "demo");
       }
       setClientConfigured(Boolean(status.client_configured));
@@ -97,7 +130,7 @@ export default function InboxPage() {
       console.error("Status check failed:", err);
     }
 
-    loadInbox();
+    await loadInbox(activeEmail);
   };
 
   useEffect(() => {

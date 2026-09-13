@@ -287,7 +287,7 @@ class InboxService:
             },
             {
                 "message_id": "msg_gmail_98234",
-                "investigation_id": "inv_internshala_demo_02",
+                "investigation_id": "",
                 "sender": "Google Cloud Platform <cloud-notifications@google.com>",
                 "subject": "Cloud Console: Billing Budget 80% Threshold Reached",
                 "snippet": "Your project tracemail-prod has consumed 80% of the allocated $100 monthly budget.",
@@ -476,7 +476,7 @@ class InboxService:
                 },
                 {
                     "message_id": "msg_gmail_98234",
-                    "investigation_id": "inv_internshala_demo_02",
+                    "investigation_id": "",
                     "sender": "Google Cloud Platform <cloud-notifications@google.com>",
                     "subject": "Cloud Console: Billing Budget 80% Threshold Reached",
                     "snippet": "Your project tracemail-prod has consumed 80% of the allocated $100 monthly budget.",
