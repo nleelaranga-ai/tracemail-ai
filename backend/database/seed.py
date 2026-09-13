@@ -18,8 +18,22 @@ from backend.services.auth_service import AuthService
 from backend.utils.logger import logger
 
 
+import os
+
 def seed_database():
     init_db()
+    
+    enable_seed_env = os.getenv("ENABLE_DEMO_SEED")
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    if enable_seed_env is not None:
+        should_seed = enable_seed_env.lower() in ("true", "1", "yes")
+    else:
+        should_seed = env not in ("production", "prod")
+
+    if not should_seed:
+        logger.info(f"Database demo seeding skipped (ENABLE_DEMO_SEED={enable_seed_env}, ENVIRONMENT={env}).")
+        return
+
     db = SessionLocal()
     try:
         # 1. Seed Demo Analyst User

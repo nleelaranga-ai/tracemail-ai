@@ -28,6 +28,9 @@ COPY maps_engine /app/maps_engine
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV ENVIRONMENT=production
+ENV USE_MOCK_THREAT_INTEL=false
+ENV ENABLE_DEMO_SEED=false
 
 # Non-root user
 RUN useradd -u 10001 tracemail && chown -R tracemail:tracemail /app

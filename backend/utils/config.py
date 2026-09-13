@@ -30,8 +30,31 @@ def resolve_database_url() -> str:
     return url
 
 
+def resolve_environment() -> str:
+    env = os.getenv("ENVIRONMENT") or os.getenv("APP_ENV")
+    if env:
+        return env
+    railway_env = os.getenv("RAILWAY_ENVIRONMENT_NAME") or os.getenv("RAILWAY_ENVIRONMENT")
+    if railway_env:
+        return railway_env
+    if os.getenv("RAILWAY_SERVICE_ID") or os.getenv("RAILWAY_DEPLOYMENT_ID") or os.getenv("RAILWAY_PROJECT_ID"):
+        return "production"
+    db_url = os.getenv("DATABASE_URL", "")
+    if "postgres" in db_url or "supabase" in db_url or "railway" in db_url:
+        return "production"
+    return "production"
+
+
+def resolve_enable_demo_seed() -> str:
+    val = os.getenv("ENABLE_DEMO_SEED")
+    if val is not None:
+        return val.lower()
+    env = resolve_environment().lower()
+    return "false" if env in ("production", "prod") else "true"
+
+
 def resolve_use_mock_threat_intel() -> bool:
-    env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development")).lower()
+    env = resolve_environment().lower()
     has_live_keys = bool(
         os.getenv("VIRUSTOTAL_API_KEY")
         or os.getenv("ABUSEIPDB_API_KEY")
@@ -39,13 +62,17 @@ def resolve_use_mock_threat_intel() -> bool:
     )
     if env in ("production", "prod") or has_live_keys:
         return False
-    return os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
+    val = os.getenv("USE_MOCK_THREAT_INTEL")
+    if val is not None:
+        return val.lower() in ("true", "1", "yes")
+    return False
 
 
 class Settings(BaseSettings):
     # App
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
+    ENVIRONMENT: str = resolve_environment()
+    USE_MOCK_THREAT_INTEL: bool = resolve_use_mock_threat_intel()
+    ENABLE_DEMO_SEED: str = resolve_enable_demo_seed()
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tracemail-sih-2026-super-secret-key-32chars")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
 

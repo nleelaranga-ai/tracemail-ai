@@ -132,6 +132,12 @@ async def investigate_mailbox_message(
     current_user: Optional[User] = Depends(get_current_user)
 ):
     """Triggers on-demand deep forensic investigation of a specific mailbox message."""
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    if env in ("production", "prod") and not InboxService.is_oauth_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Mailbox message investigation requires live Google Workspace / Gmail OAuth in production."
+        )
     return await InboxService.investigate_message(
         account_email=email,
         message_id=message_id,

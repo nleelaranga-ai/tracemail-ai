@@ -78,7 +78,7 @@ def apis_health():
         "environment": settings.ENVIRONMENT,
         "mode": "fallback" if mock_active else mode,
         "use_mock_threat_intel": mock_active,
-        "enable_demo_seed": os.getenv("ENABLE_DEMO_SEED", "not_set"),
+        "enable_demo_seed": settings.ENABLE_DEMO_SEED,
         "apis": {
             "virustotal": {
                 "name": "VirusTotal v3",

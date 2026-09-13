@@ -284,18 +284,25 @@ class InboxService:
                     detail=f"Live Gmail API scan encountered an error: {str(e)}"
                 )
 
-        # Fallback to standard forensic evaluation corpus ONLY for explicit demo simulation
+        # Fallback to standard forensic evaluation corpus ONLY for explicit demo simulation in development
+        env = os.getenv("ENVIRONMENT", "development").lower()
+        if env in ("production", "prod"):
+            raise HTTPException(
+                status_code=400,
+                detail="Demo mailbox accounts are not permitted in production. Please connect a live Google Workspace / Gmail account."
+            )
+
         if not account.access_token.startswith("ya29.demo-"):
             raise HTTPException(
                 status_code=400,
                 detail="Live Gmail account scan failed and demo fallback is disabled for non-demo accounts."
             )
 
-        # Fallback to standard forensic evaluation corpus
+        # Fallback to standard forensic evaluation corpus (honest on-demand investigation required)
         sample_messages = [
             {
                 "message_id": "msg_gmail_98231",
-                "investigation_id": "inv_paypal_phish_demo_01",
+                "investigation_id": "",
                 "sender": "Security Team <alert@paypal-update-auth.com>",
                 "subject": "ACTION REQUIRED: Account Suspension Notice",
                 "snippet": "We detected unauthorized attempts to access your wallet. Confirm your PIN immediately.",
@@ -305,7 +312,7 @@ class InboxService:
             },
             {
                 "message_id": "msg_gmail_98232",
-                "investigation_id": "inv_bec_wire_demo_03",
+                "investigation_id": "",
                 "sender": "David Miller <ceo@corporate-wire-transfer.com>",
                 "subject": "Confidential: Acquisition Wire Instruction",
                 "snippet": "Please release the escrow wire of $45,000 today. Keep this strictly under NDA.",
@@ -315,7 +322,7 @@ class InboxService:
             },
             {
                 "message_id": "msg_gmail_98233",
-                "investigation_id": "inv_internshala_demo_02",
+                "investigation_id": "",
                 "sender": "Internshala Student Desk <student-success@internshala.com>",
                 "subject": "Your application was shortlisted by Top Employer",
                 "snippet": "Congratulations! The hiring team has scheduled an interview for your profile.",
@@ -503,19 +510,20 @@ class InboxService:
         records = query.order_by(InboxScanResult.scanned_at.desc()).all()
 
         if not records:
-            # In production, never seed demo records
+            # In production or when ENABLE_DEMO_SEED=false, never seed demo records
             env = os.getenv("ENVIRONMENT", "development").lower()
-            if env in ("production", "prod") or account_email not in (None, "analyst@tracemail.ai", "soc-analyst@tracemail.ai"):
+            enable_seed = os.getenv("ENABLE_DEMO_SEED", "false" if env in ("production", "prod") else "true").lower() in ("true", "1", "yes")
+            if env in ("production", "prod") or not enable_seed or account_email not in (None, "analyst@tracemail.ai", "soc-analyst@tracemail.ai"):
                 return []
 
             # Seed demo records on first load ONLY for local development demo analyst
             cls.connect_account("soc-analyst@tracemail.ai", db)
-            # Synchronous sample insertion
+            # Synchronous sample insertion (requires real on-demand investigation)
             now = datetime.now(timezone.utc)
             samples = [
                 {
                     "message_id": "msg_gmail_98231",
-                    "investigation_id": "inv_paypal_phish_demo_01",
+                    "investigation_id": "",
                     "sender": "Security Team <alert@paypal-update-auth.com>",
                     "subject": "ACTION REQUIRED: Account Suspension Notice",
                     "snippet": "We detected unauthorized attempts to access your wallet. Confirm your PIN immediately.",
@@ -525,7 +533,7 @@ class InboxService:
                 },
                 {
                     "message_id": "msg_gmail_98232",
-                    "investigation_id": "inv_bec_wire_demo_03",
+                    "investigation_id": "",
                     "sender": "David Miller <ceo@corporate-wire-transfer.com>",
                     "subject": "Confidential: Acquisition Wire Instruction",
                     "snippet": "Please release the escrow wire of $45,000 today. Keep this strictly under NDA.",
@@ -535,7 +543,7 @@ class InboxService:
                 },
                 {
                     "message_id": "msg_gmail_98233",
-                    "investigation_id": "inv_internshala_demo_02",
+                    "investigation_id": "",
                     "sender": "Internshala Student Desk <student-success@internshala.com>",
                     "subject": "Your application was shortlisted by Top Employer",
                     "snippet": "Congratulations! The hiring team has scheduled an interview for your profile.",
@@ -692,23 +700,13 @@ class InboxService:
             # --- 3. Check for demo mode / demo accounts ---
             raw_bytes = None
             if account.access_token.startswith("ya29.demo-"):
-                demo_map = {
-                    "msg_gmail_98231": "inv_paypal_phish_demo_01",
-                    "msg_gmail_98232": "inv_bec_wire_demo_03",
-                    "msg_gmail_98233": "inv_internshala_demo_02",
-                }
-                if message_id in demo_map:
-                    inbox_record.investigation_id = demo_map[message_id]
-                    db.commit()
-                    return {
-                        "messageId": message_id,
-                        "investigationId": demo_map[message_id],
-                        "mode": "demo",
-                        "sender": inbox_record.sender,
-                        "subject": inbox_record.subject,
-                        "verdict": inbox_record.verdict,
-                    }
-                # For non-demo mapped messages in demo mode, synthesize authentic EML bytes and run full forensic pipeline
+                env = os.getenv("ENVIRONMENT", "development").lower()
+                if env in ("production", "prod"):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Demo mailbox accounts are not permitted in production. Please connect a live Google Workspace / Gmail account."
+                    )
+                # Synthesize authentic EML bytes from message headers & snippet (no hardcoded demo_map fallback)
                 now_str = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')
                 raw_bytes = (
                     f"From: {inbox_record.sender}\r\n"

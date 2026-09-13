@@ -78,8 +78,8 @@ def test_trusted_mta_boundary_rejects_attacker_forged_received_header():
     )
 
 
-def test_investigate_message_demo_mapping(db_session):
-    """Verifies demo messages correctly resolve to benchmark cases in demo mode."""
+def test_investigate_message_demo_fallback_removed_runs_full_forensics(db_session):
+    """Verifies that demo fallback mapping is completely removed and all messages execute full forensic pipeline."""
     account_email = f"demo_analyst_{uuid.uuid4().hex[:6]}@tracemail.ai"
     user = AuthService.register_user(db_session, email=account_email, password="Password123!", name="Demo Analyst")
     token = AuthService.create_access_token({"sub": user.email, "role": user.role})
@@ -92,7 +92,8 @@ def test_investigate_message_demo_mapping(db_session):
     assert res.status_code == 200
     data = res.json()
     assert data["messageId"] == "msg_gmail_98231"
-    assert data["investigationId"] == "inv_paypal_phish_demo_01"
+    assert data["investigationId"].startswith("inv_")
+    assert data["investigationId"] != "inv_paypal_phish_demo_01"
 
 
 def test_investigate_message_real_live_eml(db_session):
