@@ -89,34 +89,7 @@ class WHOISClient:
         if cached:
             return cached
 
-        # Check known testing domains first
-        if domain_clean in KNOWN_DOMAINS:
-            result = dict(KNOWN_DOMAINS[domain_clean])
-            result.update({
-                "source": "known_dataset",
-                "mode": "fallback",
-                "provider_status": "simulated",
-                "fallback_used": True
-            })
-            whois_cache.set(domain_clean, result)
-            return result
-
-        # Attempt dynamic whois resolution via python-whois if installed
-        try:
-            result = await asyncio.to_thread(self._sync_whois_lookup, domain_clean)
-            if result:
-                result.update({
-                    "source": "python_whois_live",
-                    "mode": "live",
-                    "provider_status": "live",
-                    "fallback_used": False
-                })
-                whois_cache.set(domain_clean, result)
-                return result
-        except Exception as e:
-            logger.debug(f"Live whois query failed for {domain_clean}: {e}")
-
-        # Attempt RDAP standardized ICANN lookup via HTTP
+        # 1. Attempt RDAP standardized ICANN lookup via HTTP (live-first for real domains)
         try:
             from threat_intelligence.utils.http_client import async_http_get
             rdap_data = await async_http_get(f"https://rdap.org/domain/{domain_clean}", timeout=3.5)
@@ -133,7 +106,14 @@ class WHOISClient:
                 registrar_name = "ICANN Accredited Registrar"
                 for ent in rdap_data.get("entities", []):
                     if "registrar" in ent.get("roles", []):
-                        registrar_name = ent.get("handle") or ent.get("vcardArray", [None, [["fn", {}, "text", registrar_name]]])[1][0][3]
+                        vcard = ent.get("vcardArray")
+                        if vcard and len(vcard) > 1 and isinstance(vcard[1], list):
+                            for prop in vcard[1]:
+                                if len(prop) > 3 and prop[0] == "fn":
+                                    registrar_name = prop[3]
+                                    break
+                        if registrar_name == "ICANN Accredited Registrar" and ent.get("handle"):
+                            registrar_name = ent.get("handle")
                         break
 
                 if reg_date_str:
@@ -145,7 +125,7 @@ class WHOISClient:
                         "domainAgeDays": age_days,
                         "registrar": str(registrar_name),
                         "creationDate": reg_date_str[:10],
-                        "expiryDate": exp_date_str[:10] if exp_date_str else "2027-01-01",
+                        "expiryDate": exp_date_str[:10] if exp_date_str else "Unknown",
                         "source": "rdap_icann",
                         "mode": "live",
                         "provider_status": "live",
@@ -153,45 +133,48 @@ class WHOISClient:
                     }
                     whois_cache.set(domain_clean, res)
                     return res
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Live RDAP query failed for {domain_clean}: {e}")
 
-        # Dynamic heuristic calculation if not in dataset
-        # Suspicious keywords or new TLDs indicate newly registered / high-risk domains
-        is_sus = any(bad in domain_clean for bad in ["secure", "verify", "login", "update", "bank", "paypa1", "account"])
-        is_free_tld = any(domain_clean.endswith(tld) for tld in [".top", ".xyz", ".club", ".click", ".buzz", ".work"])
-        
-        if is_sus or is_free_tld:
-            days = 7 + (abs(hash(domain_clean)) % 25)
-            reg_date = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
-            exp_date = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365 - days)).strftime("%Y-%m-%d")
-            default_res = {
-                "domainAge": f"{days} days",
-                "domainAgeDays": days,
-                "registrar": "NameCheap Inc." if days % 2 == 0 else "Porkbun LLC",
-                "creationDate": reg_date,
-                "expiryDate": exp_date,
-                "source": "heuristic",
+        # 2. Attempt dynamic whois resolution via python-whois if installed
+        try:
+            result = await asyncio.to_thread(self._sync_whois_lookup, domain_clean)
+            if result:
+                result.update({
+                    "source": "python_whois_live",
+                    "mode": "live",
+                    "provider_status": "live",
+                    "fallback_used": False
+                })
+                whois_cache.set(domain_clean, result)
+                return result
+        except Exception as e:
+            logger.debug(f"Live whois query failed for {domain_clean}: {e}")
+
+        # 3. Check known testing domains as fail-safe fallback
+        if domain_clean in KNOWN_DOMAINS:
+            result = dict(KNOWN_DOMAINS[domain_clean])
+            result.update({
+                "source": "known_dataset",
                 "mode": "fallback",
                 "provider_status": "simulated",
                 "fallback_used": True
-            }
-        else:
-            days = 450 + (abs(hash(domain_clean)) % 3000)
-            reg_date = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
-            exp_date = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=700)).strftime("%Y-%m-%d")
-            default_res = {
-                "domainAge": f"{days} days",
-                "domainAgeDays": days,
-                "registrar": "MarkMonitor Inc." if "google" in domain_clean or "microsoft" in domain_clean else "GoDaddy.com LLC",
-                "creationDate": reg_date,
-                "expiryDate": exp_date,
-                "source": "heuristic",
-                "mode": "fallback",
-                "provider_status": "simulated",
-                "fallback_used": True
-            }
+            })
+            whois_cache.set(domain_clean, result)
+            return result
 
+        # 4. Clean honest fallback if neither live lookup nor known dataset resolved
+        default_res = {
+            "domainAge": "Unknown",
+            "domainAgeDays": 0,
+            "registrar": "Not Disclosed",
+            "creationDate": "Unknown",
+            "expiryDate": "Unknown",
+            "source": "unavailable",
+            "mode": "fallback",
+            "provider_status": "unavailable",
+            "fallback_used": True
+        }
         whois_cache.set(domain_clean, default_res)
         return default_res
 

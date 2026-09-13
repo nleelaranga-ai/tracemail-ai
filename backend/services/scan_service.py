@@ -173,28 +173,31 @@ class ScanService:
             "spf": "fail" if "fail" in raw_headers.lower() else "none",
             "dkim": "fail" if "fail" in raw_headers.lower() else "none",
             "dmarc": "fail" if "fail" in raw_headers.lower() else "none",
-            "domainAge": "14 days",
-            "registrar": "NameCheap Inc."
+            "domainAge": "Unknown",
+            "registrar": "Not Disclosed"
         }
 
     @classmethod
     async def query_ai_engine(
         cls,
-        email_body: str,
-        headers: str,
-        extracted_urls: List[str],
-        extracted_ips: List[str],
-        sender: str,
+        email_body: str = "",
+        headers: str = "",
+        extracted_urls: Optional[List[str]] = None,
+        extracted_ips: Optional[List[str]] = None,
+        sender: str = "",
         display_name: str = "",
         display_name_spoofing: bool = False,
         impersonated_brand: Optional[str] = None,
         reply_to_mismatch: bool = False,
-        return_path_mismatch: bool = False
+        return_path_mismatch: bool = False,
+        auth_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Deep NLP & Heuristic Intent Analysis.
         Examines Psychological Triggers (Root Cause 2), BEC (Root Cause 9), and Identity Mismatch (Root Cause 1).
         """
+        extracted_urls = extracted_urls or []
+        extracted_ips = extracted_ips or []
         # 1. Try downstream AI service if running
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
@@ -261,10 +264,22 @@ class ScanService:
             score += 20
             reasons.append("Reply-To Divergence: User replies routed away from claimed sender domain")
 
-        # Cryptographic Failures in headers
-        if "spf=fail" in lower_body or "dmarc=fail" in lower_body:
+        # Cryptographic status evaluation from auth_data & headers
+        auth_spf = str(auth_data.get("spf") if auth_data else "").lower()
+        auth_dkim = str(auth_data.get("dkim") if auth_data else "").lower()
+        auth_dmarc = str(auth_data.get("dmarc") if auth_data else "").lower()
+
+        spf_failed = "fail" in auth_spf or "spf=fail" in lower_body
+        dkim_failed = "fail" in auth_dkim or "dkim=fail" in lower_body
+        dmarc_failed = "fail" in auth_dmarc or "dmarc=fail" in lower_body
+        crypto_failed = spf_failed or dkim_failed or dmarc_failed
+
+        if spf_failed or dmarc_failed:
             score += 25
             reasons.append("Failed cryptographic sender authentication (SPF/DMARC fail)")
+        if dkim_failed:
+            score += 15
+            reasons.append("DKIM signature verification failed")
 
         # URL Analysis
         suspicious_urls = [u for u in extracted_urls if any(b in u.lower() for b in ["paypa1", "amaz0n", "sec-verify", "login-update", "wp-content", "000webhost"])]
@@ -278,11 +293,25 @@ class ScanService:
         is_trusted_domain = any(t in sender_domain for t in ["internshala.com", "google.com", "microsoft.com", "github.com", "amazon.in", "sbi.co.in"])
 
         if is_trusted_domain and not matched_cred and not suspicious_urls and not display_name_spoofing:
-            score = min(score, 15)
-            if is_recruitment:
-                reasons = ["Verified educational / recruitment communication from trusted sender", "SPF and DKIM cryptographic alignment verified"]
+            if crypto_failed:
+                # Disallow claiming safe when cryptographic authentication fails on a trusted brand
+                score = max(score, 65)
+                reasons = [
+                    f"Brand Impersonation / Unauthorized Relay: Claims trusted domain '{sender_domain}', but failed cryptographic authentication (SPF={auth_spf or 'fail'}, DKIM={auth_dkim or 'fail'}).",
+                    "Transmission originated from an unauthorized mail relay not designated in the domain's SPF policy."
+                ]
             else:
-                reasons = ["Standard operational email from authenticated enterprise domain", "Zero credential harvesting or malicious payloads detected"]
+                score = min(score, 15)
+                if is_recruitment:
+                    reasons = [
+                        "Verified educational / recruitment communication from trusted sender",
+                        "SPF and DKIM cryptographic alignment verified" if (auth_spf == "pass" or auth_dkim == "pass") else "Standard recruitment transmission format"
+                    ]
+                else:
+                    reasons = [
+                        "Standard operational email from authenticated enterprise domain",
+                        "Zero credential harvesting or malicious payloads detected"
+                    ]
 
         score = min(max(score, 5), 98)
         verdict = "phishing" if score >= 70 else ("suspicious" if score >= 35 else "safe")
@@ -290,7 +319,13 @@ class ScanService:
         confidence = 98.2 if score >= 85 else (92.5 if score >= 70 else (88.0 if score <= 20 else 76.4))
 
         if verdict == "safe":
-            explanation = f"Legitimate communication originating from domain '{sender_domain or 'verified sender'}'. Cryptographic header authentication passes and no social engineering traps or malicious links were detected."
+            if crypto_failed:
+                auth_clause = "header transmission routing verified"
+            elif auth_spf == "pass" or auth_dkim == "pass":
+                auth_clause = "cryptographic header authentication passes"
+            else:
+                auth_clause = "standard transmission structure verified"
+            explanation = f"Legitimate communication originating from domain '{sender_domain or 'verified sender'}'. {auth_clause.capitalize()} and no social engineering traps or malicious links were detected."
         else:
             explanation = f"High-risk {prediction.lower()} indicators detected. {'; '.join(reasons[:3])}."
 
@@ -304,7 +339,10 @@ class ScanService:
             "confidence": confidence,
             "explanation": explanation,
             "summary": ai_summary,
-            "reasons": reasons if reasons else ["Cryptographic sender validation passed", "Consistent transmission path"],
+            "reasons": reasons if reasons else (
+                ["Cryptographic sender validation passed", "Consistent transmission path"] if not crypto_failed else
+                ["Cryptographic authentication failed or unaligned", "Relay routing anomalies detected"]
+            ),
             "psychologicalTriggers": psychological_triggers,
             "entities": {
                 "urls": extracted_urls,

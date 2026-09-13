@@ -46,22 +46,29 @@ export function ThreatIntelCards({
   const domainAge = whois.age_days ?? whois.domain_age_days ?? null;
   const isNewDomain = domainAge !== null && domainAge < 30;
   const domainName = whois.name || whois.domain || domain || "N/A";
-  const registrarName = whois.registrar || "NameCheap Inc.";
+  const registrarName = whois.registrar || "Not Disclosed";
 
   const gsbMalicious = gsb.is_malicious ?? false;
   const gsbThreatTypes = gsb.threat_types && gsb.threat_types.length > 0 ? gsb.threat_types : (gsbMalicious ? ["SOCIAL_ENGINEERING"] : []);
 
-  const resolvedCity = originCity || geo.city || "Frankfurt";
-  const resolvedCountry = originCountry || geo.country || "Germany";
-  const resolvedIp = originIp || geo.ip || "185.220.101.4";
+  const resolvedCity = originCity || geo.city || "Location Unavailable";
+  const resolvedCountry = originCountry || geo.country || "";
+  const resolvedIp = originIp || geo.ip || "Unavailable";
 
-  // Provenance Badge Helper
+  // Provenance Badge Helper (Honest Provenance: Demo Benchmark, Public Registry, Live Feed, Heuristic Fallback)
   const renderProvenance = (providerKey: string, providerData?: any, isPublicRegistry?: boolean) => {
     const status = threatIntel.provider_statuses?.[providerKey] || providerData?.provider_status;
-    const mode = providerData?.mode || (threatIntel.mode === "live" ? "live" : undefined);
+    const mode = providerData?.mode || threatIntel.mode;
     const fallback = providerData?.fallback_used ?? threatIntel.fallback_used;
 
-    if (isPublicRegistry) {
+    if (mode === "demo" || status === "seeded") {
+      return (
+        <span className="rounded bg-purple-500/10 border border-purple-500/30 px-1.5 py-0.5 text-[9px] font-mono font-medium text-purple-400">
+          Demo Benchmark
+        </span>
+      );
+    }
+    if (isPublicRegistry && (status === "live" || status === "verified" || fallback === false)) {
       return (
         <span className="rounded bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.5 text-[9px] font-mono font-medium text-sky-400">
           Public Registry
@@ -162,7 +169,7 @@ export function ThreatIntelCards({
             <div className="flex justify-between text-xs">
               <span className="text-ink-muted">Domain Age:</span>
               <span className={`font-mono font-semibold ${isNewDomain ? "text-amber-400" : "text-ink"}`}>
-                {domainAge !== null ? `${domainAge} days` : "14 days"}
+                {domainAge !== null ? `${domainAge} days` : "Unknown"}
               </span>
             </div>
           </div>
@@ -190,30 +197,44 @@ export function ThreatIntelCards({
               <p className="text-[10px] uppercase font-bold text-ink-muted">SPF</p>
               <p
                 className={`mt-1 font-mono text-xs font-bold uppercase ${
-                  (dns.spf || "fail").toLowerCase() === "pass" ? "text-emerald-400" : "text-red-400"
+                  (dns.spf || "none").toLowerCase() === "pass"
+                    ? "text-emerald-400"
+                    : (dns.spf || "none").toLowerCase() === "fail"
+                    ? "text-red-400"
+                    : (dns.spf || "none").toLowerCase() === "softfail"
+                    ? "text-amber-400"
+                    : "text-ink-muted"
                 }`}
               >
-                {dns.spf || "fail"}
+                {dns.spf || "None"}
               </p>
             </div>
             <div className="rounded-lg border border-bg-border bg-bg-surface/50 p-2">
               <p className="text-[10px] uppercase font-bold text-ink-muted">DKIM</p>
               <p
                 className={`mt-1 font-mono text-xs font-bold uppercase ${
-                  (dns.dkim || "fail").toLowerCase() === "pass" ? "text-emerald-400" : "text-red-400"
+                  (dns.dkim || "none").toLowerCase() === "pass"
+                    ? "text-emerald-400"
+                    : (dns.dkim || "none").toLowerCase() === "fail"
+                    ? "text-red-400"
+                    : "text-ink-muted"
                 }`}
               >
-                {dns.dkim || "fail"}
+                {dns.dkim || "None"}
               </p>
             </div>
             <div className="rounded-lg border border-bg-border bg-bg-surface/50 p-2">
               <p className="text-[10px] uppercase font-bold text-ink-muted">DMARC</p>
               <p
                 className={`mt-1 font-mono text-xs font-bold uppercase ${
-                  (dns.dmarc || "fail").toLowerCase() === "pass" ? "text-emerald-400" : "text-amber-400"
+                  (dns.dmarc || "none").toLowerCase() === "pass"
+                    ? "text-emerald-400"
+                    : (dns.dmarc || "none").toLowerCase() === "fail"
+                    ? "text-red-400"
+                    : "text-ink-muted"
                 }`}
               >
-                {dns.dmarc || "fail"}
+                {dns.dmarc || "None"}
               </p>
             </div>
           </div>
@@ -332,18 +353,18 @@ export function ThreatIntelCards({
             <div className="text-xs">
               <span className="text-ink-muted block text-[10px] uppercase">Location</span>
               <span className="font-mono font-semibold text-ink truncate block">
-                {resolvedCity}, {resolvedCountry}
+                {resolvedCity}{resolvedCountry ? `, ${resolvedCountry}` : ""}
               </span>
             </div>
             <div className="text-xs">
               <span className="text-ink-muted block text-[10px] uppercase">ISP</span>
-              <span className="font-mono text-ink truncate block" title={geo.isp || "Host Europe GmbH"}>
-                {geo.isp || "Host Europe GmbH"}
+              <span className="font-mono text-ink truncate block" title={geo.isp || "ISP Information Unavailable"}>
+                {geo.isp || "ISP Information Unavailable"}
               </span>
             </div>
             <div className="text-xs">
               <span className="text-ink-muted block text-[10px] uppercase">Autonomous System</span>
-              <span className="font-mono text-ink truncate block">{geo.asn || "AS8560"}</span>
+              <span className="font-mono text-ink truncate block">{geo.asn || "Unknown ASN"}</span>
             </div>
           </div>
         </div>

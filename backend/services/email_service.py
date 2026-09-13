@@ -122,7 +122,7 @@ class EmailService:
         # 4. Query Auth Alignment (SPF, DKIM, DMARC)
         auth_data = await ScanService.query_auth_check(raw_headers)
 
-        # 5. Query AI Engine with Identity Spoofing & BEC context
+        # 5. Query AI Engine with Identity Spoofing & BEC context and cryptographic alignment
         ai_data = await ScanService.query_ai_engine(
             email_body=body_text,
             headers=raw_headers,
@@ -133,7 +133,8 @@ class EmailService:
             display_name_spoofing=parsed.get("display_name_spoofing", False),
             impersonated_brand=parsed.get("impersonated_brand"),
             reply_to_mismatch=parsed.get("reply_to_mismatch", False),
-            return_path_mismatch=parsed.get("return_path_mismatch", False)
+            return_path_mismatch=parsed.get("return_path_mismatch", False),
+            auth_data=auth_data
         )
 
         # 6. Calculate Dynamic Weighted Threat Score (Section 2.E)

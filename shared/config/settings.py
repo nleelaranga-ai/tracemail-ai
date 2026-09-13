@@ -59,7 +59,7 @@ class Settings(BaseModel):
 
     # Operational Flags
     USE_MOCK_THREAT_INTEL: bool = Field(
-        default=True,
+        default=False,
         description="Whether to use intelligent heuristic mock data if external API keys are missing or rate limited"
     )
 
@@ -94,7 +94,7 @@ class Settings(BaseModel):
             URLSCAN_API_KEY=os.getenv("URLSCAN_API_KEY"),
             GOOGLE_SAFE_BROWSING_API_KEY=os.getenv("GOOGLE_SAFE_BROWSING_API_KEY"),
             GROQ_API_KEY=os.getenv("GROQ_API_KEY"),
-            USE_MOCK_THREAT_INTEL=os.getenv("USE_MOCK_THREAT_INTEL", "true").lower() in ("true", "1", "yes"),
+            USE_MOCK_THREAT_INTEL=os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes"),
         )
 
 

@@ -32,9 +32,9 @@ export function ThreatSummaryCard({ investigation }: Props) {
     ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
     : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
 
-  const originCity = investigation.origin_city || investigation.threat_intel?.geoip?.city || "Frankfurt";
-  const originCountry = investigation.origin_country || investigation.threat_intel?.geoip?.country || "Germany";
-  const originIp = investigation.origin_ip || investigation.threat_intel?.geoip?.ip || "185.220.101.4";
+  const originCity = investigation.origin_city || investigation.city || investigation.threat_intel?.geoip?.city || "Location Unavailable";
+  const originCountry = investigation.origin_country || investigation.country || investigation.threat_intel?.geoip?.country || "";
+  const originIp = investigation.origin_ip || investigation.ip || investigation.threat_intel?.geoip?.ip || "Unavailable";
 
   const radius = 46;
   const circumference = 2 * Math.PI * radius;

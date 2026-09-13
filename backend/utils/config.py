@@ -32,7 +32,7 @@ def resolve_database_url() -> str:
 class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "true").lower() in ("true", "1", "yes")
+    USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tracemail-sih-2026-super-secret-key-32chars")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
 

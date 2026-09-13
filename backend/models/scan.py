@@ -101,6 +101,27 @@ class Investigation(Base):
         urlscan_data = self.urlscan or {}
         gsb_data = self.google_safe_browsing or {}
 
+        # If dns is missing, extract strictly DNS auth fields from auth_results
+        if not dns_data and isinstance(self.auth_results, dict) and self.auth_results:
+            dns_data = {
+                "spf": self.auth_results.get("spf", "none"),
+                "dkim": self.auth_results.get("dkim", "none"),
+                "dmarc": self.auth_results.get("dmarc", "none"),
+                "mode": "live" if self.auth_results.get("spf") in ("pass", "fail") else "fallback",
+                "provider_status": "verified" if self.auth_results.get("spf") else "simulated",
+                "fallback_used": False if self.auth_results.get("spf") in ("pass", "fail") else True
+            }
+
+        # Resolve ISP and ASN from abuse_ipdb or threat results
+        isp_val = (self.abuse_ipdb or {}).get("isp") if isinstance(self.abuse_ipdb, dict) else None
+        asn_val = (self.abuse_ipdb or {}).get("asn") if isinstance(self.abuse_ipdb, dict) else None
+
+        is_demo = any(
+            x.get("mode") == "demo" or x.get("provider_status") == "seeded"
+            for x in [vt, abuse, whois_data, dns_data, urlscan_data, gsb_data]
+            if isinstance(x, dict)
+        )
+
         any_live = any(
             x.get("mode") == "live" or x.get("provider_status") == "live" or x.get("fallback_used") is False
             for x in [vt, abuse, whois_data, dns_data, urlscan_data, gsb_data]
@@ -111,6 +132,8 @@ class Investigation(Base):
             for x in [vt, abuse, urlscan_data, gsb_data]
             if isinstance(x, dict) and x
         )
+
+        report_mode = "demo" if is_demo else ("live" if any_live else "fallback")
 
         return {
             "virustotal": vt,
@@ -124,17 +147,20 @@ class Investigation(Base):
                 "city": self.city,
                 "country": self.country,
                 "latitude": self.latitude,
-                "longitude": self.longitude
+                "longitude": self.longitude,
+                "isp": isp_val or "ISP Information Unavailable",
+                "asn": asn_val or "Unknown ASN"
             },
-            "mode": "live" if any_live else "fallback",
+            "mode": report_mode,
             "fallback_used": all_fallback,
             "provider_statuses": {
-                "virustotal": vt.get("provider_status", "simulated") if isinstance(vt, dict) else "simulated",
-                "abuseipdb": abuse.get("provider_status", "simulated") if isinstance(abuse, dict) else "simulated",
-                "whois": whois_data.get("provider_status", "live" if whois_data else "simulated") if isinstance(whois_data, dict) else "simulated",
-                "dns": dns_data.get("provider_status", "live" if dns_data else "simulated") if isinstance(dns_data, dict) else "simulated",
-                "urlscan": urlscan_data.get("provider_status", "simulated") if isinstance(urlscan_data, dict) else "simulated",
-                "google_safe_browsing": gsb_data.get("provider_status", "simulated") if isinstance(gsb_data, dict) else "simulated"
+                "virustotal": vt.get("provider_status", "seeded" if is_demo else "simulated") if isinstance(vt, dict) else "simulated",
+                "abuseipdb": abuse.get("provider_status", "seeded" if is_demo else "simulated") if isinstance(abuse, dict) else "simulated",
+                "whois": whois_data.get("provider_status", "seeded" if is_demo else ("live" if whois_data else "simulated")) if isinstance(whois_data, dict) else "simulated",
+                "dns": dns_data.get("provider_status", "seeded" if is_demo else ("verified" if dns_data else "simulated")) if isinstance(dns_data, dict) else "simulated",
+                "urlscan": urlscan_data.get("provider_status", "seeded" if is_demo else "simulated") if isinstance(urlscan_data, dict) else "simulated",
+                "google_safe_browsing": gsb_data.get("provider_status", "seeded" if is_demo else "simulated") if isinstance(gsb_data, dict) else "simulated",
+                "geoip": abuse.get("provider_status", "seeded" if is_demo else "live") if isinstance(abuse, dict) else "simulated"
             }
         }
 
