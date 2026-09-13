@@ -52,11 +52,35 @@ if _HAS_SQLALCHEMY:
         finally:
             db.close()
 
+    def _sync_table_columns():
+        """Auto-migrates missing columns for existing tables to prevent schema drift."""
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(engine)
+            existing_tables = set(inspector.get_table_names())
+            with engine.connect() as conn:
+                for table_name, table in Base.metadata.tables.items():
+                    if table_name not in existing_tables:
+                        continue
+                    db_columns = {col["name"] for col in inspector.get_columns(table_name)}
+                    for col in table.columns:
+                        if col.name not in db_columns:
+                            col_type = col.type.compile(engine.dialect)
+                            logger.info(f"Auto-migrating missing column {table_name}.{col.name} ({col_type})")
+                            try:
+                                conn.execute(text(f'ALTER TABLE "{table_name}" ADD COLUMN "{col.name}" {col_type}'))
+                                conn.commit()
+                            except Exception as alt_err:
+                                logger.warning(f"Notice auto-adding column {table_name}.{col.name}: {alt_err}")
+        except Exception as e:
+            logger.warning(f"Auto-migration check notice: {e}")
+
     def init_db():
         try:
             # Eagerly import all models to ensure complete Base.metadata registration
             import backend.models  # noqa: F401
             Base.metadata.create_all(bind=engine)
+            _sync_table_columns()
             logger.info("SQLAlchemy database tables verified and initialized in PostgreSQL/SQLite.")
         except Exception as e:
             logger.warning(f"Database init notice: {e}")
