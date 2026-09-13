@@ -78,8 +78,12 @@ class Settings(BaseModel):
             BACKEND_URL=os.getenv("BACKEND_URL", "http://localhost:8000"),
             THREAT_INTEL_URL=os.getenv("THREAT_INTEL_URL", "http://localhost:8001"),
             AI_ENGINE_URL=os.getenv("AI_ENGINE_URL", "http://localhost:8002"),
-            FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
-            DATABASE_URL=os.getenv("DATABASE_URL", "postgresql://tracemail:tracemail_secret@localhost:5432/tracemail_db"),
+            DATABASE_URL=(
+                os.getenv("DATABASE_URL")
+                or os.getenv("DATABASE_PUBLIC_URL")
+                or os.getenv("POSTGRES_URL")
+                or "postgresql://tracemail:tracemail_secret@localhost:5432/tracemail_db"
+            ),
             NEO4J_URI=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
             NEO4J_USER=os.getenv("NEO4J_USER", "neo4j"),
             NEO4J_PASSWORD=os.getenv("NEO4J_PASSWORD", "tracemail_neo4j"),

@@ -12,20 +12,32 @@ load_dotenv(ROOT_DIR / ".env")
 load_dotenv(ROOT_DIR / "backend" / ".env")
 
 
+def resolve_database_url() -> str:
+    url = (
+        os.getenv("DATABASE_URL")
+        or os.getenv("DATABASE_PUBLIC_URL")
+        or os.getenv("POSTGRES_URL")
+    )
+    env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development")).lower()
+    if not url:
+        if env in ("production", "prod"):
+            raise ValueError(
+                "CRITICAL PRODUCTION SAFETY ERROR: DATABASE_URL environment variable is required in production! "
+                "Cannot silently fall back to SQLite in production. Set DATABASE_URL in your Railway dashboard."
+            )
+        return f"sqlite:///{ROOT_DIR / 'tracemail.db'}"
+    return url
+
+
 class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "true").lower() in ("true", "1", "yes")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tracemail-sih-2026-super-secret-key-32chars")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
-    
-    # Database (Defaults to SQLite for instant local zero-dependency execution, or PostgreSQL if configured)
-    DATABASE_URL: str = (
-        os.getenv("DATABASE_URL")
-        or os.getenv("DATABASE_PUBLIC_URL")
-        or os.getenv("POSTGRES_URL")
-        or f"sqlite:///{ROOT_DIR / 'tracemail.db'}"
-    )
+
+    # Database (Requires PostgreSQL in production; allows SQLite for local testing)
+    DATABASE_URL: str = resolve_database_url()
     DATABASE_PUBLIC_URL: str = os.getenv("DATABASE_PUBLIC_URL", "")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     

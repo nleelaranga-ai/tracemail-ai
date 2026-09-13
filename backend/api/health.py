@@ -27,8 +27,7 @@ def health_check():
 @router.get("/api/v1/health/database", include_in_schema=False)
 def database_health():
     """Detailed database connectivity health probe."""
-    db_ok, db_err = check_database_connection()
-    db_type = "postgresql" if "postgres" in settings.DATABASE_URL.lower() else "sqlite"
+    db_ok, db_type, db_err = check_database_connection()
     res = {
         "status": "healthy" if db_ok else "unhealthy",
         "database": db_type,

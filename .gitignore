@@ -8,6 +8,10 @@ htmlcov/
 *.egg-info/
 dist/
 build/
+*.db
+*.sqlite
+*.sqlite3
+tracemail.db
 
 # Logs
 logs
