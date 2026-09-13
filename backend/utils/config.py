@@ -20,10 +20,13 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
     
     # Database (Defaults to SQLite for instant local zero-dependency execution, or PostgreSQL if configured)
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        f"sqlite:///{ROOT_DIR / 'tracemail.db'}"
+    DATABASE_URL: str = (
+        os.getenv("DATABASE_URL")
+        or os.getenv("DATABASE_PUBLIC_URL")
+        or os.getenv("POSTGRES_URL")
+        or f"sqlite:///{ROOT_DIR / 'tracemail.db'}"
     )
+    DATABASE_PUBLIC_URL: str = os.getenv("DATABASE_PUBLIC_URL", "")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     BACKEND_CORS_ORIGINS: list[str] = [
