@@ -28,9 +28,10 @@ def health_check():
 def database_health():
     """Detailed database connectivity health probe."""
     db_ok = check_database_health()
+    db_type = "postgresql" if "postgres" in settings.DATABASE_URL.lower() else "sqlite"
     return {
         "status": "healthy" if db_ok else "unhealthy",
-        "database": "postgresql" if "postgresql" in settings.DATABASE_URL else "sqlite",
+        "database": db_type,
         "connected": db_ok,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }

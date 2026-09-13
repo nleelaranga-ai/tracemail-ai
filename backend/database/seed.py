@@ -4,7 +4,15 @@ TraceMail AI Backend — Database Seeder
 from datetime import datetime, timezone
 from backend.database.connection import SessionLocal, init_db
 from backend.models.user import User
-from backend.models.scan import Investigation
+from backend.models.scan import (
+    Investigation,
+    EmailRecord,
+    ScanRecord,
+    HeaderRecord,
+    IOCEntityRecord
+)
+from backend.models.threat import ThreatResult
+from backend.models.v2_models import EvidenceRecord, OrgMetric
 from backend.services.auth_service import AuthService
 from backend.utils.logger import logger
 
@@ -96,6 +104,108 @@ def seed_database():
             )
             db.add(demo_inv_1)
             logger.info(f"Seeded demo investigation: {inv_id_1}")
+
+        # Seed relational records for inv_1 (emails, headers, threat_results, ioc_entities, scans)
+        if not db.query(EmailRecord).filter(EmailRecord.scan_id == inv_id_1).first():
+            db.add(EmailRecord(
+                scan_id=inv_id_1,
+                sender="support@paypal-security-update.com",
+                recipient="victim@corporate-domain.com",
+                subject="URGENT: Unauthorized access detected - Verify Identity",
+                message_id="<msg-paypal-demo-01@sketchy-relay.net>",
+                reply_to="attacker@sketchy-relay.net",
+                raw_eml="Received: from mail.sketchy-relay.net (185.220.101.4)\nAuthentication-Results: spf=fail; dkim=fail; dmarc=fail\n\nDear Customer...",
+                body_plain="Dear Customer, your account has been restricted due to suspicious logins. Please verify at http://paypa1-secure.com/login immediately.",
+                body_html="<p>Dear Customer, your account has been restricted.</p>"
+            ))
+            db.add(ScanRecord(
+                scan_id=inv_id_1,
+                sender="support@paypal-security-update.com",
+                domain="paypal-security-update.com",
+                ip="185.220.101.4",
+                country="Germany",
+                city="Frankfurt",
+                threat_score=94,
+                risk_level="Critical",
+                status="complete"
+            ))
+            # Seed Headers
+            for h_name, h_val in [
+                ("From", "PayPal Security <support@paypal-security-update.com>"),
+                ("To", "victim@corporate-domain.com"),
+                ("Subject", "URGENT: Unauthorized access detected - Verify Identity"),
+                ("Received", "from mail.sketchy-relay.net (185.220.101.4)"),
+                ("Authentication-Results", "spf=fail; dkim=fail; dmarc=fail"),
+                ("Return-Path", "<bounce@sketchy-relay.net>")
+            ]:
+                db.add(HeaderRecord(scan_id=inv_id_1, header_name=h_name, header_value=h_val))
+            # Seed Threat Results
+            db.add(ThreatResult(
+                investigation_id=inv_id_1,
+                indicator_type="ip",
+                indicator_value="185.220.101.4",
+                reputation_score=92,
+                is_malicious=True,
+                geo_location="Frankfurt, Germany"
+            ))
+            db.add(ThreatResult(
+                investigation_id=inv_id_1,
+                indicator_type="url",
+                indicator_value="http://paypa1-secure.com/login",
+                reputation_score=95,
+                is_malicious=True,
+                geo_location="Germany"
+            ))
+            # Seed IOC Entities
+            for ioc_t, ioc_v, ioc_score, ioc_mal in [
+                ("ip", "185.220.101.4", 92, True),
+                ("url", "http://paypa1-secure.com/login", 95, True),
+                ("domain", "paypa1-secure.com", 94, True)
+            ]:
+                db.add(IOCEntityRecord(
+                    scan_id=inv_id_1,
+                    ioc_type=ioc_t,
+                    ioc_value=ioc_v,
+                    threat_score=ioc_score,
+                    is_malicious=ioc_mal
+                ))
+            # Seed Evidence Record
+            db.add(EvidenceRecord(
+                investigation_id=inv_id_1,
+                sha256="d2c3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
+                original_hash="d2c3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
+                investigator="Chief SOC Analyst",
+                status="Verified",
+                raw_content="Received: from mail.sketchy-relay.net (185.220.101.4)...",
+                custody_notes="Chain of custody cryptographically signed on forensic ingestion."
+            ))
+
+        # Seed Department Org Metrics
+        if not db.query(OrgMetric).filter(OrgMetric.department == "Finance").first():
+            db.add(OrgMetric(
+                department="Finance",
+                threat_count=14,
+                phishing_count=8,
+                safe_count=142,
+                risk_level="High",
+                top_attack_type="BEC Wire Transfer & Invoicing"
+            ))
+            db.add(OrgMetric(
+                department="Executive Leadership",
+                threat_count=9,
+                phishing_count=7,
+                safe_count=88,
+                risk_level="Critical",
+                top_attack_type="VIP Credential Harvesting"
+            ))
+            db.add(OrgMetric(
+                department="Human Resources",
+                threat_count=3,
+                phishing_count=1,
+                safe_count=210,
+                risk_level="Low",
+                top_attack_type="Resume Malware LNK Payload"
+            ))
 
         # Case B: Legitimate Internshala Outreach (Clean/Safe)
         inv_id_2 = "inv_internshala_demo_02"

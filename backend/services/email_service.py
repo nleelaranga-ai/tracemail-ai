@@ -4,7 +4,14 @@ from backend.database.connection import Session
 from typing import Dict, Any
 from datetime import datetime, timezone
 
-from backend.models.scan import Investigation, EmailRecord, ScanRecord, AIResultRecord
+from backend.models.scan import (
+    Investigation,
+    EmailRecord,
+    ScanRecord,
+    AIResultRecord,
+    HeaderRecord,
+    IOCEntityRecord
+)
 from backend.models.threat import ThreatResult
 from backend.parsers.email_parser import EmailParser
 from backend.services.scan_service import ScanService
@@ -297,6 +304,34 @@ class EmailService:
                 geo_location=item.get("geo")
             )
             db.add(tr)
+
+        # 12. Save Parsed Headers to headers table
+        if raw_headers:
+            for line in raw_headers.splitlines():
+                if ":" in line and not line.startswith(" ") and not line.startswith("\t"):
+                    h_name, _, h_val = line.partition(":")
+                    h_name = h_name.strip()
+                    h_val = h_val.strip()
+                    if h_name:
+                        db.add(HeaderRecord(
+                            scan_id=investigation.id,
+                            header_name=h_name[:255],
+                            header_value=h_val
+                        ))
+
+        # 13. Save Extracted IOCs to ioc_entities table
+        for chip in ioc_chips:
+            c_type = chip.get("type", "generic")
+            c_val = chip.get("value", "")
+            c_mal = chip.get("malicious", False)
+            if c_val:
+                db.add(IOCEntityRecord(
+                    scan_id=investigation.id,
+                    ioc_type=c_type[:32],
+                    ioc_value=c_val[:500],
+                    threat_score=final_threat_score if c_mal else 0,
+                    is_malicious=bool(c_mal)
+                ))
         db.commit()
 
         # Send alert if high severity

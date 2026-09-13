@@ -1,7 +1,7 @@
 """
 TraceMail AI Backend — Investigation & Scan Models
 """
-from backend.database.connection import Base, Column, String, Integer, DateTime, Text, JSON
+from backend.database.connection import Base, Column, String, Integer, Boolean, DateTime, Text, JSON
 from backend.utils.helpers import generate_uuid, utc_now
 
 
@@ -183,5 +183,27 @@ class AIResultRecord(Base):
     confidence = Column(JSON, default=0.0, nullable=False)
     summary = Column(Text, default="", nullable=True)
     reasons_json = Column(JSON, default=list, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+
+class HeaderRecord(Base):
+    __tablename__ = "headers"
+
+    id = Column(String(64), primary_key=True, default=lambda: generate_uuid("hdr_"), index=True)
+    scan_id = Column(String(64), index=True, nullable=False)
+    header_name = Column(String(255), nullable=False)
+    header_value = Column(Text, default="", nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+
+class IOCEntityRecord(Base):
+    __tablename__ = "ioc_entities"
+
+    id = Column(String(64), primary_key=True, default=lambda: generate_uuid("ioc_"), index=True)
+    scan_id = Column(String(64), index=True, nullable=False)
+    ioc_type = Column(String(32), nullable=False)  # ip, domain, url, sha256, md5, email
+    ioc_value = Column(String(500), nullable=False)
+    threat_score = Column(Integer, default=0, nullable=False)
+    is_malicious = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
