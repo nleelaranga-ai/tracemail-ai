@@ -13,10 +13,15 @@ from backend.utils.logger import logger
 
 class EvidenceService:
     @staticmethod
-    def get_or_create_record(investigation_id: str, db: Session) -> Optional[Dict[str, Any]]:
+    def get_or_create_record(investigation_id: str, db: Session, current_user: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         inv = db.query(Investigation).filter(Investigation.id == investigation_id).first()
         if not inv:
             return None
+
+        # Tenant isolation & default-deny
+        if current_user and getattr(current_user, "role", "") != "admin":
+            if not inv.owner_user_id or inv.owner_user_id != current_user.id:
+                return None
 
         rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
         
@@ -88,10 +93,22 @@ class EvidenceService:
         }
 
     @staticmethod
-    def verify_integrity(investigation_id: str, db: Session, simulated_corrupt: bool = False) -> Optional[Dict[str, Any]]:
+    def verify_integrity(
+        investigation_id: str,
+        db: Session,
+        simulated_corrupt: bool = False,
+        current_user: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
+        inv = db.query(Investigation).filter(Investigation.id == investigation_id).first()
+        if not inv:
+            return None
+        if current_user and getattr(current_user, "role", "") != "admin":
+            if not inv.owner_user_id or inv.owner_user_id != current_user.id:
+                return None
+
         rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
         if not rec:
-            res = EvidenceService.get_or_create_record(investigation_id, db)
+            res = EvidenceService.get_or_create_record(investigation_id, db, current_user=current_user)
             if not res:
                 return None
             rec = db.query(EvidenceRecord).filter(EvidenceRecord.investigation_id == investigation_id).first()
@@ -131,11 +148,14 @@ class EvidenceService:
         }
 
     @staticmethod
-    def list_records(db: Session) -> List[Dict[str, Any]]:
-        all_invs = db.query(Investigation).order_by(Investigation.created_at.desc()).all()
+    def list_records(db: Session, current_user: Optional[Any] = None) -> List[Dict[str, Any]]:
+        query = db.query(Investigation)
+        if current_user and getattr(current_user, "role", "") != "admin":
+            query = query.filter(Investigation.owner_user_id == current_user.id)
+        all_invs = query.order_by(Investigation.created_at.desc()).all()
         results = []
         for inv in all_invs:
-            rec = EvidenceService.get_or_create_record(inv.id, db)
+            rec = EvidenceService.get_or_create_record(inv.id, db, current_user=current_user)
             if rec:
                 results.append(rec)
         return results

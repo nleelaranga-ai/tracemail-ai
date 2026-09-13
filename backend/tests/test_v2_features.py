@@ -2,10 +2,18 @@
 Unit tests for Master Plan v2 features:
 Gmail OAuth, Inbox Scanner, SOC Command Center, Evidence Locker, AI Explainability, Node Topology, and Attachment Scanner.
 """
+import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
+from backend.services.auth_service import AuthService
 
 client = TestClient(app)
+
+
+@pytest.fixture
+def auth_headers():
+    token = AuthService.create_access_token({"sub": "analyst@tracemail.ai", "role": "admin"})
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_gmail_oauth_login_url():
@@ -25,14 +33,14 @@ def test_gmail_oauth_callback():
     assert data["email"] == "analyst@tracemail.ai"
 
 
-def test_inbox_scan_and_results():
-    scan_res = client.post("/api/inbox/scan?email=analyst@tracemail.ai")
+def test_inbox_scan_and_results(auth_headers):
+    scan_res = client.post("/api/inbox/scan?email=analyst@tracemail.ai", headers=auth_headers)
     assert scan_res.status_code == 200
     scan_data = scan_res.json()
     assert scan_data["status"] == "complete"
     assert scan_data["emailsScanned"] >= 1
 
-    results_res = client.get("/api/inbox/results?email=analyst@tracemail.ai")
+    results_res = client.get("/api/inbox/results?email=analyst@tracemail.ai", headers=auth_headers)
     assert results_res.status_code == 200
     results = results_res.json()
     assert isinstance(results, list)
@@ -44,8 +52,8 @@ def test_inbox_scan_and_results():
     assert "investigationId" in first_item
 
 
-def test_soc_overview_endpoint():
-    res = client.get("/api/soc/overview")
+def test_soc_overview_endpoint(auth_headers):
+    res = client.get("/api/soc/overview", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert "totalScanned" in data
@@ -58,8 +66,8 @@ def test_soc_overview_endpoint():
     assert isinstance(data["topCountries"], list)
 
 
-def test_org_heatmap_endpoint():
-    res = client.get("/api/org/heatmap")
+def test_org_heatmap_endpoint(auth_headers):
+    res = client.get("/api/org/heatmap", headers=auth_headers)
     assert res.status_code == 200
     departments = res.json()
     assert isinstance(departments, list)
@@ -71,12 +79,12 @@ def test_org_heatmap_endpoint():
     assert "riskLevel" in dept
 
 
-def test_evidence_locker_and_tamper_detection():
+def test_evidence_locker_and_tamper_detection(auth_headers):
     # Fetch existing demo case
     case_id = "inv_paypal_phish_demo_01"
     
     # 1. Get evidence record
-    get_res = client.get(f"/api/evidence/{case_id}")
+    get_res = client.get(f"/api/evidence/{case_id}", headers=auth_headers)
     assert get_res.status_code == 200
     ev_data = get_res.json()
     assert ev_data["investigationId"] == case_id
@@ -85,14 +93,14 @@ def test_evidence_locker_and_tamper_detection():
     assert len(ev_data["custodyLog"]) >= 2
 
     # 2. Verify legitimate evidence (Assert Verified)
-    verify_res = client.post(f"/api/evidence/{case_id}/verify")
+    verify_res = client.post(f"/api/evidence/{case_id}/verify", headers=auth_headers)
     assert verify_res.status_code == 200
     verify_data = verify_res.json()
     assert verify_data["status"] == "Verified"
     assert verify_data["verified"] is True
 
     # 3. Simulate tamper detection (Assert Tampered)
-    tamper_res = client.post(f"/api/evidence/{case_id}/verify?simulated_corrupt=true")
+    tamper_res = client.post(f"/api/evidence/{case_id}/verify?simulated_corrupt=true", headers=auth_headers)
     assert tamper_res.status_code == 200
     tamper_data = tamper_res.json()
     assert tamper_data["status"] == "Tampered"
@@ -100,13 +108,13 @@ def test_evidence_locker_and_tamper_detection():
     assert "mismatch" in tamper_data["message"].lower() or "altered" in tamper_data["message"].lower()
 
     # 4. Verify non-mutating simulation guarantee: database record is STILL Verified!
-    reverify_res = client.post(f"/api/evidence/{case_id}/verify")
+    reverify_res = client.post(f"/api/evidence/{case_id}/verify", headers=auth_headers)
     assert reverify_res.status_code == 200
     assert reverify_res.json()["status"] == "Verified"
     assert reverify_res.json()["verified"] is True
 
     # 5. Nonexistent investigation must return 404
-    missing_res = client.get("/api/evidence/non_existent_case_9999")
+    missing_res = client.get("/api/evidence/non_existent_case_9999", headers=auth_headers)
     assert missing_res.status_code == 404
 
 

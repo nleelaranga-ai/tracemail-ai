@@ -305,7 +305,7 @@ class ThreatIntelligenceGateway:
     @classmethod
     async def _adapt_auth(cls, raw_headers: str, domain: str) -> NormalizedAuthThreat:
         try:
-            res = await asyncio.wait_for(dns_checker.check_authentication(raw_headers), timeout=3.0)
+            res = await asyncio.wait_for(dns_checker.check_authentication(raw_headers), timeout=6.0)
             spf = (res.spf or "NONE").upper()
             dkim = (res.dkim or "NONE").upper()
             dmarc = (res.dmarc or "NONE").upper()

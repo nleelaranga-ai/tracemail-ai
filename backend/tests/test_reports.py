@@ -1,15 +1,23 @@
 """
 Unit tests for Investigation Details, Geo, Timeline, and Report Downloads
 """
+import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
+from backend.services.auth_service import AuthService
 
 client = TestClient(app)
 DEMO_ID = "inv_paypal_phish_demo_01"
 
 
-def test_get_investigation_detail_contract():
-    res = client.get(f"/api/investigations/{DEMO_ID}")
+@pytest.fixture
+def auth_headers():
+    token = AuthService.create_access_token({"sub": "analyst@tracemail.ai", "role": "admin"})
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_get_investigation_detail_contract(auth_headers):
+    res = client.get(f"/api/investigations/{DEMO_ID}", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert data["id"] == DEMO_ID
@@ -23,39 +31,39 @@ def test_get_investigation_detail_contract():
     assert data["reportUrl"] == f"/api/report/pdf/{DEMO_ID}"
 
 
-def test_geo_map_and_timeline():
-    map_res = client.get(f"/api/geo/map/{DEMO_ID}")
+def test_geo_map_and_timeline(auth_headers):
+    map_res = client.get(f"/api/geo/map/{DEMO_ID}", headers=auth_headers)
     assert map_res.status_code == 200
     assert map_res.json()["type"] == "FeatureCollection"
 
-    time_res = client.get(f"/api/geo/timeline/{DEMO_ID}")
+    time_res = client.get(f"/api/geo/timeline/{DEMO_ID}", headers=auth_headers)
     assert time_res.status_code == 200
     assert len(time_res.json()) >= 1
 
-    graph_res = client.get(f"/api/geo/graph/{DEMO_ID}")
+    graph_res = client.get(f"/api/geo/graph/{DEMO_ID}", headers=auth_headers)
     assert graph_res.status_code == 200
     assert "nodes" in graph_res.json()
     assert "edges" in graph_res.json()
 
 
-def test_download_pdf_and_json_reports():
-    pdf_res = client.get(f"/api/report/pdf/{DEMO_ID}")
+def test_download_pdf_and_json_reports(auth_headers):
+    pdf_res = client.get(f"/api/report/pdf/{DEMO_ID}", headers=auth_headers)
     assert pdf_res.status_code == 200
     assert pdf_res.headers["content-type"] == "application/pdf"
     assert len(pdf_res.content) > 100
 
-    json_res = client.get(f"/api/report/json/{DEMO_ID}")
+    json_res = client.get(f"/api/report/json/{DEMO_ID}", headers=auth_headers)
     assert json_res.status_code == 200
     assert json_res.json()["report_metadata"]["investigation_id"] == DEMO_ID
 
 
-def test_investigation_and_timeline_frontend_contract():
+def test_investigation_and_timeline_frontend_contract(auth_headers):
     """
     Contract test ensuring /api/investigations/{id} and /api/geo/timeline/{id}
     emit the exact shapes consumed by TimelinePanel, ThreatIntelCards, and IOCChips.
     """
     # 1. Test Hop Timeline route (used by TimelinePanel 'Mail Server Hops Route' tab)
-    hop_res = client.get(f"/api/geo/timeline/{DEMO_ID}")
+    hop_res = client.get(f"/api/geo/timeline/{DEMO_ID}", headers=auth_headers)
     assert hop_res.status_code == 200
     hops = hop_res.json()
     assert isinstance(hops, list) and len(hops) > 0
@@ -67,7 +75,7 @@ def test_investigation_and_timeline_frontend_contract():
         assert "malicious" in hop, "Hop must have 'malicious'"
 
     # 2. Test Investigation Details route (used by TimelinePanel 6-step lifecycle & cards)
-    inv_res = client.get(f"/api/investigations/{DEMO_ID}")
+    inv_res = client.get(f"/api/investigations/{DEMO_ID}", headers=auth_headers)
     assert inv_res.status_code == 200
     data = inv_res.json()
 

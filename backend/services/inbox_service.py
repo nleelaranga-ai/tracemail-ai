@@ -475,34 +475,40 @@ class InboxService:
         db: Session,
         current_user: Optional[User] = None
     ) -> List[Dict[str, Any]]:
-        """Returns past evaluated messages with strict tenant isolation and explicit demo gating."""
+        """Returns past evaluated messages with strict tenant isolation and authentication."""
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to view inbox scan results.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
         query = db.query(InboxScanResult)
         if account_email:
             query = query.filter(InboxScanResult.account_email == account_email)
 
-        if current_user and getattr(current_user, "role", "") != "admin":
+        if getattr(current_user, "role", "") != "admin":
             if account_email:
                 acc = db.query(GmailAccount).filter(GmailAccount.email == account_email).first()
-                if acc and acc.owner_user_id and acc.owner_user_id != current_user.id:
+                if not acc or (acc.owner_user_id != current_user.id and acc.email != current_user.email):
                     raise HTTPException(status_code=403, detail="Not authorized to view messages for this mailbox.")
             else:
                 owned = db.query(GmailAccount.email).filter(
                     (GmailAccount.owner_user_id == current_user.id) |
-                    (GmailAccount.email == current_user.email) |
-                    (GmailAccount.owner_user_id == None)
+                    (GmailAccount.email == current_user.email)
                 ).all()
                 allowed = [o[0] for o in owned]
-                allowed.extend(["analyst@tracemail.ai", "soc-analyst@tracemail.ai"])
                 query = query.filter(InboxScanResult.account_email.in_(allowed))
 
         records = query.order_by(InboxScanResult.scanned_at.desc()).all()
 
         if not records:
-            # ONLY seed demo records for explicit demo simulation accounts, NEVER for real user mailboxes
-            if account_email not in (None, "analyst@tracemail.ai", "soc-analyst@tracemail.ai"):
+            # In production, never seed demo records
+            env = os.getenv("ENVIRONMENT", "development").lower()
+            if env in ("production", "prod") or account_email not in (None, "analyst@tracemail.ai", "soc-analyst@tracemail.ai"):
                 return []
 
-            # Seed demo records on first load for demo analyst
+            # Seed demo records on first load ONLY for local development demo analyst
             cls.connect_account("soc-analyst@tracemail.ai", db)
             # Synchronous sample insertion
             now = datetime.now(timezone.utc)

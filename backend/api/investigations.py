@@ -58,14 +58,19 @@ def list_investigations(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user)
 ):
-    """Lists past investigations for dashboard history."""
+    """Lists past investigations with strict tenant isolation. Requires authentication."""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to view investigations.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
     try:
         query = db.query(Investigation)
-        if current_user and getattr(current_user, "role", "") != "admin":
-            query = query.filter(
-                (Investigation.owner_user_id == current_user.id) |
-                (Investigation.owner_user_id == None)
-            )
+        if getattr(current_user, "role", "") != "admin":
+            # Strict owner filter: users ONLY see investigations they own.
+            # Unowned / null rows are default-deny (admin-only).
+            query = query.filter(Investigation.owner_user_id == current_user.id)
         records = query.order_by(Investigation.created_at.desc()).limit(50).all()
         return [
             InvestigationSummary(
@@ -79,6 +84,8 @@ def list_investigations(
             )
             for r in records
         ]
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"Error querying investigations from database: {e}")
         return []
@@ -91,15 +98,24 @@ def get_investigation_detail(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user)
 ):
-    """Master API Contract (Section 6 & 9.1): Returns complete case payload with tenant isolation."""
+    """Master API Contract (Section 6 & 9.1): Returns complete case payload with strict tenant isolation."""
     inv = db.query(Investigation).filter(Investigation.id == id).first()
     if not inv:
-        raise HTTPException(status_code=404, detail=f"Investigation {id} not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Investigation {id} not found.")
 
-    # Tenant isolation: private investigations can only be viewed by their owner or an admin
-    if inv.owner_user_id is not None:
-        if not current_user or (current_user.id != inv.owner_user_id and getattr(current_user, "role", "") != "admin"):
-            raise HTTPException(status_code=404, detail=f"Investigation {id} not found.")
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to view investigation details.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Tenant isolation & Default-Deny for unowned rows:
+    # If not admin, caller MUST be the exact owner.
+    # If inv.owner_user_id is None, it is restricted to admin only.
+    if getattr(current_user, "role", "") != "admin":
+        if not inv.owner_user_id or inv.owner_user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Investigation {id} not found.")
 
     entities_data = inv.entities or {}
     score = inv.threat_score if inv.threat_score is not None else inv.phishing_score

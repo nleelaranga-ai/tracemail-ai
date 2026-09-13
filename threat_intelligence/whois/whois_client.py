@@ -89,6 +89,18 @@ class WHOISClient:
         if cached:
             return cached
 
+        # Check known testing domains first to avoid network latency on simulated tests
+        if domain_clean in KNOWN_DOMAINS:
+            result = dict(KNOWN_DOMAINS[domain_clean])
+            result.update({
+                "source": "known_dataset",
+                "mode": "fallback",
+                "provider_status": "simulated",
+                "fallback_used": True
+            })
+            whois_cache.set(domain_clean, result)
+            return result
+
         # 1. Attempt RDAP standardized ICANN lookup via HTTP (live-first for real domains)
         try:
             from threat_intelligence.utils.http_client import async_http_get

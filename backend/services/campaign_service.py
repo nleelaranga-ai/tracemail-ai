@@ -71,11 +71,14 @@ def _generate_campaign_playbook(brand: str, verdict: str, domains: List[str], ip
 
 class CampaignService:
     @staticmethod
-    def correlate_investigations(db: Session) -> List[Dict[str, Any]]:
+    def correlate_investigations(db: Session, current_user: Optional[Any] = None) -> List[Dict[str, Any]]:
         """
-        Gathers all investigations in the database and clusters them into distinct campaigns.
+        Gathers investigations in the database and clusters them into distinct campaigns with tenant isolation.
         """
-        investigations: List[Investigation] = db.query(Investigation).order_by(Investigation.created_at.desc()).all()
+        query = db.query(Investigation)
+        if current_user and getattr(current_user, "role", "") != "admin":
+            query = query.filter(Investigation.owner_user_id == current_user.id)
+        investigations: List[Investigation] = query.order_by(Investigation.created_at.desc()).all()
         if not investigations:
             return []
 
@@ -139,11 +142,11 @@ class CampaignService:
         return campaigns
 
     @staticmethod
-    def get_campaign_detail(campaign_id: str, db: Session) -> Optional[Dict[str, Any]]:
+    def get_campaign_detail(campaign_id: str, db: Session, current_user: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Retrieves detailed campaign telemetry, timeline, and associated emails.
         """
-        all_campaigns = CampaignService.correlate_investigations(db)
+        all_campaigns = CampaignService.correlate_investigations(db, current_user=current_user)
         target = next((c for c in all_campaigns if c["id"] == campaign_id), None)
         if not target:
             return None

@@ -98,9 +98,12 @@ class DNSAuthChecker:
         registrar = "Unknown"
 
         if target_domain:
-            whois_info = await whois_client.lookup_domain(target_domain)
-            domain_age = whois_info.get("domainAge", "Unknown")
-            registrar = whois_info.get("registrar", "Unknown")
+            try:
+                whois_info = await whois_client.lookup_domain(target_domain)
+                domain_age = whois_info.get("domainAge", "Unknown")
+                registrar = whois_info.get("registrar", "Unknown")
+            except Exception as we:
+                logger.debug(f"WHOIS enrichment for {target_domain} in auth check failed: {we}")
 
         return AuthCheckResponse(
             spf=spf_status,

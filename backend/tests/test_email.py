@@ -2,10 +2,18 @@
 Unit tests for Email Parsing and Investigation Upload APIs
 """
 import io
+import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
+from backend.services.auth_service import AuthService
 
 client = TestClient(app)
+
+
+@pytest.fixture
+def auth_headers():
+    token = AuthService.create_access_token({"sub": "analyst@tracemail.ai", "role": "admin"})
+    return {"Authorization": f"Bearer {token}"}
 
 SAMPLE_EML_CONTENT = b"""From: PayPal Security <security@paypal-verification.com>
 To: target@victim.org
@@ -76,14 +84,14 @@ PayPal Team
 """
 
 
-def test_internshala_legitimate_email_forensics():
+def test_internshala_legitimate_email_forensics(auth_headers):
     file_payload = {"file": ("internshala.eml", io.BytesIO(INTERNSHALA_EML_CONTENT), "message/rfc822")}
-    res = client.post("/api/investigations", files=file_payload)
+    res = client.post("/api/investigations", files=file_payload, headers=auth_headers)
     assert res.status_code == 200
     inv_id = res.json()["investigationId"]
 
     # Retrieve detail
-    detail_res = client.get(f"/api/investigations/{inv_id}")
+    detail_res = client.get(f"/api/investigations/{inv_id}", headers=auth_headers)
     assert detail_res.status_code == 200
     data = detail_res.json()
 
@@ -94,20 +102,20 @@ def test_internshala_legitimate_email_forensics():
     assert any("verified" in act.lower() or "quarantine" not in act.lower() for act in data.get("action_items", []))
 
     # Check attack graph
-    graph_res = client.get(f"/api/geo/graph/{inv_id}")
+    graph_res = client.get(f"/api/geo/graph/{inv_id}", headers=auth_headers)
     assert graph_res.status_code == 200
     graph_data = graph_res.json()
     sender_node = next(n for n in graph_data["nodes"] if n["id"] == "sender")
     assert sender_node["malicious"] is False
 
 
-def test_display_name_spoofing_bec_forensics():
+def test_display_name_spoofing_bec_forensics(auth_headers):
     file_payload = {"file": ("bec_phish.eml", io.BytesIO(BEC_SPOOFED_EML_CONTENT), "message/rfc822")}
-    res = client.post("/api/investigations", files=file_payload)
+    res = client.post("/api/investigations", files=file_payload, headers=auth_headers)
     assert res.status_code == 200
     inv_id = res.json()["investigationId"]
 
-    detail_res = client.get(f"/api/investigations/{inv_id}")
+    detail_res = client.get(f"/api/investigations/{inv_id}", headers=auth_headers)
     assert detail_res.status_code == 200
     data = detail_res.json()
 

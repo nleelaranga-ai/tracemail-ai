@@ -21,6 +21,7 @@ from backend.models.v2_models import GmailAccount, InboxScanResult
 from backend.models.scan import Investigation
 from backend.models.user import User
 from backend.services.inbox_service import InboxService
+from backend.services.auth_service import AuthService
 from backend.parsers.header_parser import HeaderParser
 
 client = TestClient(app)
@@ -80,10 +81,14 @@ def test_trusted_mta_boundary_rejects_attacker_forged_received_header():
 def test_investigate_message_demo_mapping(db_session):
     """Verifies demo messages correctly resolve to benchmark cases in demo mode."""
     account_email = f"demo_analyst_{uuid.uuid4().hex[:6]}@tracemail.ai"
-    InboxService.connect_account(account_email, db_session)
-    client.post(f"/api/inbox/scan?email={account_email}")
+    user = AuthService.register_user(db_session, email=account_email, password="Password123!", name="Demo Analyst")
+    token = AuthService.create_access_token({"sub": user.email, "role": user.role})
+    headers = {"Authorization": f"Bearer {token}"}
+    InboxService.connect_account(account_email, db_session, owner_user_id=user.id)
+    scan_res = client.post(f"/api/inbox/scan?email={account_email}", headers=headers)
+    assert scan_res.status_code == 200
 
-    res = client.post(f"/api/inbox/messages/msg_gmail_98231/investigate?email={account_email}")
+    res = client.post(f"/api/inbox/messages/msg_gmail_98231/investigate?email={account_email}", headers=headers)
     assert res.status_code == 200
     data = res.json()
     assert data["messageId"] == "msg_gmail_98231"

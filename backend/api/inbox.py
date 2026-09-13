@@ -1,8 +1,9 @@
 """
 TraceMail AI Backend — Live Gmail OAuth & Inbox Scanner Router
 """
+import os
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from starlette.responses import RedirectResponse
 from backend.database.connection import get_db, Session
 from backend.services.inbox_service import InboxService
@@ -76,12 +77,35 @@ def disconnect_google_inbox(
 
 @router.post("/api/inbox/scan")
 async def trigger_inbox_scan(
-    email: Optional[str] = Query("analyst@tracemail.ai", description="Monitored account email"),
+    email: Optional[str] = Query(None, description="Monitored account email"),
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user)
 ):
     """Triggers background mailbox scan and evaluates incoming email threat levels."""
-    return await InboxService.scan_mailbox(email, db, current_user=current_user)
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to trigger inbox scan.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    target_email = email or current_user.email
+
+    # Router-level gate: strictly prohibit unconfigured demo scanning in production
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    if env in ("production", "prod"):
+        if not InboxService.is_oauth_configured():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Google Workspace OAuth is not configured on this production instance."
+            )
+        if target_email in ("analyst@tracemail.ai", "soc-analyst@tracemail.ai") and getattr(current_user, "role", "") != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Demo account simulation is disabled in production."
+            )
+
+    return await InboxService.scan_mailbox(target_email, db, current_user=current_user)
 
 
 @router.get("/api/inbox/results")
@@ -90,7 +114,13 @@ def get_inbox_results(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user)
 ):
-    """Returns past scanned emails from connected inbox."""
+    """Returns past scanned emails from connected inbox with mandatory authentication."""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to view inbox scan results.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
     return InboxService.get_inbox_results(email, db, current_user=current_user)
 
 

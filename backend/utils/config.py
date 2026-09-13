@@ -12,15 +12,6 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(ROOT_DIR / ".env")
 load_dotenv(ROOT_DIR / "backend" / ".env")
 
-# Force USE_MOCK_THREAT_INTEL="false" in production or whenever external threat intelligence keys exist
-if (
-    os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development")).lower() in ("production", "prod")
-    or os.getenv("VIRUSTOTAL_API_KEY")
-    or os.getenv("ABUSEIPDB_API_KEY")
-    or os.getenv("IPINFO_API_KEY")
-):
-    os.environ["USE_MOCK_THREAT_INTEL"] = "false"
-
 
 def resolve_database_url() -> str:
     url = (
@@ -54,17 +45,9 @@ def resolve_use_mock_threat_intel() -> bool:
 class Settings(BaseSettings):
     # App
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    USE_MOCK_THREAT_INTEL: bool = False
+    USE_MOCK_THREAT_INTEL: bool = os.getenv("USE_MOCK_THREAT_INTEL", "false").lower() in ("true", "1", "yes")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tracemail-sih-2026-super-secret-key-32chars")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "tracemail-jwt-secret-key-production-ready")
-
-    @model_validator(mode="after")
-    def enforce_live_threat_intel(self):
-        env = (self.ENVIRONMENT or "").lower()
-        has_keys = bool(self.VIRUSTOTAL_API_KEY or self.ABUSEIPDB_API_KEY or self.IPINFO_API_KEY)
-        if env in ("production", "prod") or has_keys:
-            self.USE_MOCK_THREAT_INTEL = False
-        return self
 
     # Database (Requires PostgreSQL in production; allows SQLite for local testing)
     DATABASE_URL: str = resolve_database_url()

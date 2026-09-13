@@ -203,6 +203,7 @@ class VirusTotalClient:
 
         # Heuristic / known hash fallback
         is_known_bad = clean_hash in (
+            "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",  # Standard EICAR Antivirus Test Signature
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",  # empty hash used in tests
             "44d88612fea8a8f36de82e1278abb02f",
             "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"

@@ -26,19 +26,21 @@ def seed_database():
         analyst_email = "analyst@tracemail.ai"
         existing_user = db.query(User).filter(User.email == analyst_email).first()
         if not existing_user:
-            AuthService.register_user(
+            existing_user = AuthService.register_user(
                 db=db,
                 email=analyst_email,
                 password="Password123!",
                 name="Chief SOC Analyst"
             )
             logger.info(f"Seeded demo user: {analyst_email} (Password123!)")
+        analyst_uid = existing_user.id if existing_user else None
 
         # 2. Seed Master Investigation Cases
         # Case A: PayPal Credential Phish
         inv_id_1 = "inv_paypal_phish_demo_01"
         existing_1 = db.query(Investigation).filter(Investigation.id == inv_id_1).first()
         inv_1_data = {
+            "owner_user_id": analyst_uid,
             "status": "complete",
             "sender": "support@paypal-security-update.com",
             "recipient": "victim@corporate-domain.com",
@@ -268,6 +270,7 @@ def seed_database():
         inv_id_2 = "inv_internshala_demo_02"
         existing_2 = db.query(Investigation).filter(Investigation.id == inv_id_2).first()
         inv_2_data = {
+            "owner_user_id": analyst_uid,
             "status": "complete",
             "sender": "student-success@internshala.com",
             "recipient": "candidate@gmail.com",
@@ -379,6 +382,7 @@ def seed_database():
         inv_id_3 = "inv_bec_wire_demo_03"
         existing_3 = db.query(Investigation).filter(Investigation.id == inv_id_3).first()
         inv_3_data = {
+            "owner_user_id": analyst_uid,
             "status": "complete",
             "sender": "ceo@exec-corp-global.com",
             "recipient": "finance@corporate-domain.com",

@@ -276,3 +276,52 @@ async def test_urlscan_active_submission():
         assert res["provider_status"] == "live"
         assert res["fallback_used"] is False
 
+
+@pytest.mark.asyncio
+async def test_composite_threat_intel_known_malicious_indicator():
+    """
+    RC Verification: Test composite-intel against known-malicious indicators:
+    - Known malicious IP: 185.220.101.4
+    - Typosquatted lookalike phishing domain: paypa1-secure.com
+    - EICAR antivirus test signature file hash: 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f
+    Verifies that the composite engine flags the threat as Critical, flags malicious components,
+    and returns threat score >= 85.
+    """
+    from backend.main import app
+    from httpx import AsyncClient, ASGITransport
+
+    payload = {
+        "ip": "185.220.101.4",
+        "domain": "paypa1-secure.com",
+        "urls": ["http://paypa1-secure.com/login", "http://paypa1-secure.com/steal-creds"],
+        "rawHeaders": "Received: from mail.sketchy-relay.net (185.220.101.4)\nAuthentication-Results: spf=fail; dkim=fail; dmarc=fail",
+        "attachments": [
+            {
+                "filename": "eicar.com",
+                "sha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+                "fileType": "com"
+            }
+        ]
+    }
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        res = await client.post("/api/threat/composite-intel", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        # Score and risk assertions
+        assert data["threat_score"] >= 85, f"Expected threat_score >= 85, got {data['threat_score']}"
+        assert data["risk_level"] in ("High", "Critical"), f"Expected High or Critical risk, got {data['risk_level']}"
+
+        # IP threat assertion
+        assert data["ip"]["address"] == "185.220.101.4"
+        assert data["ip"]["is_malicious"] is True or data["ip"]["abuse_score"] > 50
+
+        # Attachment EICAR malware detection
+        assert len(data.get("attachments", [])) >= 1
+        att = data["attachments"][0]
+        assert att["filename"] == "eicar.com"
+        assert att["is_malicious"] is True or att["positives"] > 0
+        assert any(term in att["verdict"] for term in ("Trojan", "Malicious", "Phishing", "Suspicious"))
+
