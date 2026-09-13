@@ -26,6 +26,21 @@ KNOWN_BRAND_DOMAINS = {
 }
 
 
+TRUSTED_MTA_PATTERNS = [
+    re.compile(r"\bmx\.google\.com\b", re.IGNORECASE),
+    re.compile(r"\bgmail-smtp-in\.l\.google\.com\b", re.IGNORECASE),
+    re.compile(r"\bgoogle\.com\b", re.IGNORECASE),
+    re.compile(r"\bmx\.microsoft\.com\b", re.IGNORECASE),
+    re.compile(r"\boutlook\.com\b", re.IGNORECASE),
+    re.compile(r"\bprotection\.outlook\.com\b", re.IGNORECASE),
+    re.compile(r"\bpphosted\.com\b", re.IGNORECASE),
+    re.compile(r"\bmimecast\.com\b", re.IGNORECASE),
+    re.compile(r"\bmailgun\.org\b", re.IGNORECASE),
+    re.compile(r"\bsendgrid\.net\b", re.IGNORECASE),
+    re.compile(r"\bamazonses\.com\b", re.IGNORECASE),
+]
+
+
 class HeaderParser:
     SPF_PATTERN = re.compile(r"spf=(pass|fail|softfail|neutral|none|temperror|permerror)", re.IGNORECASE)
     DKIM_PATTERN = re.compile(r"dkim=(pass|fail|none)", re.IGNORECASE)
@@ -149,12 +164,26 @@ class HeaderParser:
             }
             result["structured_hops"].append(hop_obj)
 
-        # Determine true origin public IP from hops
-        for ip in reversed(result["hop_ips"]):
-            if cls._is_public_ip(ip):
-                result["origin_ip"] = ip
-                break
+        # Determine true origin public IP using Trusted MTA Boundary (Root Cause 8 / Anti-Spoofing)
+        trusted_boundary_index = None
+        for i, hop_str in enumerate(result["received_hops"]):
+            by_m = re.search(r"\bby\s+([^\s;]+)", hop_str, re.IGNORECASE)
+            if by_m and any(p.search(by_m.group(1)) for p in TRUSTED_MTA_PATTERNS):
+                trusted_boundary_index = i  # keep updating to find the LAST (earliest-received) trusted hop
 
+        if trusted_boundary_index is not None:
+            boundary_header = result["received_hops"][trusted_boundary_index]
+            from_match = re.search(r"\bfrom\s+[^\s(]*\s*\(\[?(\d{1,3}(?:\.\d{1,3}){3})\]?\)", boundary_header, re.IGNORECASE)
+            if not from_match:
+                from_match = re.search(r"\bfrom\s+[^\n;]*?\[(\d{1,3}(?:\.\d{1,3}){3})\]", boundary_header, re.IGNORECASE)
+            if from_match:
+                candidate_ip = from_match.group(1)
+                if cls._is_public_ip(candidate_ip):
+                    result["origin_ip"] = candidate_ip
+
+        # If no trusted boundary matched (e.g. self-hosted mail server, local test file),
+        # walk top-down (receiving mail server downwards) to find the first external public IP.
+        # Scanning top-down prevents attacker-injected Received headers at the bottom from being preferred.
         if not result["origin_ip"]:
             for ip in result["hop_ips"]:
                 if cls._is_public_ip(ip):
@@ -171,6 +200,18 @@ class HeaderParser:
                 pass
 
         return result
+
+    @classmethod
+    def extract_originating_ip(cls, raw_headers_text: str) -> str:
+        """Extracts originating IP from raw RFC 822 headers using trusted boundary."""
+        received_hops = []
+        for line in raw_headers_text.splitlines():
+            if line.lower().startswith("received:"):
+                received_hops.append(line.split(":", 1)[1].strip())
+            elif received_hops and (line.startswith(" ") or line.startswith("\t")):
+                received_hops[-1] += " " + line.strip()
+        parsed = cls.parse_headers({"Received": received_hops}, raw_headers_text)
+        return parsed.get("origin_ip", "")
 
     @classmethod
     def _is_public_ip(cls, ip: str) -> bool:

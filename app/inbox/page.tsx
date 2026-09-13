@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { api } from "@/services/api";
 import type { InboxEmailItem } from "@/types";
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 
 export default function InboxPage() {
+  const router = useRouter();
   const [emails, setEmails] = useState<InboxEmailItem[]>([]);
   const [connected, setConnected] = useState(false);
   const [accountEmail, setAccountEmail] = useState("analyst@tracemail.ai");
@@ -29,7 +31,9 @@ export default function InboxPage() {
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [investigatingId, setInvestigatingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   const loadInbox = async (email?: string) => {
@@ -153,6 +157,34 @@ export default function InboxPage() {
     }
   };
 
+  const handleInvestigateMessage = async (m: InboxEmailItem) => {
+    setActionError(null);
+    if (m.investigationId) {
+      router.push(`/investigation/${m.investigationId}`);
+      return;
+    }
+
+    setInvestigatingId(m.messageId);
+    try {
+      const res = await api.investigateMailboxMessage(accountEmail, m.messageId);
+      if (res.investigationId) {
+        setEmails((prev) =>
+          prev.map((item) =>
+            item.messageId === m.messageId ? { ...item, investigationId: res.investigationId } : item
+          )
+        );
+        router.push(`/investigation/${res.investigationId}`);
+      } else {
+        setActionError("Failed to extract forensics: No investigation ID returned.");
+      }
+    } catch (err: any) {
+      console.error("Investigate message error:", err);
+      setActionError(err.message || "Failed to extract forensics for this email.");
+    } finally {
+      setInvestigatingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-bg">
       <Navbar />
@@ -226,6 +258,19 @@ export default function InboxPage() {
               <span>{notice}</span>
             </div>
             <button onClick={() => setNotice(null)} className="text-blue-400 hover:text-white font-bold ml-2">
+              &times;
+            </button>
+          </div>
+        )}
+
+        {/* Action Error Banner */}
+        {actionError && (
+          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+              <span>{actionError}</span>
+            </div>
+            <button onClick={() => setActionError(null)} className="text-red-400 hover:text-white font-bold ml-2">
               &times;
             </button>
           </div>
@@ -331,14 +376,32 @@ export default function InboxPage() {
                     <span className="text-xs font-mono text-ink-faint">
                       {new Date(m.scannedAt).toLocaleTimeString()}
                     </span>
-                    <Link
-                      href={`/investigation/${
-                        m.investigationId || (isCrit ? "inv_paypal_phish_demo_01" : "inv_internshala_demo_02")
-                      }`}
-                      className="inline-flex items-center gap-1 rounded-lg border border-bg-border bg-bg px-3 py-1.5 text-xs font-semibold text-trace hover:bg-trace/10 transition"
-                    >
-                      Investigate Case <ExternalLink className="h-3.5 w-3.5" />
-                    </Link>
+                    {m.investigationId ? (
+                      <Link
+                        href={`/investigation/${m.investigationId}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-bg-border bg-bg px-3 py-1.5 text-xs font-semibold text-trace hover:bg-trace/10 transition"
+                      >
+                        View Investigation <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => handleInvestigateMessage(m)}
+                        disabled={investigatingId === m.messageId}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-trace/30 bg-trace/10 px-3 py-1.5 text-xs font-semibold text-trace hover:bg-trace/20 transition disabled:opacity-50"
+                      >
+                        {investigatingId === m.messageId ? (
+                          <>
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                            Extracting Forensics…
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Extract &amp; Investigate
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

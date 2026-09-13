@@ -68,20 +68,6 @@ KNOWN_GEO_IPS = {
     },
 }
 
-GLOBAL_RELAY_HUBS = [
-    {"country": "Germany", "city": "Berlin", "lat": 52.52, "lon": 13.405, "isp": "Deutsche Telekom AG", "asn": "AS3320"},
-    {"country": "Germany", "city": "Frankfurt", "lat": 50.1109, "lon": 8.6821, "isp": "M247 Ltd", "asn": "AS9009"},
-    {"country": "United Kingdom", "city": "London", "lat": 51.5074, "lon": -0.1278, "isp": "British Telecom", "asn": "AS2856"},
-    {"country": "Netherlands", "city": "Amsterdam", "lat": 52.3702, "lon": 4.8952, "isp": "KPN B.V.", "asn": "AS1136"},
-    {"country": "France", "city": "Paris", "lat": 48.8566, "lon": 2.3522, "isp": "Orange S.A.", "asn": "AS3215"},
-    {"country": "United States", "city": "New York", "lat": 40.7128, "lon": -74.0060, "isp": "Verizon Communications", "asn": "AS701"},
-    {"country": "United States", "city": "Mountain View", "lat": 37.4223, "lon": -122.0848, "isp": "Google LLC", "asn": "AS15169"},
-    {"country": "India", "city": "Bengaluru", "lat": 12.9716, "lon": 77.5946, "isp": "Bharti Airtel Ltd", "asn": "AS9498"},
-    {"country": "Japan", "city": "Tokyo", "lat": 35.6762, "lon": 139.6503, "isp": "NTT Communications", "asn": "AS2914"},
-    {"country": "Australia", "city": "Sydney", "lat": -33.8688, "lon": 151.2093, "isp": "Telstra Corporation", "asn": "AS1221"},
-    {"country": "Switzerland", "city": "Zurich", "lat": 47.3769, "lon": 8.5417, "isp": "Swisscom AG", "asn": "AS3303"},
-    {"country": "Canada", "city": "Toronto", "lat": 43.6532, "lon": -79.3832, "isp": "Rogers Communications", "asn": "AS812"},
-]
 
 
 
@@ -170,28 +156,32 @@ class GeoClient:
             except Exception as e:
                 logger.warning(f"Live IPinfo lookup failed for {clean_ip}: {e}")
 
-        # 2. Check known dataset if no API key or live lookup failed
-        if clean_ip in KNOWN_GEO_IPS:
-            geo = KNOWN_GEO_IPS[clean_ip]
-            resp = IPThreatResponse(
-                ip=clean_ip,
-                country=geo["country"],
-                city=geo["city"],
-                lat=geo["lat"],
-                lon=geo["lon"],
-                isp=geo["isp"],
-                asn=geo["asn"],
-                abuseScore=abuse_score,
-                malicious=is_malicious,
-                source="known_dataset",
-                mode="fallback",
-                provider_status="simulated",
-                fallback_used=True,
-            )
-            ip_cache.set(cache_key, resp)
-            return resp
+        # 2. Query high-availability public ip-api.com live (Live First)
+        try:
+            url = f"http://ip-api.com/json/{clean_ip}"
+            data = await async_http_get(url, timeout=3.0)
+            if data and data.get("status") == "success":
+                resp = IPThreatResponse(
+                    ip=clean_ip,
+                    country=data.get("country", "Unknown"),
+                    city=data.get("city", "Unknown"),
+                    lat=float(data.get("lat", 0.0)),
+                    lon=float(data.get("lon", 0.0)),
+                    isp=data.get("isp") or data.get("org") or "Internet Service Provider",
+                    asn=data.get("as", "Unknown"),
+                    abuseScore=abuse_score,
+                    malicious=is_malicious,
+                    source="ip_api_com_public",
+                    mode="live",
+                    provider_status="live",
+                    fallback_used=False,
+                )
+                ip_cache.set(cache_key, resp)
+                return resp
+        except Exception as e:
+            logger.warning(f"Live ip-api.com lookup failed for {clean_ip}: {e}")
 
-        # Fallback to free public ipapi.co
+        # 3. Query public ipapi.co live
         try:
             url = f"https://ipapi.co/{clean_ip}/json/"
             data = await async_http_get(url, timeout=3.0)
@@ -216,48 +206,41 @@ class GeoClient:
         except Exception:
             pass
 
-        # Fallback to high-availability ip-api.com
-        try:
-            url = f"http://ip-api.com/json/{clean_ip}"
-            data = await async_http_get(url, timeout=3.0)
-            if data and data.get("status") == "success":
-                resp = IPThreatResponse(
-                    ip=clean_ip,
-                    country=data.get("country", "Unknown"),
-                    city=data.get("city", "Unknown"),
-                    lat=float(data.get("lat", 0.0)),
-                    lon=float(data.get("lon", 0.0)),
-                    isp=data.get("isp") or data.get("org") or "Internet Service Provider",
-                    asn=data.get("as", "Unknown"),
-                    abuseScore=abuse_score,
-                    malicious=is_malicious,
-                    source="ip_api_com_public",
-                    mode="live",
-                    provider_status="live",
-                    fallback_used=False,
-                )
-                ip_cache.set(cache_key, resp)
-                return resp
-        except Exception:
-            pass
+        # 4. Check known benchmark dataset ONLY if all live lookups failed/timed out
+        if clean_ip in KNOWN_GEO_IPS:
+            geo = KNOWN_GEO_IPS[clean_ip]
+            resp = IPThreatResponse(
+                ip=clean_ip,
+                country=geo["country"],
+                city=geo["city"],
+                lat=geo["lat"],
+                lon=geo["lon"],
+                isp=geo["isp"],
+                asn=geo["asn"],
+                abuseScore=abuse_score,
+                malicious=is_malicious,
+                source="known_dataset",
+                mode="fallback",
+                provider_status="seeded",
+                fallback_used=True,
+            )
+            ip_cache.set(cache_key, resp)
+            return resp
 
-        # Final default fallback: deterministic regional hub based on IP hash
-        octets = [int(p) for p in clean_ip.split(".") if p.isdigit()]
-        seed = sum(octets) if octets else abs(hash(clean_ip))
-        hub = GLOBAL_RELAY_HUBS[seed % len(GLOBAL_RELAY_HUBS)]
+        # 5. Honest failure state: return Location Unavailable instead of fabricating a city
         resp = IPThreatResponse(
             ip=clean_ip,
-            country=hub["country"],
-            city=hub["city"],
-            lat=hub["lat"],
-            lon=hub["lon"],
-            isp=abuse_info.get("isp") if abuse_info.get("isp") and "Private" not in abuse_info.get("isp") else hub["isp"],
-            asn=hub["asn"],
+            country="Location Unavailable",
+            city="Unknown",
+            lat=0.0,
+            lon=0.0,
+            isp=abuse_info.get("isp") if abuse_info.get("isp") and "Private" not in abuse_info.get("isp") else "ISP Information Unavailable",
+            asn="Unknown ASN",
             abuseScore=abuse_score,
             malicious=is_malicious,
-            source="regional_relay_heuristic",
+            source="unresolved_offline",
             mode="fallback",
-            provider_status="simulated",
+            provider_status="unavailable",
             fallback_used=True,
         )
         ip_cache.set(cache_key, resp)

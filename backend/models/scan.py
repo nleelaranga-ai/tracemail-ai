@@ -48,6 +48,7 @@ class Investigation(Base):
     ioc = Column(JSON, default=list, nullable=True)
     evidence_hash = Column(String(64), default="", nullable=True)
     action_items = Column(JSON, default=list, nullable=True)
+    owner_user_id = Column(String(64), nullable=True, index=True)
     
     created_at = Column(DateTime, default=utc_now, nullable=False)
     updated_at = Column(DateTime, default=utc_now, nullable=False)

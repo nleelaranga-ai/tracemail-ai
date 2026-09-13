@@ -160,19 +160,19 @@ class IPService:
             CacheService.set_geo(clean_ip, norm)
             return norm
 
-        # Safe fallback
+        # Honest failure state if live lookup and known fallback failed
         fallback = {
-            "status": "success",
+            "status": "fail",
             "ip": clean_ip,
-            "country": "Unknown",
+            "country": "Location Unavailable",
             "country_code": "",
             "region": "",
-            "city": "Transmission Node",
-            "latitude": 20.5937,
-            "longitude": 78.9629,
-            "isp": "Upstream Carrier",
-            "org": "Routing Hop",
-            "asn": "AS0",
+            "city": "Location Unavailable",
+            "latitude": 0.0,
+            "longitude": 0.0,
+            "isp": "ISP Information Unavailable",
+            "org": "Unresolved Routing Hop",
+            "asn": "Unknown ASN",
             "timezone": "UTC",
             "cached": False
         }

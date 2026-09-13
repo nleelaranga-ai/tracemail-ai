@@ -259,6 +259,32 @@ export const api = {
     return await request<any>(`/api/inbox/scan${q}`, { method: "POST" });
   },
 
+  async investigateMailboxMessage(accountEmail: string, messageId: string): Promise<{
+    messageId: string;
+    investigationId: string;
+    mode: string;
+    sender?: string;
+    subject?: string;
+    verdict?: string;
+  }> {
+    const q = `?email=${encodeURIComponent(accountEmail)}`;
+    try {
+      return await request<any>(`/api/inbox/messages/${encodeURIComponent(messageId)}/investigate${q}`, {
+        method: "POST",
+      });
+    } catch (err: any) {
+      const status = err?.status || err?.response?.status;
+      if (status === 401) {
+        throw new Error("Gmail authorization expired. Please reconnect your account.");
+      } else if (status === 413) {
+        throw new Error("Email exceeds forensic analysis limit (25MB).");
+      } else if (status === 502 || status === 504) {
+        throw new Error("Gmail API service temporarily unavailable or timed out. Please retry.");
+      }
+      throw err;
+    }
+  },
+
   async getGoogleLoginUrl(): Promise<{ authUrl: string; configured?: boolean; provider?: string }> {
     return await request<{ authUrl: string; configured?: boolean; provider?: string }>("/api/auth/google/login");
   },

@@ -1,7 +1,7 @@
 import hashlib
 import socket
 from backend.database.connection import Session
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
 from backend.models.scan import (
@@ -22,7 +22,13 @@ from backend.utils.logger import logger
 
 class EmailService:
     @classmethod
-    async def process_eml_file(cls, db: Session, content_bytes: bytes, filename: str = "email.eml") -> Investigation:
+    async def process_eml_file(
+        cls,
+        db: Session,
+        content_bytes: bytes,
+        filename: str = "email.eml",
+        owner_user_id: Optional[str] = None
+    ) -> Investigation:
         """
         Parses email, orchestrates threat and AI analysis, computes weighted threat score,
         and saves to database matching the unified master architecture.
@@ -249,7 +255,8 @@ class EmailService:
             ai_analysis=ai_summary_obj,
             ioc=ioc_chips,
             evidence_hash=evidence_hash,
-            action_items=action_items
+            action_items=action_items,
+            owner_user_id=owner_user_id
         )
         db.add(investigation)
         db.commit()

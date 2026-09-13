@@ -4,6 +4,7 @@ Adds Gmail Accounts, Inbox Scan Results, Evidence Records, Attachment Scans, and
 """
 from datetime import datetime, timezone
 from backend.database.connection import Base, Column, String, Integer, Boolean, DateTime, Text, JSON
+from sqlalchemy import UniqueConstraint
 from backend.utils.helpers import generate_uuid, utc_now
 
 
@@ -12,6 +13,7 @@ class GmailAccount(Base):
 
     id = Column(String(64), primary_key=True, default=lambda: generate_uuid("gacc_"), index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
+    owner_user_id = Column(String(64), nullable=True, index=True)
     access_token = Column(Text, nullable=False)
     refresh_token = Column(Text, default="", nullable=True)
     token_expiry = Column(DateTime, default=utc_now, nullable=True)
@@ -22,10 +24,13 @@ class GmailAccount(Base):
 
 class InboxScanResult(Base):
     __tablename__ = "inbox_scan_results"
+    __table_args__ = (
+        UniqueConstraint("account_email", "message_id", name="uq_inbox_scan_account_message"),
+    )
 
     id = Column(String(64), primary_key=True, default=lambda: generate_uuid("inb_"), index=True)
     account_email = Column(String(255), nullable=False, index=True)
-    message_id = Column(String(255), nullable=False)
+    message_id = Column(String(255), nullable=False, index=True)
     sender = Column(String(255), nullable=False)
     subject = Column(String(500), nullable=False)
     snippet = Column(Text, default="", nullable=True)
@@ -33,7 +38,7 @@ class InboxScanResult(Base):
     threat_score = Column(Integer, default=0, nullable=False)
     verdict = Column(String(50), default="safe", nullable=False)
     scanned_at = Column(DateTime, default=utc_now, nullable=False)
-    investigation_id = Column(String(64), default="", nullable=True)
+    investigation_id = Column(String(64), default="", nullable=True, index=True)
 
 
 class EvidenceRecord(Base):

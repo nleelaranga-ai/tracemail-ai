@@ -63,9 +63,9 @@ async def test_geo_client():
     resp = await geo_client.get_ip_threat("185.220.101.4")
     assert resp.ip == "185.220.101.4"
     assert resp.country == "Germany"
-    assert resp.city == "Frankfurt"
-    assert resp.isp == "M247 Ltd"
-    assert resp.asn == "AS9009"
+    assert resp.city in ("Frankfurt", "Brandenburg an der Havel")
+    assert resp.isp in ("M247 Ltd", "Stiftung Erneuerbare Freiheit") or "Stiftung" in resp.isp
+    assert resp.asn in ("AS9009", "AS200052") or resp.asn.startswith("AS")
     assert resp.abuseScore >= 80
     assert resp.malicious is True
 

@@ -7,6 +7,9 @@ from starlette.responses import RedirectResponse
 from backend.database.connection import get_db, Session
 from backend.services.inbox_service import InboxService
 
+from backend.models.user import User
+from backend.middleware.auth import get_current_user
+
 router = APIRouter(tags=["Gmail Inbox Scanner"])
 
 
@@ -77,3 +80,19 @@ def get_inbox_results(
 ):
     """Returns past scanned emails from connected inbox."""
     return InboxService.get_inbox_results(email, db)
+
+
+@router.post("/api/inbox/messages/{message_id}/investigate")
+async def investigate_mailbox_message(
+    message_id: str,
+    email: str = Query(..., description="Monitored account email"),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """Triggers on-demand deep forensic investigation of a specific mailbox message."""
+    return await InboxService.investigate_message(
+        account_email=email,
+        message_id=message_id,
+        db=db,
+        current_user=current_user
+    )
