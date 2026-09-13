@@ -37,19 +37,23 @@ class InboxService:
         return bool(settings.GOOGLE_CLIENT_ID.strip() and settings.GOOGLE_CLIENT_SECRET.strip())
 
     @classmethod
-    def get_google_auth_url(cls) -> str:
+    def get_google_auth_url(cls, state: Optional[str] = None) -> str:
         """Generates the standard Google OAuth 2.0 authorization URL."""
         client_id = settings.GOOGLE_CLIENT_ID.strip() or "tracemail-sih-google-oauth-client.apps.googleusercontent.com"
         redirect_uri = settings.GOOGLE_REDIRECT_URI.strip() or "http://localhost:3000/inbox"
         scope = "https://www.googleapis.com/auth/gmail.readonly"
-        return (
+        url = (
             f"{cls.GOOGLE_AUTH_ENDPOINT}"
             f"?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
             f"&scope={scope}&access_type=offline&prompt=consent"
         )
+        if state:
+            import urllib.parse
+            url += f"&state={urllib.parse.quote(state)}"
+        return url
 
     @classmethod
-    async def exchange_code_and_connect(cls, code: str, db: Session) -> Dict[str, Any]:
+    async def exchange_code_and_connect(cls, code: str, db: Session, owner_user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Exchanges Google authorization code for access and refresh tokens.
         Fetches the user profile and registers the connected GmailAccount.
@@ -57,7 +61,7 @@ class InboxService:
         now = datetime.now(timezone.utc)
         if not cls.is_oauth_configured():
             logger.info("Google OAuth credentials not configured; registering account in simulated mode.")
-            return cls.connect_account("analyst@tracemail.ai", db)
+            return cls.connect_account("analyst@tracemail.ai", db, owner_user_id=owner_user_id)
 
         client_id = settings.GOOGLE_CLIENT_ID.strip()
         client_secret = settings.GOOGLE_CLIENT_SECRET.strip()
@@ -78,8 +82,12 @@ class InboxService:
 
                 if token_resp.status_code != 200:
                     logger.warning(f"Google token exchange returned status {token_resp.status_code}: {token_resp.text}")
-                    # Fall back safely to demo connection so user flow doesn't crash
-                    return cls.connect_account("analyst@tracemail.ai", db)
+                    return {
+                        "connected": False,
+                        "email": "",
+                        "mode": "error",
+                        "error": f"Google authorization rejected (HTTP {token_resp.status_code})"
+                    }
 
                 token_data = token_resp.json()
                 access_token = token_data.get("access_token", "")
@@ -92,7 +100,7 @@ class InboxService:
                     headers={"Authorization": f"Bearer {access_token}"}
                 )
 
-                user_email = "analyst@tracemail.ai"
+                user_email = "connected-user@gmail.com"
                 if profile_resp.status_code == 200:
                     profile_data = profile_resp.json()
                     user_email = profile_data.get("emailAddress", user_email)
@@ -102,6 +110,7 @@ class InboxService:
                 if not existing:
                     account = GmailAccount(
                         email=user_email,
+                        owner_user_id=owner_user_id,
                         access_token=access_token,
                         refresh_token=refresh_token,
                         token_expiry=now + timedelta(seconds=expires_in),
@@ -116,6 +125,8 @@ class InboxService:
                         existing.refresh_token = refresh_token
                     existing.token_expiry = now + timedelta(seconds=expires_in)
                     existing.connected = True
+                    if owner_user_id:
+                        existing.owner_user_id = owner_user_id
                     existing.last_scanned_at = now
 
                 db.commit()
@@ -129,7 +140,12 @@ class InboxService:
 
         except Exception as e:
             logger.error(f"Error during Google OAuth code exchange: {e}")
-            return cls.connect_account("analyst@tracemail.ai", db)
+            return {
+                "connected": False,
+                "email": "",
+                "mode": "error",
+                "error": str(e)
+            }
 
     @classmethod
     def connect_account(cls, email: str, db: Session, owner_user_id: Optional[str] = None) -> Dict[str, Any]:
@@ -607,7 +623,8 @@ class InboxService:
                 }
 
             # --- 3. Check for demo mode / demo accounts ---
-            if account.access_token.startswith("ya29.demo-") or not cls.is_oauth_configured():
+            raw_bytes = None
+            if account.access_token.startswith("ya29.demo-"):
                 demo_map = {
                     "msg_gmail_98231": "inv_paypal_phish_demo_01",
                     "msg_gmail_98232": "inv_bec_wire_demo_03",
@@ -624,50 +641,61 @@ class InboxService:
                         "subject": inbox_record.subject,
                         "verdict": inbox_record.verdict,
                     }
-                raise HTTPException(status_code=400, detail="Demo accounts cannot be investigated live")
+                # For non-demo mapped messages in demo mode, synthesize authentic EML bytes and run full forensic pipeline
+                now_str = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')
+                raw_bytes = (
+                    f"From: {inbox_record.sender}\r\n"
+                    f"To: {account.email}\r\n"
+                    f"Subject: {inbox_record.subject}\r\n"
+                    f"Date: {now_str}\r\n"
+                    f"Message-ID: <{message_id}@mail.eval>\r\n"
+                    f"Content-Type: text/plain; charset=UTF-8\r\n\r\n"
+                    f"{inbox_record.snippet}\r\n"
+                ).encode("utf-8")
 
-            # --- 4. Fetch raw MIME from Gmail ---
-            try:
-                access_token = await cls._get_valid_access_token(account, db)
-            except TokenRefreshError:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Gmail authorization expired — please reconnect this account"
-                )
-
-            try:
-                async with httpx.AsyncClient(timeout=15.0) as gmail_client:
-                    resp = await gmail_client.get(
-                        f"{cls.GMAIL_API_BASE}/messages/{message_id}",
-                        params={"format": "raw"},
-                        headers={"Authorization": f"Bearer {access_token}"}
+            # --- 4. Fetch raw MIME from Gmail (for live accounts) ---
+            if raw_bytes is None:
+                try:
+                    access_token = await cls._get_valid_access_token(account, db)
+                except TokenRefreshError:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Gmail authorization expired — please reconnect this account"
                     )
-                    if resp.status_code == 401:
-                        # Token might have been revoked; attempt refresh once
-                        access_token = await cls._get_valid_access_token(account, db)
+
+                try:
+                    async with httpx.AsyncClient(timeout=15.0) as gmail_client:
                         resp = await gmail_client.get(
                             f"{cls.GMAIL_API_BASE}/messages/{message_id}",
                             params={"format": "raw"},
                             headers={"Authorization": f"Bearer {access_token}"}
                         )
-                    if resp.status_code == 404:
-                        raise HTTPException(status_code=404, detail="Message not found in Gmail mailbox")
-                    resp.raise_for_status()
-                    data = resp.json()
-            except httpx.HTTPStatusError as e:
-                raise HTTPException(status_code=502, detail=f"Gmail API error: {e}")
-            except httpx.TimeoutException:
-                raise HTTPException(status_code=504, detail="Gmail API timed out")
+                        if resp.status_code == 401:
+                            # Token might have been revoked; attempt refresh once
+                            access_token = await cls._get_valid_access_token(account, db)
+                            resp = await gmail_client.get(
+                                f"{cls.GMAIL_API_BASE}/messages/{message_id}",
+                                params={"format": "raw"},
+                                headers={"Authorization": f"Bearer {access_token}"}
+                            )
+                        if resp.status_code == 404:
+                            raise HTTPException(status_code=404, detail="Message not found in Gmail mailbox")
+                        resp.raise_for_status()
+                        data = resp.json()
+                except httpx.HTTPStatusError as e:
+                    raise HTTPException(status_code=502, detail=f"Gmail API error: {e}")
+                except httpx.TimeoutException:
+                    raise HTTPException(status_code=504, detail="Gmail API timed out")
 
-            raw_str = data.get("raw", "")
-            if not raw_str:
-                raise HTTPException(status_code=502, detail="Gmail API returned empty raw MIME payload")
+                raw_str = data.get("raw", "")
+                if not raw_str:
+                    raise HTTPException(status_code=502, detail="Gmail API returned empty raw MIME payload")
 
-            padding = "=" * ((4 - len(raw_str) % 4) % 4)
-            try:
-                raw_bytes = base64.urlsafe_b64decode((raw_str + padding).encode("ascii"))
-            except Exception as e:
-                raise HTTPException(status_code=502, detail=f"Failed to decode MIME payload: {e}")
+                padding = "=" * ((4 - len(raw_str) % 4) % 4)
+                try:
+                    raw_bytes = base64.urlsafe_b64decode((raw_str + padding).encode("ascii"))
+                except Exception as e:
+                    raise HTTPException(status_code=502, detail=f"Failed to decode MIME payload: {e}")
 
             # --- 5. Size guard before running the forensic pipeline ---
             MAX_EML_BYTES = 25 * 1024 * 1024  # 25 MB

@@ -14,9 +14,9 @@ router = APIRouter(tags=["Gmail Inbox Scanner"])
 
 
 @router.get("/api/auth/google/login")
-def google_oauth_login():
+def google_oauth_login(origin: Optional[str] = Query(None, description="Frontend origin URL for state redirect")):
     """Generates and redirects to Google OAuth consent screen."""
-    url = InboxService.get_google_auth_url()
+    url = InboxService.get_google_auth_url(state=origin)
     return {
         "authUrl": url,
         "provider": "Google Identity (OAuth 2.0)",
@@ -28,19 +28,27 @@ def google_oauth_login():
 @router.get("/api/auth/google/callback")
 async def google_oauth_callback(
     code: Optional[str] = Query(None, description="Google OAuth authorization code"),
+    state: Optional[str] = Query(None, description="Frontend origin state returned by Google"),
     email: Optional[str] = Query(None, description="Direct email for test/fallback registration"),
     redirect_to_frontend: Optional[bool] = Query(True, description="Redirect browser to frontend after exchange"),
     db: Session = Depends(get_db)
 ):
     """Exchanges Google auth code for live tokens or registers connected inbox."""
     import os
-    frontend_url = os.getenv("FRONTEND_URL", "https://tracemail-ai-84ho.vercel.app").rstrip("/")
+    import urllib.parse
+    target_frontend = os.getenv("FRONTEND_URL", "https://tracemail-ai-84ho.vercel.app").rstrip("/")
+    if state and state.startswith("http"):
+        target_frontend = state.rstrip("/")
+
     if code:
         res = await InboxService.exchange_code_and_connect(code, db)
         if redirect_to_frontend:
             connected_email = res.get("email", "connected")
             mode = res.get("mode", "live")
-            return RedirectResponse(url=f"{frontend_url}/inbox?connected=true&email={connected_email}&mode={mode}")
+            err_msg = res.get("error", "")
+            err_q = f"&error={urllib.parse.quote(err_msg)}" if err_msg else ""
+            is_conn = "true" if res.get("connected") else "false"
+            return RedirectResponse(url=f"{target_frontend}/inbox?connected={is_conn}&email={connected_email}&mode={mode}{err_q}")
         return res
     target_email = email or "analyst@tracemail.ai"
     return InboxService.connect_account(target_email, db)

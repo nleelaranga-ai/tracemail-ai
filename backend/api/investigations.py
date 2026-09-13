@@ -2,9 +2,11 @@
 TraceMail AI Backend — Investigations & Master Contracts Router (Section 6 & 9.1)
 """
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
-from typing import List
+from typing import List, Optional
 from backend.database.connection import get_db, Session
 from backend.models.scan import Investigation
+from backend.models.user import User
+from backend.middleware.auth import get_current_user
 from backend.schemas.report_schema import (
     InvestigationDetailResponse,
     InvestigationSummary,
@@ -24,7 +26,8 @@ router = APIRouter(tags=["Investigations"])
 @router.post("/api/v1/investigations", response_model=EmailUploadResponse, status_code=status.HTTP_200_OK, include_in_schema=False)
 async def create_investigation(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Ingests raw .eml file, extracts headers/IOCs, runs AI + Threat intelligence, and persists."""
     if not file.filename:
@@ -34,7 +37,8 @@ async def create_investigation(
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Uploaded email file is empty.")
 
-    inv = await EmailService.process_eml_file(db, content, file.filename)
+    owner_id = current_user.id if current_user else None
+    inv = await EmailService.process_eml_file(db, content, file.filename, owner_user_id=owner_id)
 
     return EmailUploadResponse(
         investigationId=inv.id,
@@ -50,10 +54,19 @@ async def create_investigation(
 
 @router.get("/api/investigations", response_model=List[InvestigationSummary])
 @router.get("/api/v1/investigations", response_model=List[InvestigationSummary], include_in_schema=False)
-def list_investigations(db: Session = Depends(get_db)):
+def list_investigations(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """Lists past investigations for dashboard history."""
     try:
-        records = db.query(Investigation).order_by(Investigation.created_at.desc()).limit(50).all()
+        query = db.query(Investigation)
+        if current_user and getattr(current_user, "role", "") != "admin":
+            query = query.filter(
+                (Investigation.owner_user_id == current_user.id) |
+                (Investigation.owner_user_id == None)
+            )
+        records = query.order_by(Investigation.created_at.desc()).limit(50).all()
         return [
             InvestigationSummary(
                 id=r.id,

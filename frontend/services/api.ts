@@ -286,7 +286,9 @@ export const api = {
   },
 
   async getGoogleLoginUrl(): Promise<{ authUrl: string; configured?: boolean; provider?: string }> {
-    return await request<{ authUrl: string; configured?: boolean; provider?: string }>("/api/auth/google/login");
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const q = origin ? `?origin=${encodeURIComponent(origin)}` : "";
+    return await request<{ authUrl: string; configured?: boolean; provider?: string }>(`/api/auth/google/login${q}`);
   },
 
   async connectGoogleInbox(email: string): Promise<any> {
