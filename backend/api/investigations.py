@@ -15,6 +15,7 @@ from backend.schemas.report_schema import (
 from backend.schemas.email_schema import EmailUploadResponse
 from backend.services.email_service import EmailService
 from backend.services.scan_service import ScanService
+from backend.utils.logger import logger
 
 router = APIRouter(tags=["Investigations"])
 
@@ -51,19 +52,23 @@ async def create_investigation(
 @router.get("/api/v1/investigations", response_model=List[InvestigationSummary], include_in_schema=False)
 def list_investigations(db: Session = Depends(get_db)):
     """Lists past investigations for dashboard history."""
-    records = db.query(Investigation).order_by(Investigation.created_at.desc()).limit(50).all()
-    return [
-        InvestigationSummary(
-            id=r.id,
-            status=r.status,
-            sender=r.sender,
-            subject=r.subject,
-            receivedAt=r.received_at.isoformat() if r.received_at else "",
-            verdict=r.verdict,
-            phishingScore=r.threat_score if r.threat_score is not None else r.phishing_score
-        )
-        for r in records
-    ]
+    try:
+        records = db.query(Investigation).order_by(Investigation.created_at.desc()).limit(50).all()
+        return [
+            InvestigationSummary(
+                id=r.id,
+                status=r.status,
+                sender=r.sender,
+                subject=r.subject,
+                receivedAt=r.received_at.isoformat() if r.received_at else "",
+                verdict=r.verdict,
+                phishingScore=r.threat_score if r.threat_score is not None else r.phishing_score
+            )
+            for r in records
+        ]
+    except Exception as e:
+        logger.warning(f"Error querying investigations from database: {e}")
+        return []
 
 
 @router.get("/api/investigations/{id}", response_model=InvestigationDetailResponse)

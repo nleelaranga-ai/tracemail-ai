@@ -4,7 +4,7 @@ TraceMail AI Backend — Health Check Endpoint
 from fastapi import APIRouter
 from datetime import datetime, timezone
 from backend.schemas.response_schema import HealthResponse
-from backend.database.postgres import check_database_health
+from backend.database.postgres import check_database_health, check_database_connection
 from backend.utils.config import settings
 
 router = APIRouter(tags=["Health"])
@@ -27,14 +27,17 @@ def health_check():
 @router.get("/api/v1/health/database", include_in_schema=False)
 def database_health():
     """Detailed database connectivity health probe."""
-    db_ok = check_database_health()
+    db_ok, db_err = check_database_connection()
     db_type = "postgresql" if "postgres" in settings.DATABASE_URL.lower() else "sqlite"
-    return {
+    res = {
         "status": "healthy" if db_ok else "unhealthy",
         "database": db_type,
         "connected": db_ok,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+    if not db_ok:
+        res["error"] = db_err
+    return res
 
 
 @router.get("/health/apis")
