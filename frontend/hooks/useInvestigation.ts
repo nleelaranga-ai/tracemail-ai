@@ -18,6 +18,14 @@ export function useGeoMap(id: string) {
   return useQuery({ queryKey: ["geo-map", id], queryFn: () => api.getMap(id), enabled: !!id });
 }
 
+export function useInvestigationMasterMap(id: string) {
+  return useQuery({
+    queryKey: ["investigation-master-map", id],
+    queryFn: () => api.getInvestigationMap(id),
+    enabled: !!id
+  });
+}
+
 export function useGeoTimeline(id: string) {
   return useQuery({ queryKey: ["geo-timeline", id], queryFn: () => api.getTimeline(id), enabled: !!id });
 }

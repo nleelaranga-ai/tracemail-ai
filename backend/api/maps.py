@@ -8,6 +8,16 @@ from backend.database.connection import get_db, Session
 from backend.models.scan import Investigation
 from backend.schemas.report_schema import TimelineStep, AttackGraph
 from backend.services.scan_service import ScanService
+from backend.services.maps_service import maps_service
+from backend.services.ip_service import ip_service
+from backend.schemas.maps import (
+    LocationResponse,
+    GeocodeResponse,
+    ReverseGeocodeResponse,
+    RouteResponse,
+    PlacesResponse,
+    InvestigationMapResponse
+)
 
 try:
     from maps_engine.geo.geo_builder import build_geojson
@@ -260,4 +270,122 @@ async def get_graph_node_detail(node_id: str, db: Session = Depends(get_db)):
         },
         "timeline": timeline
     }
+
+
+# ============================================================================
+# Free OpenStreetMap Stack Endpoints (Zero Billing / No Google Maps API Keys)
+# ============================================================================
+
+@router.get("/maps/location/{ip}", response_model=LocationResponse)
+@router.get("/api/v1/maps/location/{ip}", response_model=LocationResponse)
+@router.get("/api/maps/location/{ip}", response_model=LocationResponse)
+async def get_ip_location_endpoint(ip: str):
+    """
+    Resolves IP to geographical coordinates, country, city, and ISP.
+    Powered by ip-api.com with 30-day caching and zero billing.
+    """
+    res = await ip_service.get_location(ip)
+    return LocationResponse(**res)
+
+
+@router.get("/maps/geocode", response_model=GeocodeResponse)
+@router.get("/api/v1/maps/geocode", response_model=GeocodeResponse)
+@router.get("/api/maps/geocode", response_model=GeocodeResponse)
+async def geocode_endpoint(
+    q: Optional[str] = Query(None, description="Free-text query or city"),
+    city: Optional[str] = Query(None, description="City name"),
+    country: Optional[str] = Query(None, description="Country name")
+):
+    """
+    Forward geocoding: converts city/country or address query to coordinates.
+    Powered by Google Geocoding API with 30-day caching.
+    """
+    res = await maps_service.geocode(query=q, city=city, country=country)
+    return GeocodeResponse(**res)
+
+
+@router.get("/maps/reverse", response_model=ReverseGeocodeResponse)
+@router.get("/api/v1/maps/reverse", response_model=ReverseGeocodeResponse)
+@router.get("/api/maps/reverse", response_model=ReverseGeocodeResponse)
+async def reverse_geocode_endpoint(
+    lat: float = Query(..., description="Latitude"),
+    lon: float = Query(..., description="Longitude")
+):
+    """
+    Reverse geocoding: converts coordinates to readable place address.
+    Powered by Google Geocoding API (Reverse) with 30-day caching.
+    """
+    res = await maps_service.reverse_geocode(lat=lat, lon=lon)
+    return ReverseGeocodeResponse(**res)
+
+
+@router.get("/maps/route", response_model=RouteResponse)
+@router.get("/api/v1/maps/route", response_model=RouteResponse)
+@router.get("/api/maps/route", response_model=RouteResponse)
+async def get_attack_route_endpoint(
+    coords: Optional[str] = Query(None, description="Semicolon-separated lat,lon pairs (e.g. 50.1109,8.6821;16.5062,80.6480)"),
+    start_lat: Optional[float] = Query(None, description="Start latitude"),
+    start_lon: Optional[float] = Query(None, description="Start longitude"),
+    end_lat: Optional[float] = Query(None, description="End latitude"),
+    end_lon: Optional[float] = Query(None, description="End longitude")
+):
+    """
+    Calculates multi-hop attack route polyline between cyber telemetry hops.
+    Powered by Google Directions API with encoded polyline decoding and geodesic trajectory fallback.
+    """
+    points: List[tuple[float, float]] = []
+
+    if coords:
+        for pair in coords.split(";"):
+            cleaned = pair.strip()
+            if "," in cleaned:
+                p_lat, p_lon = cleaned.split(",", 1)
+                try:
+                    points.append((float(p_lat.strip()), float(p_lon.strip())))
+                except ValueError:
+                    pass
+    elif start_lat is not None and start_lon is not None and end_lat is not None and end_lon is not None:
+        points = [(start_lat, start_lon), (end_lat, end_lon)]
+
+    if len(points) < 2:
+        # Default attack trajectory: Frankfurt -> Vijayawada
+        points = [(50.1109, 8.6821), (16.5062, 80.6480)]
+
+    res = await maps_service.get_route(points)
+    return RouteResponse(**res)
+
+
+@router.get("/maps/places", response_model=PlacesResponse)
+@router.get("/api/v1/maps/places", response_model=PlacesResponse)
+@router.get("/api/maps/places", response_model=PlacesResponse)
+async def get_nearby_places_endpoint(
+    lat: float = Query(..., description="Target node latitude"),
+    lon: float = Query(..., description="Target node longitude"),
+    radius: int = Query(5000, description="Search radius in meters"),
+    amenity: Optional[str] = Query(None, description="Amenity filter: bank, university, telecom, data_center, government")
+):
+    """
+    Discovers nearby critical infrastructure around flagged hostile or relay IPs.
+    Powered by Google Places API with 30-day caching.
+    """
+    amenities = [amenity] if amenity else None
+    res = await maps_service.get_places(lat=lat, lon=lon, radius=radius, amenities=amenities)
+    return PlacesResponse(**res)
+
+
+@router.get("/maps/investigation/{id}", response_model=InvestigationMapResponse)
+@router.get("/api/v1/maps/investigation/{id}", response_model=InvestigationMapResponse)
+@router.get("/api/maps/investigation/{id}", response_model=InvestigationMapResponse)
+async def get_investigation_master_map_endpoint(
+    id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Master geospatial endpoint: combines markers (attacker, victim, relays, safe domains),
+    attack route polyline, threat density heatmap, and nearby infrastructure OSINT.
+    Powered by Google Maps Platform.
+    """
+    res = await maps_service.build_investigation_map(investigation_id=id, db=db)
+    return InvestigationMapResponse(**res)
+
 

@@ -47,6 +47,18 @@ class Settings(BaseSettings):
     MAPS_SERVICE_URL: str = os.getenv("MAPS_SERVICE_URL", "http://localhost:8003")
     REPORTS_SERVICE_URL: str = os.getenv("REPORTS_SERVICE_URL", "http://localhost:8004")
 
+    # Google Maps Platform Configuration (SIH 2026)
+    GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    GOOGLE_GEOCODING_URL: str = os.getenv("GOOGLE_GEOCODING_URL", "https://maps.googleapis.com/maps/api/geocode/json")
+    GOOGLE_DIRECTIONS_URL: str = os.getenv("GOOGLE_DIRECTIONS_URL", "https://maps.googleapis.com/maps/api/directions/json")
+    GOOGLE_PLACES_URL: str = os.getenv("GOOGLE_PLACES_URL", "https://maps.googleapis.com/maps/api/place/nearbysearch/json")
+    IP_API_URL: str = os.getenv("IP_API_URL", "http://ip-api.com/json")
+
+    # Google OAuth 2.0 & Gmail API Configuration
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:3000/inbox")
+
     class Config:
         case_sensitive = True
         extra = "allow"

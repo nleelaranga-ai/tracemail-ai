@@ -160,6 +160,35 @@ export const api = {
     }
   },
 
+  async getInvestigationMap(id: string): Promise<any> {
+    try {
+      return await request<any>(`/maps/investigation/${id}`);
+    } catch (err) {
+      console.error(`Backend OSM investigation map request failed for ${id}:`, err);
+      return null;
+    }
+  },
+
+  async getIpLocation(ip: string): Promise<any> {
+    return await request<any>(`/maps/location/${encodeURIComponent(ip)}`);
+  },
+
+  async geocode(q: string): Promise<any> {
+    return await request<any>(`/maps/geocode?q=${encodeURIComponent(q)}`);
+  },
+
+  async reverseGeocode(lat: number, lon: number): Promise<any> {
+    return await request<any>(`/maps/reverse?lat=${lat}&lon=${lon}`);
+  },
+
+  async getRoute(coords: string): Promise<any> {
+    return await request<any>(`/maps/route?coords=${encodeURIComponent(coords)}`);
+  },
+
+  async getPlaces(lat: number, lon: number, radius = 5000): Promise<any> {
+    return await request<any>(`/maps/places?lat=${lat}&lon=${lon}&radius=${radius}`);
+  },
+
   async getTimeline(id: string): Promise<TimelineStep[]> {
     if (USE_MOCKS) {
       const inv = MOCK_INVESTIGATIONS.find((i) => i.id === id);
@@ -230,12 +259,26 @@ export const api = {
     return await request<any>(`/api/inbox/scan${q}`, { method: "POST" });
   },
 
-  async getGoogleLoginUrl(): Promise<{ authUrl: string }> {
-    return await request<{ authUrl: string }>("/api/auth/google/login");
+  async getGoogleLoginUrl(): Promise<{ authUrl: string; configured?: boolean; provider?: string }> {
+    return await request<{ authUrl: string; configured?: boolean; provider?: string }>("/api/auth/google/login");
   },
 
   async connectGoogleInbox(email: string): Promise<any> {
     return await request<any>(`/api/auth/google/callback?email=${encodeURIComponent(email)}`);
+  },
+
+  async connectGoogleInboxWithCode(code: string): Promise<any> {
+    return await request<any>(`/api/auth/google/callback?code=${encodeURIComponent(code)}`);
+  },
+
+  async getGoogleInboxStatus(email?: string): Promise<{ connected: boolean; email: string; mode: string; client_configured: boolean; last_scanned_at: string | null }> {
+    const q = email ? `?email=${encodeURIComponent(email)}` : "";
+    return await request<any>(`/api/auth/google/status${q}`);
+  },
+
+  async disconnectGoogleInbox(email?: string): Promise<any> {
+    const q = email ? `?email=${encodeURIComponent(email)}` : "";
+    return await request<any>(`/api/auth/google/disconnect${q}`, { method: "POST" });
   },
 
   async listEvidence(): Promise<EvidenceRecordItem[]> {
