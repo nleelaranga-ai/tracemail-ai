@@ -26,11 +26,19 @@ def google_oauth_login():
 async def google_oauth_callback(
     code: Optional[str] = Query(None, description="Google OAuth authorization code"),
     email: Optional[str] = Query(None, description="Direct email for test/fallback registration"),
+    redirect_to_frontend: Optional[bool] = Query(True, description="Redirect browser to frontend after exchange"),
     db: Session = Depends(get_db)
 ):
     """Exchanges Google auth code for live tokens or registers connected inbox."""
+    import os
+    frontend_url = os.getenv("FRONTEND_URL", "https://tracemail-ai-84ho.vercel.app").rstrip("/")
     if code:
-        return await InboxService.exchange_code_and_connect(code, db)
+        res = await InboxService.exchange_code_and_connect(code, db)
+        if redirect_to_frontend:
+            connected_email = res.get("email", "connected")
+            mode = res.get("mode", "live")
+            return RedirectResponse(url=f"{frontend_url}/inbox?connected=true&email={connected_email}&mode={mode}")
+        return res
     target_email = email or "analyst@tracemail.ai"
     return InboxService.connect_account(target_email, db)
 

@@ -47,11 +47,20 @@ export default function InboxPage() {
   const checkStatusAndHandleCallback = async () => {
     if (typeof window === "undefined") return;
 
-    // 1. Check if OAuth redirected back with ?code=...
+    // 1. Check if OAuth redirected back with ?connected=true or ?code=...
     const urlParams = new URLSearchParams(window.location.search);
     const authCode = urlParams.get("code");
+    const isConnectedParam = urlParams.get("connected");
+    const emailParam = urlParams.get("email");
+    const modeParam = urlParams.get("mode");
 
-    if (authCode) {
+    if (isConnectedParam === "true") {
+      setConnected(true);
+      if (emailParam) setAccountEmail(emailParam);
+      setConnectionMode(modeParam === "live" ? "live" : "demo");
+      setNotice(`Successfully connected ${emailParam || "account"} via Google Workspace OAuth 2.0!`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (authCode) {
       setConnecting(true);
       setNotice("Exchanging Google authorization code for live tokens...");
       try {
