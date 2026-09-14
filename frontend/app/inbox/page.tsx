@@ -120,10 +120,10 @@ export default function InboxPage() {
     // 2. Fetch current status from backend for the authenticated user
     let activeEmail: string | undefined;
     try {
-      const status = await api.getGoogleInboxStatus(user?.email);
+      const status = await api.getGoogleInboxStatus();
       if (status.connected) {
         setConnected(true);
-        activeEmail = status.email || user?.email || "";
+        activeEmail = status.email || "";
         setAccountEmail(activeEmail);
         setConnectionMode(status.mode === "live" ? "live" : "demo");
       } else {

@@ -219,16 +219,18 @@ class InboxService:
         target_email = email.strip().lower() if email else None
         query = db.query(GmailAccount).filter(GmailAccount.connected == True)
 
-        if target_email:
-            query = query.filter(func.lower(GmailAccount.email) == target_email)
-
         if current_user:
             if getattr(current_user, "role", "") != "admin":
                 query = query.filter(
                     (GmailAccount.owner_user_id == current_user.id) |
                     (func.lower(GmailAccount.email) == current_user.email.strip().lower())
                 )
+            # If target_email was provided, filter by it only if it is not the user's login email
+            if target_email and target_email != current_user.email.strip().lower():
+                query = query.filter(func.lower(GmailAccount.email) == target_email)
         else:
+            if target_email:
+                query = query.filter(func.lower(GmailAccount.email) == target_email)
             # Unauthenticated callers cannot inspect privately owned mailboxes
             query = query.filter(GmailAccount.owner_user_id == None)
 
