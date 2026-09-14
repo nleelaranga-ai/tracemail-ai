@@ -10,25 +10,6 @@ from backend.parsers.email_parser import EmailParser
 router = APIRouter(prefix="/api/v1/email", tags=["Email"])
 
 
-@router.post("/upload", response_model=EmailUploadResponse)
-async def upload_email(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """Upload and process .eml file."""
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Filename required.")
-    content = await file.read()
-    inv = await EmailService.process_eml_file(db, content, file.filename)
-    return EmailUploadResponse(
-        investigationId=inv.id,
-        scan_id=inv.id,
-        status=inv.status,
-        message="Email parsed and investigation initiated.",
-        threat_score=inv.threat_score,
-        risk_level=inv.risk_level,
-        origin_city=inv.origin_city,
-        origin_country=inv.origin_country
-    )
-
-
 @router.post("/parse", response_model=EmailParsedData)
 async def parse_email_only(file: UploadFile = File(...)):
     """Parses .eml file and returns structured headers and body without persisting."""

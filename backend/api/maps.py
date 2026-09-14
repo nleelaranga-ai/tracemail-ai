@@ -403,13 +403,22 @@ async def get_nearby_places_endpoint(
 @router.get("/api/maps/investigation/{id}", response_model=InvestigationMapResponse)
 async def get_investigation_master_map_endpoint(
     id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """
     Master geospatial endpoint: combines markers (attacker, victim, relays, safe domains),
     attack route polyline, threat density heatmap, and nearby infrastructure OSINT.
     Powered by Google Maps Platform.
     """
+    if not current_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required to view investigation map.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    inv = db.query(Investigation).filter(Investigation.id == id).first()
+    _verify_investigation_access(inv, current_user)
     res = await maps_service.build_investigation_map(investigation_id=id, db=db)
     return InvestigationMapResponse(**res)
 

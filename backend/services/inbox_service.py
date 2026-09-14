@@ -214,31 +214,19 @@ class InboxService:
 
     @classmethod
     def get_connection_status(cls, email: Optional[str], db: Session, current_user: Optional[User] = None) -> Dict[str, Any]:
-        """Returns current live connection status and configuration state with strict tenant isolation."""
+        """Returns current live connection status and configuration state with strict tenant isolation, delegating to canonical verify_mailbox_access."""
         is_configured = cls.is_oauth_configured()
-        target_email = email.strip().lower() if email else None
-        query = db.query(GmailAccount).filter(GmailAccount.connected == True)
+        if not current_user:
+            return {
+                "connected": False,
+                "email": "",
+                "mode": "disconnected",
+                "client_configured": is_configured,
+                "last_scanned_at": None
+            }
 
-        if current_user:
-            if getattr(current_user, "role", "") != "admin":
-                query = query.filter(
-                    (GmailAccount.owner_user_id == current_user.id) |
-                    (func.lower(GmailAccount.email) == current_user.email.strip().lower())
-                )
-            # If target_email was provided, filter by it only if it is not the user's login email
-            if target_email and target_email != current_user.email.strip().lower():
-                query = query.filter(func.lower(GmailAccount.email) == target_email)
-        else:
-            if target_email:
-                query = query.filter(func.lower(GmailAccount.email) == target_email)
-            # Unauthenticated callers cannot inspect privately owned mailboxes
-            query = query.filter(GmailAccount.owner_user_id == None)
-
-        account = query.order_by(GmailAccount.last_scanned_at.desc()).first()
-
-        is_configured = cls.is_oauth_configured()
-
-        if account:
+        try:
+            account = cls.verify_mailbox_access(email, current_user, db)
             is_live_token = not account.access_token.startswith("ya29.demo-")
             return {
                 "connected": True,
@@ -247,14 +235,14 @@ class InboxService:
                 "client_configured": is_configured,
                 "last_scanned_at": account.last_scanned_at.isoformat() if account.last_scanned_at else None
             }
-
-        return {
-            "connected": False,
-            "email": "",
-            "mode": "disconnected",
-            "client_configured": is_configured,
-            "last_scanned_at": None
-        }
+        except HTTPException:
+            return {
+                "connected": False,
+                "email": "",
+                "mode": "disconnected",
+                "client_configured": is_configured,
+                "last_scanned_at": None
+            }
 
     @classmethod
     def verify_mailbox_access(
@@ -282,22 +270,25 @@ class InboxService:
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-        target_email = (account_email or current_user.email or "").strip().lower()
-        if not target_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Mailbox email must be provided."
-            )
-
-        account = db.query(GmailAccount).filter(
-            func.lower(GmailAccount.email) == target_email,
-            GmailAccount.connected == True
-        ).first()
+        if account_email and account_email.strip():
+            target_email = account_email.strip().lower()
+            account = db.query(GmailAccount).filter(
+                func.lower(GmailAccount.email) == target_email,
+                GmailAccount.connected == True
+            ).first()
+        else:
+            # When email is omitted, resolve by current_user's linked mailbox or login email
+            account = db.query(GmailAccount).filter(
+                (GmailAccount.owner_user_id == current_user.id) |
+                (func.lower(GmailAccount.email) == current_user.email.strip().lower()),
+                GmailAccount.connected == True
+            ).order_by(GmailAccount.last_scanned_at.desc()).first()
 
         if not account:
+            err_msg = f"Connected mailbox '{account_email}' not found." if account_email else "No connected mailbox found for this account."
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Connected mailbox '{target_email}' not found."
+                detail=err_msg
             )
 
         # Admin bypass

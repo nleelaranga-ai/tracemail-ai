@@ -118,9 +118,13 @@ def test_evidence_locker_and_tamper_detection(auth_headers):
     assert missing_res.status_code == 404
 
 
-def test_ai_explainability_weights():
+def test_ai_explainability_weights(auth_headers):
     case_id = "inv_paypal_phish_demo_01"
-    res = client.get(f"/api/ai/explainability/{case_id}")
+    # Unauthenticated call must return 401
+    unauth_res = client.get(f"/api/ai/explainability/{case_id}")
+    assert unauth_res.status_code == 401
+
+    res = client.get(f"/api/ai/explainability/{case_id}", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert "score" in data
@@ -134,8 +138,8 @@ def test_ai_explainability_weights():
         assert "weight" in r
         assert "category" in r
 
-    # Nonexistent investigation must return 404
-    missing_res = client.get("/api/ai/explainability/non_existent_case_9999")
+    # Nonexistent investigation with auth must return 404
+    missing_res = client.get("/api/ai/explainability/non_existent_case_9999", headers=auth_headers)
     assert missing_res.status_code == 404
 
 

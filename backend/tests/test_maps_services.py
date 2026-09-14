@@ -8,12 +8,19 @@ from fastapi.testclient import TestClient
 
 from backend.services.ip_service import ip_service
 from backend.services.maps_service import maps_service, MapsService
+from backend.services.auth_service import AuthService
 from backend.main import app
 
 
 @pytest.fixture
 def client():
     return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers():
+    token = AuthService.create_access_token({"sub": "analyst@tracemail.ai", "role": "admin"})
+    return {"Authorization": f"Bearer {token}"}
 
 
 # ============================================================================
@@ -202,8 +209,11 @@ def test_endpoint_maps_places(client):
     assert data["provider"] == "Google Maps Platform"
 
 
-def test_endpoint_maps_investigation(client):
-    res = client.get("/maps/investigation/test-inv-001")
+def test_endpoint_maps_investigation(client, auth_headers):
+    unauth = client.get("/maps/investigation/test-inv-001")
+    assert unauth.status_code == 401
+
+    res = client.get("/maps/investigation/test-inv-001", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
     assert "markers" in data
@@ -213,12 +223,15 @@ def test_endpoint_maps_investigation(client):
     assert data["summary"]["billing_required"] is True
 
 
-def test_endpoint_api_v1_compatibility(client):
+def test_endpoint_api_v1_compatibility(client, auth_headers):
     """Verify dual-mounting under /api/v1/maps/* works identically."""
     res1 = client.get("/api/v1/maps/location/8.8.8.8")
     assert res1.status_code == 200
     assert res1.json()["country"] == "United States"
 
-    res2 = client.get("/api/v1/maps/investigation/test-inv-002")
+    unauth = client.get("/api/v1/maps/investigation/test-inv-002")
+    assert unauth.status_code == 401
+
+    res2 = client.get("/api/v1/maps/investigation/test-inv-002", headers=auth_headers)
     assert res2.status_code == 200
     assert len(res2.json()["markers"]) >= 3
