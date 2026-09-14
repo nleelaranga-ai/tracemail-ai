@@ -415,16 +415,75 @@ class MapsService:
         origin_country = inv.origin_country or inv.country if inv else origin_geo.get("country", "Germany")
         origin_isp = origin_geo.get("isp", "M247 Ltd Tor Exit Node")
 
-        # 2. Target (Victim) & Intermediate Relay Coordinates
-        victim_geo = await cls.geocode(city="Vijayawada", country="India")
-        victim_lat = float(victim_geo.get("latitude", 16.5062))
-        victim_lon = float(victim_geo.get("longitude", 80.6480))
+        # 2. Dynamic Target (Victim) Resolution from Recipient Mail Server (MX)
+        victim_ip = "203.0.113.50"
+        victim_lat = 16.5062
+        victim_lon = 80.6480
+        victim_city = "Target Organization"
+        victim_country = "India"
+        victim_isp = "Enterprise Campus Network"
+        victim_server = "mx.target-defense.org"
 
-        relay_geo = await cls.geocode(city="Bengaluru", country="India")
-        relay_lat = float(relay_geo.get("latitude", 12.9716))
-        relay_lon = float(relay_geo.get("longitude", 77.5946))
+        recipient_domain = recipient.split("@")[-1].strip().lower() if "@" in recipient else ""
+        if recipient_domain and recipient_domain not in ("localhost", "127.0.0.1", "target.local"):
+            try:
+                import socket
+                import dns.resolver
+                answers = dns.resolver.resolve(recipient_domain, "MX", lifetime=1.5)
+                mx_hosts = [str(r.exchange).rstrip(".") for r in answers]
+                if mx_hosts:
+                    victim_server = mx_hosts[0]
+                    resolved_mx_ip = socket.gethostbyname(victim_server)
+                    if ip_service.is_public_ip(resolved_mx_ip):
+                        victim_ip = resolved_mx_ip
+                        mx_geo = await ip_service.get_location(victim_ip)
+                        if mx_geo.get("status") == "success" and mx_geo.get("latitude") and mx_geo.get("longitude"):
+                            victim_lat = float(mx_geo["latitude"])
+                            victim_lon = float(mx_geo["longitude"])
+                            victim_city = mx_geo.get("city", victim_city)
+                            victim_country = mx_geo.get("country", victim_country)
+                            victim_isp = mx_geo.get("isp", f"MX Gateway ({victim_server})")
+            except Exception as e:
+                logger.debug(f"Dynamic MX resolution for {recipient_domain} fallback: {e}")
 
-        # 3. Google Maps Markers (🔴 Attacker, 🔵 Victim, 🟠 Relay, 🟢 Safe)
+        # 3. Dynamic Intermediate Relay Hops Resolution from Received Headers
+        hops = (inv.hop_timeline or []) if inv else []
+        if not hops and inv and inv.raw_headers:
+            try:
+                from backend.parsers.header_parser import HeaderParser
+                parsed_hdr = HeaderParser.parse_headers({}, inv.raw_headers)
+                hops = parsed_hdr.get("structured_hops", [])
+            except Exception:
+                hops = []
+
+        relay_ip = "142.250.1.27"
+        relay_lat = 12.9716
+        relay_lon = 77.5946
+        relay_city = "Transit Gateway"
+        relay_country = "India"
+        relay_isp = "MTA Transit Relay"
+        relay_server = "mail-gw-01.transit.net"
+
+        # Search for first intermediate public relay IP between origin and victim
+        for hop in hops:
+            if isinstance(hop, dict):
+                hip = hop.get("ip", "").strip()
+                if hip and hip != origin_ip and hip != victim_ip and not ip_service.is_private_ip(hip):
+                    try:
+                        rgeo = await ip_service.get_location(hip)
+                        if rgeo.get("status") == "success" and rgeo.get("latitude") and rgeo.get("longitude"):
+                            relay_ip = hip
+                            relay_lat = float(rgeo["latitude"])
+                            relay_lon = float(rgeo["longitude"])
+                            relay_city = rgeo.get("city", "Transit Gateway")
+                            relay_country = rgeo.get("country", "Transit")
+                            relay_isp = rgeo.get("isp", "MTA Transit Provider")
+                            relay_server = hop.get("server") or hop.get("from_server", "mail-relay.net")
+                            break
+                    except Exception:
+                        pass
+
+        # 4. Google Maps Markers (🔴 Attacker, 🔵 Victim, 🟠 Relay, 🟢 Safe)
         markers = [
             {
                 "id": "attacker-node",
@@ -447,16 +506,16 @@ class MapsService:
             },
             {
                 "id": "relay-node-1",
-                "label": "MTA Relay: mail-gw-01.transit.net",
+                "label": f"MTA Relay: {relay_server}",
                 "type": "relay",
                 "color": "#f97316",  # 🟠 Orange
                 "latitude": relay_lat,
                 "longitude": relay_lon,
-                "ip": "142.250.1.27",
-                "city": "Bengaluru",
-                "country": "India",
+                "ip": relay_ip,
+                "city": relay_city,
+                "country": relay_country,
                 "threat_score": 45,
-                "isp": "Google Cloud Transit",
+                "isp": relay_isp,
                 "role": "Intermediate Inbound Gateway",
                 "details": {
                     "tls_version": "TLSv1.3",
@@ -470,14 +529,15 @@ class MapsService:
                 "color": "#3b82f6",  # 🔵 Blue
                 "latitude": victim_lat,
                 "longitude": victim_lon,
-                "ip": "203.0.113.50",
-                "city": "Vijayawada",
-                "country": "India",
+                "ip": victim_ip,
+                "city": victim_city,
+                "country": victim_country,
                 "threat_score": 0,
-                "isp": "Enterprise Campus Network",
+                "isp": victim_isp,
                 "role": "Target Organization (Victim)",
                 "details": {
                     "recipient": recipient,
+                    "mail_server": victim_server,
                     "protected": True,
                     "status": "Quarantine Intercepted"
                 }
@@ -490,8 +550,8 @@ class MapsService:
                 "latitude": round(victim_lat + 0.4, 4),
                 "longitude": round(victim_lon + 0.3, 4),
                 "ip": "198.51.100.12",
-                "city": "Vijayawada Region",
-                "country": "India",
+                "city": f"{victim_city} Region",
+                "country": victim_country,
                 "threat_score": 5,
                 "isp": "DMARC/SPF Validator",
                 "role": "Security Verification Node",
@@ -502,7 +562,7 @@ class MapsService:
             }
         ]
 
-        # 4. Route via Google Directions API
+        # 5. Route via Google Directions API
         route_coords = [
             (origin_lat, origin_lon),
             (relay_lat, relay_lon),
@@ -513,16 +573,16 @@ class MapsService:
         routes = [
             {
                 "id": f"route-{investigation_id}",
-                "name": f"Attack Traversal: {origin_city} -> Bengaluru -> Vijayawada",
+                "name": f"Attack Traversal: {origin_city} -> {relay_city} -> {victim_city}",
                 "polyline": route_data.get("geometry", []),
                 "distance_km": round(route_data.get("distance", 0.0) / 1000.0, 1),
                 "is_hostile": threat_score >= 50,
                 "color": "#ef4444" if threat_score >= 50 else "#f97316",
-                "hops": [origin_ip, "142.250.1.27", "203.0.113.50"]
+                "hops": [origin_ip, relay_ip, victim_ip]
             }
         ]
 
-        # 5. Threat Density Heatmap Points
+        # 6. Threat Density Heatmap Points
         heatmap = [
             {"lat": origin_lat, "lng": origin_lon, "weight": float(threat_score)},
             {"lat": round(origin_lat + 0.05, 4), "lng": round(origin_lon - 0.05, 4), "weight": float(max(10, threat_score - 15))},

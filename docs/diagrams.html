@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TraceMail AI — Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  
+  @page {
+    size: A4 landscape;
+    margin: 14mm 12mm 14mm 12mm;
+    @bottom-right {
+      content: "Architecture Dossier | Page " counter(page);
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #64748b;
+    }
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.45;
+    color: #1e293b;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    font-size: 16pt;
+    font-weight: 800;
+    color: #0f172a;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 6px;
+    margin: 0 0 10px 0;
+  }
+
+  h2 {
+    font-size: 12.5pt;
+    font-weight: 700;
+    color: #1e293b;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    page-break-before: always;
+  }
+
+  h2:first-of-type {
+    page-break-before: avoid;
+  }
+
+  p {
+    font-size: 9pt;
+    color: #475569;
+    margin: 4px 0 10px 0;
+  }
+
+  .mermaid-container {
+    text-align: center;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+    page-break-inside: avoid;
+  }
+
+  .mermaid svg {
+    max-width: 100%;
+    height: auto;
+    max-height: 145mm;
+  }
+</style>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: false, htmlLabels: true },
+    er: { useMaxWidth: false }
+  });
+</script>
+</head>
+<body>
+<h1>TraceMail AI — Comprehensive Architecture Diagrams</h1>
+<p>This document contains the complete technical architecture diagrams for <strong>TraceMail AI</strong>, directly reflecting the production code, database schema, threat intelligence integration, and authentication workflows.</p>
+<hr />
+<h2>1. High-Level System Architecture</h2>
+<div class="mermaid-container"><div class="mermaid">
+flowchart TB
+    subgraph ClientLayer["Presentation Tier (Vercel Edge Network)"]
+        UI["Next.js 15 Web Application\n(React 19, TypeScript, Tailwind CSS)"]
+        Pages["Views:\n/dashboard | /inbox | /investigation/[id]\n/soc | /evidence | /org | /reports"]
+        Zustand["Client State & Auth Store\n(Synchronous localStorage Bearer Token)"]
+        UI --- Pages
+        UI --- Zustand
+    end
+
+<pre><code>subgraph SecurityBoundary[&quot;Security &amp; Ingestion Boundary&quot;]
+    OAuth[&quot;Google OAuth 2.0\nScope: gmail.readonly&quot;]
+    EML[&quot;RFC 822 / EML\nDirect File Upload&quot;]
+end
+
+subgraph BackendLayer[&quot;Application Tier (Railway Cloud Containers)&quot;]
+    FastAPI[&quot;FastAPI Application Server (Python 3.12, Uvicorn)&quot;]
+    AuthMid[&quot;JWT Auth Middleware &amp; Dependency Injection\n(get_current_user, require_auth)&quot;]
+    CanonicalAuth[&quot;Canonical Authorization Gates\n(verify_mailbox_access, _verify_investigation_access)&quot;]
+    
+    subgraph CoreEngines[&quot;Core Forensic Engines&quot;]
+        Parser[&quot;Header &amp; MIME Parser\n(Trusted-MTA Boundary Extractor)&quot;]
+        IntelGW[&quot;Canonical Threat Intel Gateway\n(Asyncio Parallel Workers)&quot;]
+        XAIEngine[&quot;Explainable AI Engine\n(Mathematical Scoring &amp; Reason Weights)&quot;]
+        EvidenceSvc[&quot;Evidence Service\n(SHA-256 Custody Sealer)&quot;]
+    end
+
+    FastAPI --&gt; AuthMid
+    AuthMid --&gt; CanonicalAuth
+    CanonicalAuth --&gt; CoreEngines
+end
+
+subgraph ThreatIntelCloud[&quot;External Threat Intelligence &amp; AI APIs&quot;]
+    VT[&quot;VirusTotal v3\n(File Hashes &amp; URLs)&quot;]
+    Abuse[&quot;AbuseIPDB v2\n(IP Reputation &amp; Abuse %)&quot;]
+    IPInfo[&quot;IPinfo / GeoIP\n(ASN, ISP, Coordinates)&quot;]
+    URLScan[&quot;URLScan.io\n(Sandbox &amp; Redirects)&quot;]
+    GSB[&quot;Google Safe Browsing v4\n(Phishing Blacklists)&quot;]
+    RDAP[&quot;ICANN RDAP / WHOIS\n(Domain Age &amp; Registrar)&quot;]
+    DNS[&quot;DNSSEC / dnspython\n(SPF, DKIM, DMARC)&quot;]
+    Groq[&quot;Groq Cloud\n(LLaMA-3 Executive Summaries)&quot;]
+    GMaps[&quot;Google Maps Platform\n(OSINT &amp; Route Polylines)&quot;]
+end
+
+subgraph DataStorageTier[&quot;Persistence Tier (PostgreSQL 16 on Railway)&quot;]
+    Postgres[(PostgreSQL 16 Relational DB\n16 Normalized Tables\nRow-Level Locking with_for_update)]
+end
+
+UI --&gt;|HTTPS / TLS 1.3 + JWT| FastAPI
+OAuth -.-&gt;|Access Tokens| BackendLayer
+EML -.-&gt;|Multipart Form Data| BackendLayer
+
+IntelGW --&gt; VT &amp; Abuse &amp; IPInfo &amp; URLScan &amp; GSB &amp; RDAP &amp; DNS &amp; GMaps
+XAIEngine --&gt; Groq
+
+CoreEngines &lt;--&gt;|SQLAlchemy ORM + Connection Pooling| Postgres</code></pre>
+</div></div>
+
+<hr />
+<h2>2. Investigation Pipeline / Sequence Diagram</h2>
+<div class="mermaid-container"><div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Analyst as Security Analyst
+    participant UI as Next.js Web Client
+    participant API as FastAPI Backend
+    participant Parser as HeaderParser (MTA Engine)
+    participant IntelGW as ThreatIntel Gateway
+    participant XAI as Explainability Engine
+    participant Groq as Groq LLaMA-3 AI
+    participant Evid as Evidence Locker
+    participant DB as PostgreSQL 16 DB
+
+<pre><code>Analyst-&gt;&gt;UI: Submit EML File OR Trigger On-Demand Gmail Scan
+UI-&gt;&gt;API: POST /api/investigations OR /api/inbox/messages/{id}/investigate (Bearer JWT)
+
+Note over API,DB: Canonical Authorization: verify_mailbox_access / user identity
+API-&gt;&gt;DB: Query existing record with row-level lock (with_for_update)
+
+API-&gt;&gt;Parser: Parse RFC 5322 Headers &amp; Multipart Body
+Parser-&gt;&gt;Parser: Detect Display-Name Spoofing &amp; Channel Mismatches
+Parser-&gt;&gt;Parser: Traverse Received headers top-down to find earliest trusted MX hop
+Parser-&gt;&gt;Parser: Extract socket peer IP &amp; validate public IPv4 (_is_public_ip)
+Parser--&gt;&gt;API: Emits Origin IP, Sender FQDN, IOC Entities, Authentication Tokens
+
+par Multi-Provider Threat Intelligence Enrichment
+    API-&gt;&gt;IntelGW: Query VirusTotal v3 (Attachments &amp; URLs)
+    API-&gt;&gt;IntelGW: Query AbuseIPDB v2 (IP Abuse Confidence)
+    API-&gt;&gt;IntelGW: Query IPinfo (ASN, ISP, Country, Coordinates)
+    API-&gt;&gt;IntelGW: Query URLScan.io &amp; Google Safe Browsing
+    API-&gt;&gt;IntelGW: Query ICANN RDAP / WHOIS (Domain Age)
+    API-&gt;&gt;IntelGW: Query DNS Resolver (Live SPF, DKIM, DMARC)
+end
+IntelGW--&gt;&gt;API: Normalized Composite Threat Intelligence Payload
+
+API-&gt;&gt;XAI: Calculate Deterministic Threat Weights (0-100)
+Note over XAI: Weights: Auth (30%) + Domain Age (20%) + Intel (30%) + Heuristics (20%)
+XAI--&gt;&gt;API: Structured Metric Reasons &amp; Threat Verdict (Safe / Suspicious / Phishing)
+
+API-&gt;&gt;Groq: Generate Context-Constrained Executive Narrative
+Groq--&gt;&gt;API: Factually Grounded Human-Readable Incident Summary
+
+API-&gt;&gt;Evid: Seal Forensic Evidence Record
+Evid-&gt;&gt;Evid: Compute SHA-256(Raw Headers + Body Payload)
+Evid-&gt;&gt;DB: Store EvidenceRecord (Original Hash, Timestamp, Custody Step 1)
+
+API-&gt;&gt;DB: Persist Investigation Case (Verdict, Scores, Maps, IOCs)
+DB--&gt;&gt;API: Commit Transaction
+
+API--&gt;&gt;UI: 200 OK (Full Investigation Payload &amp; Forensic Evidence Hash)
+UI--&gt;&gt;Analyst: Render Interactive Investigation Cockpit &amp; OSINT Map</code></pre>
+</div></div>
+
+<hr />
+<h2>3. Database Entity Relationship (ER) Diagram (Actual 16 Tables)</h2>
+<div class="mermaid-container"><div class="mermaid">
+erDiagram
+    users ||--o{ investigations : "owns (owner_user_id)"
+    users ||--o{ gmail_accounts : "links (owner_user_id)"
+    users ||--o{ audit_logs : "triggers (user_id)"
+    investigations ||--o{ emails : "contains"
+    investigations ||--o{ headers : "decomposes into"
+    investigations ||--o{ ioc_entities : "extracts"
+    investigations ||--o{ threat_results : "enriches with"
+    investigations ||--o{ ai_results : "synthesizes"
+    investigations ||--o{ evidence_records : "cryptographically seals"
+    investigations ||--o{ attachment_scans : "inspects"
+    investigations ||--o{ reports : "generates"
+    investigations ||--o| investigation_geo_cache : "caches geodata"
+    gmail_accounts ||--o{ inbox_scan_results : "monitors (account_email)"
+
+<pre><code>users {
+    string id PK &quot;usr_uuid&quot;
+    string email UK
+    string password_hash
+    string name
+    string role &quot;admin / analyst&quot;
+    boolean is_active
+    datetime created_at
+}
+
+investigations {
+    string id PK &quot;inv_uuid&quot;
+    string status &quot;processing / complete / failed&quot;
+    string sender
+    string recipient
+    string subject
+    datetime received_at
+    string domain
+    string ip &quot;Origin Public IP&quot;
+    string country
+    string city
+    json latitude
+    json longitude
+    integer phishing_score &quot;0 to 100&quot;
+    string verdict &quot;safe / suspicious / phishing&quot;
+    string risk_level &quot;Low / Medium / High / Critical&quot;
+    text explanation
+    text ai_summary
+    text raw_headers
+    text body_text
+    json entities
+    json auth_results
+    json hop_timeline
+    json timeline
+    json geojson_map
+    json attack_graph
+    json threat_results
+    json virus_total
+    json abuse_ipdb
+    json whois
+    json dns
+    json urlscan
+    json google_safe_browsing
+    json ai_analysis
+    json ioc
+    string evidence_hash &quot;SHA-256&quot;
+    json action_items
+    string owner_user_id FK &quot;Indexed Tenant Boundary&quot;
+    datetime created_at
+    datetime updated_at
+}
+
+gmail_accounts {
+    string id PK &quot;gacc_uuid&quot;
+    string email UK
+    string owner_user_id FK &quot;Indexed Tenant Boundary&quot;
+    text access_token
+    text refresh_token
+    datetime token_expiry
+    boolean connected
+    datetime created_at
+    datetime last_scanned_at
+}
+
+inbox_scan_results {
+    string id PK &quot;inb_uuid&quot;
+    string account_email FK
+    string message_id
+    string sender
+    string subject
+    text snippet
+    string risk &quot;Safe / Suspicious / Critical&quot;
+    integer threat_score
+    string verdict
+    datetime scanned_at
+    string investigation_id FK
+}
+
+evidence_records {
+    string id PK &quot;evd_uuid&quot;
+    string investigation_id FK
+    string sha256 &quot;Current Hash&quot;
+    string original_hash &quot;Immutable Ingestion Seal&quot;
+    string investigator
+    string status &quot;Verified / Tampered / Exported&quot;
+    text raw_content
+    datetime created_at
+    datetime verified_at
+    text custody_notes
+}
+
+attachment_scans {
+    string id PK &quot;att_uuid&quot;
+    string investigation_id FK
+    string filename
+    string file_type
+    string sha256
+    integer size_bytes
+    boolean malicious
+    string verdict
+    string engine
+    json details
+    datetime created_at
+}
+
+emails {
+    string id PK &quot;eml_uuid&quot;
+    string investigation_id FK
+    string raw_eml
+    text parsed_body
+    datetime ingested_at
+}
+
+headers {
+    string id PK &quot;hdr_uuid&quot;
+    string investigation_id FK
+    string header_key
+    text header_value
+}
+
+ioc_entities {
+    string id PK &quot;ioc_uuid&quot;
+    string investigation_id FK
+    string entity_type &quot;ip / domain / url / hash&quot;
+    string entity_value
+    string reputation
+}
+
+threat_results {
+    string id PK &quot;thr_uuid&quot;
+    string investigation_id FK
+    string provider &quot;virustotal / abuseipdb / urlscan&quot;
+    json result_payload
+    datetime queried_at
+}
+
+ai_results {
+    string id PK &quot;air_uuid&quot;
+    string investigation_id FK
+    json reason_weights
+    text narrative_summary
+    datetime generated_at
+}
+
+reports {
+    string id PK &quot;rep_uuid&quot;
+    string investigation_id FK
+    string report_type &quot;pdf / json / html&quot;
+    string file_path
+    datetime generated_at
+}
+
+audit_logs {
+    string id PK &quot;aud_uuid&quot;
+    string user_id FK
+    string action
+    string target_resource
+    datetime timestamp
+}
+
+investigation_geo_cache {
+    string id PK &quot;geo_uuid&quot;
+    string investigation_id FK
+    json coordinates
+    json polylines
+    datetime cached_at
+}
+
+scans {
+    string id PK &quot;scn_uuid&quot;
+    string scan_target
+    string scan_status
+    datetime initiated_at
+}
+
+org_metrics {
+    string id PK &quot;org_uuid&quot;
+    string department UK
+    integer threat_count
+    integer phishing_count
+    integer safe_count
+    string risk_level
+    string top_attack_type
+    datetime last_attack_at
+}</code></pre>
+</div></div>
+
+<hr />
+<h2>4. Tenant Isolation &amp; Authentication Flow Diagram</h2>
+<div class="mermaid-container"><div class="mermaid">
+flowchart TD
+    Req([Incoming HTTP Request]) --> AuthHeaderCheck{Authorization Header Present?}
+
+<pre><code>AuthHeaderCheck -- No --&gt; PublicRouteCheck{Is Route Public?}
+PublicRouteCheck -- Yes e.g. /health, /api/auth/login --&gt; AllowPublic[Execute Endpoint Logic: 200 OK]
+PublicRouteCheck -- No e.g. /api/investigations, /api/inbox/* --&gt; Return401[Reject: 401 Unauthorized]
+
+AuthHeaderCheck -- Yes --&gt; ValidateJWT{Verify JWT Signature &amp; Expiry}
+ValidateJWT -- Invalid / Expired --&gt; Return401Invalid[Reject: 401 Unauthorized]
+ValidateJWT -- Valid Token --&gt; ExtractUser[Extract User Identity &amp; Role: current_user]
+
+ExtractUser --&gt; RouteTypeCheck{Target Endpoint Resource Type}
+
+subgraph AdminGate[&quot;Administrative Access Control&quot;]
+    RouteTypeCheck -- Admin Route e.g. /api/v1/admin/* --&gt; CheckAdminRole{current_user.role == 'admin'?}
+    CheckAdminRole -- No (Analyst) --&gt; Return403Admin[Reject: 403 Forbidden]
+    CheckAdminRole -- Yes --&gt; AllowAdmin[Execute Admin Action: 200 OK]
+end
+
+subgraph MailboxGate[&quot;Mailbox Ownership Access Control (verify_mailbox_access)&quot;]
+    RouteTypeCheck -- Mailbox Route e.g. /api/inbox/scan, /results --&gt; ResolveMailbox[Resolve Target Mailbox from Param or User ID]
+    ResolveMailbox --&gt; MailboxExists{Mailbox Found in DB?}
+    MailboxExists -- No --&gt; Return404Mailbox[Reject: 404 Not Found]
+    MailboxExists -- Yes --&gt; CheckMailboxAdmin{current_user.role == 'admin'?}
+    CheckMailboxAdmin -- Yes --&gt; AllowMailbox[Grant Global Admin Access: 200 OK]
+    CheckMailboxAdmin -- No --&gt; CheckOwnership{account.owner_user_id == current_user.id OR account.email == current_user.email?}
+    CheckOwnership -- No (Stranger Tenant) --&gt; Return403Mailbox[Reject: 403 Forbidden Tenant Boundary Violation]
+    CheckOwnership -- Yes --&gt; AllowMailboxAccess[Allow Mailbox Scan &amp; Inspection: 200 OK]
+end
+
+subgraph InvestigationGate[&quot;Case Ownership Access Control (_verify_investigation_access)&quot;]
+    RouteTypeCheck -- Case Route e.g. /api/investigations/{id} --&gt; QueryInv[Lookup Investigation by ID in DB]
+    QueryInv --&gt; InvExists{Investigation Found in DB?}
+    InvExists -- No --&gt; Return404Case[Reject: 404 Not Found]
+    InvExists -- Yes --&gt; CheckInvOwner{inv.owner_user_id == None OR inv.owner_user_id == current_user.id OR role == 'admin'?}
+    CheckInvOwner -- No (Other Tenant Case) --&gt; Return404Silent[Reject: 404 Not Found Anti-Enumeration]
+    CheckInvOwner -- Yes --&gt; AllowCase[Return Investigation Forensics: 200 OK]
+end</code></pre>
+</div></div>
+
+<hr />
+<h2>5. Trusted-MTA Origin-IP Extraction Diagram (RFC 5322 Spoofing Resistance)</h2>
+<div class="mermaid-container"><div class="mermaid">
+flowchart TD
+    RawEML([Raw RFC 822 Email Headers]) --> ExtractHops[Extract All 'Received:' Headers in Chronological Order]
+
+<pre><code>subgraph AttackerVulnerability[&quot;Vulnerability in Naive Email Parsers&quot;]
+    DirectionNaive[&quot;Naive Parsing Strategy: Select Bottom-Most Hop (Hop 1)&quot;]
+    ForgedHeader[&quot;Received: from forged-victim.bank.com (1.2.3.4) by attacker.relay.net&quot;]
+    FalseAttribution[&quot;CRITICAL FAILURE: Innocents Masqueraded as Attacker\nAttacker IP Evades Blacklists&quot;]
+    DirectionNaive --&gt; ForgedHeader --&gt; FalseAttribution
+end
+
+subgraph TraceMailSolution[&quot;TraceMail AI Trusted-MTA Boundary Traversal&quot;]
+    ScanTopDown[Scan All Hops from Top to Bottom]
+    
+    HopN[&quot;Hop N (Top): Received by internal recipient mail server&quot;]
+    Hop2[&quot;Hop 2: Received by mx.google.com from attacker.relay.net (198.51.100.55)&quot;]
+    Hop1[&quot;Hop 1 (Bottom): Received by attacker.relay.net from forged-victim.bank.com (1.2.3.4)&quot;]
+    
+    ScanTopDown --&gt; HopN --&gt; Hop2 --&gt; Hop1
+    
+    MatchTrustedBoundary{Does 'by' server match TRUSTED_MTA_PATTERNS?\n(mx.google.com, mx.microsoft.com, pphosted.com, mimecast.com, etc.)}
+    
+    Hop2 -.-&gt; MatchTrustedBoundary
+    MatchTrustedBoundary -- Match Found --&gt; SelectBoundaryHop[Anchor on Earliest Trusted Destination Hop]
+    
+    SelectBoundaryHop --&gt; ExtractTCPClientIP[&quot;Extract IP from 'from ... [IP]' clause stamped by Destination MX\n(e.g., 198.51.100.55)&quot;]
+    
+    ExtractTCPClientIP --&gt; ValidatePublicIP{_is_public_ip(IP)?\n(Filters 10.x, 172.16-31.x, 192.168.x, 127.x)}
+    
+    ValidatePublicIP -- Public IP Verified --&gt; SetOriginIP[True Threat Origin Public IP Identified: 198.51.100.55]
+    ValidatePublicIP -- Internal/Private --&gt; FallbackTopDown[Traverse Top-Down to First External Public IP]
+end
+
+ExtractHops --&gt; ScanTopDown
+SetOriginIP --&gt; ThreatIntelFeeds[Pass Genuine Origin IP to AbuseIPDB &amp; GeoIP Services]</code></pre>
+</div></div>
+
+
+</body>
+</html>

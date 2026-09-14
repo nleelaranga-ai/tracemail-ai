@@ -45,12 +45,45 @@ from backend.api.ai_explainability import router as explainability_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initializes database tables and default demo seeds on startup."""
+    """Initializes database tables, default demo seeds, and background mailbox polling."""
     logger.info(f"Starting {PROJECT_NAME} v{VERSION}...")
     init_db()
     seed_database()
     logger.info(f"{PROJECT_NAME} gateway ready to process threat telemetry.")
+
+    # Initialize Automated Mailbox Polling Background Worker (APScheduler)
+    scheduler = None
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.interval import IntervalTrigger
+        from backend.database.connection import SessionLocal
+        from backend.services.inbox_service import InboxService
+
+        async def _scheduled_mailbox_poll():
+            db = SessionLocal()
+            try:
+                await InboxService.poll_all_connected_mailboxes(db)
+            except Exception as poll_err:
+                logger.warning(f"Error in scheduled mailbox poll: {poll_err}")
+            finally:
+                db.close()
+
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            _scheduled_mailbox_poll,
+            trigger=IntervalTrigger(minutes=3),
+            id="tracemail_mailbox_poll",
+            replace_existing=True
+        )
+        scheduler.start()
+        logger.info("TraceMail automated mailbox polling scheduler started (Interval: 3 minutes).")
+    except Exception as sched_err:
+        logger.warning(f"APScheduler background worker not started: {sched_err}")
+
     yield
+
+    if scheduler and scheduler.running:
+        scheduler.shutdown(wait=False)
     logger.info(f"Shutting down {PROJECT_NAME}...")
 
 

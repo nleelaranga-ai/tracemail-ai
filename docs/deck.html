@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TraceMail AI — SIH Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #0f172a;
+    color: #1e293b;
+  }
+
+  .slide {
+    width: 297mm;
+    height: 210mm;
+    box-sizing: border-box;
+    padding: 16mm 20mm;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  .slide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  .slide-badge {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #2563eb;
+    letter-spacing: 1.5px;
+  }
+
+  .slide-num {
+    font-size: 8.5pt;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  .slide-heading {
+    font-size: 18pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 14px 0;
+  }
+
+  .slide-body {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .slide-text p, .slide-text li {
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #334155;
+  }
+
+  .slide-text h3 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 8px 0;
+  }
+
+  .slide-text h4 {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #2563eb;
+    margin: 6px 0;
+  }
+
+  .slide-text ul {
+    margin: 6px 0;
+    padding-left: 24px;
+  }
+
+  .slide-text li {
+    margin-bottom: 6px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 10px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f1f5f9;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+
+  pre code {
+    display: block;
+    padding: 10px 14px;
+    background-color: #f1f5f9;
+    border-left: 4px solid #2563eb;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9pt;
+    line-height: 1.4;
+    border-radius: 0 6px 6px 0;
+  }
+
+  blockquote {
+    border-left: 4px solid #2563eb;
+    background-color: #eff6ff;
+    padding: 10px 16px;
+    font-style: italic;
+    color: #1e3a8a;
+    border-radius: 0 6px 6px 0;
+    margin: 12px 0;
+  }
+
+  .slide-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
+    font-size: 8pt;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 01 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">1: Title Slide</h2>
+            <div class="slide-text">
+              <h3>TraceMail AI</h3>
+<h4>Autonomous Forensic Email Threat Investigation &amp; Threat Intelligence Correlation Platform</h4>
+<ul>
+<li><strong>Team:</strong> TraceMail AI Engineering Team</li>
+<li><strong>Problem Statement ID:</strong> SIH2024 - Cybersecurity Track</li>
+<li><strong>Category:</strong> Software / Cloud Architecture / Cyber Defense</li>
+<li><strong>Live System:</strong> <a href="https://tracemail-ai-84ho.vercel.app">tracemail-ai-84ho.vercel.app</a></li>
+<li><strong>Tagline:</strong> &quot;Transforming 45-Minute Email Forensic Triage into 30-Second Explainable Intelligence&quot;</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 02 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">2: Problem Statement</h2>
+            <div class="slide-text">
+              <h3>The Critical Bottleneck in Email Incident Response</h3>
+<ul>
+<li><strong>The Threat:</strong> Email-based attacks (phishing, spoofing, Business Email Compromise) account for over <strong>90% of organizational cyber breaches</strong>.</li>
+<li><strong>The Operational Gap:</strong> When a malicious email bypasses perimeter filters, SOC Tier-1/Tier-2 analysts face an exhausting, manual investigation:<ul>
+<li>Manually inspecting RFC 5322 <code>Received:</code> headers to locate the true origin server.</li>
+<li>Cross-referencing 5 to 10 disjoint web portals (VirusTotal, AbuseIPDB, URLScan, WHOIS, DNS TXT records).</li>
+<li>Falling prey to attacker-forged <code>Received:</code> headers that masquerade as innocent relays.</li>
+</ul>
+</li>
+<li><strong>The Business Impact:</strong> Manual triage takes <strong>20–45 minutes per email</strong>. High incident volume leads to severe alert fatigue, missed zero-day attacks, and unsealed, legally inadmissible evidence chains.</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 03 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">3: Proposed Solution</h2>
+            <div class="slide-text">
+              <h3>TraceMail AI: End-to-End Autonomous Email Forensics</h3>
+<p>TraceMail AI provides an automated, explainable, and legally defensible email threat investigation platform:</p>
+<ul>
+<li><strong>Dual-Stream Ingestion:</strong> Analyze raw <code>.eml</code> uploads or stream live mailboxes via Google OAuth2 (<code>gmail.readonly</code>).</li>
+<li><strong>Spoofing-Resistant Parsing:</strong> Patented Trusted-MTA boundary extraction identifies genuine attacker IPs despite pre-injected forged headers.</li>
+<li><strong>Canonical Multi-Provider Correlation:</strong> Live parallel enrichment across 7 industry-standard intelligence feeds with strict timeouts and zero crash cascades.</li>
+<li><strong>Explainable AI (XAI) Scoring:</strong> Deterministic mathematical weights (0–100) paired with Groq Cloud LLaMA-3 executive incident narratives.</li>
+<li><strong>Cryptographic Evidence Locker:</strong> Automated SHA-256 evidence hashing establishing an unalterable digital chain of custody with real-time tamper detection.</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 04 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">4: Existing Solutions vs. Limitations</h2>
+            <div class="slide-text">
+              <h3>Why Legacy Tools Fall Short in Forensic Triage</h3>
+<table>
+<thead>
+<tr>
+  <th style="text-align:left">Solution Category</th>
+  <th style="text-align:left">Key Examples</th>
+  <th style="text-align:left">How They Work</th>
+  <th style="text-align:left">Critical Limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left"><strong>Secure Email Gateways (SEGs)</strong></td>
+  <td style="text-align:left">Proofpoint, Mimecast, Defender</td>
+  <td style="text-align:left">Inline binary filtering (deliver, drop, quarantine)</td>
+  <td style="text-align:left">Opaque scores; no interactive forensic drill-down when an attack slips through to the user.</td>
+</tr>
+<tr>
+  <td style="text-align:left"><strong>SIEM &amp; SOAR Platforms</strong></td>
+  <td style="text-align:left">Splunk, Sentinel, Cortex XSOAR</td>
+  <td style="text-align:left">Ingest high-level security logs and trigger playbooks</td>
+  <td style="text-align:left">High licensing cost; log-centric rather than message-centric; requires complex custom playbook setup.</td>
+</tr>
+<tr>
+  <td style="text-align:left"><strong>Manual Threat Portals</strong></td>
+  <td style="text-align:left">VirusTotal GUI, AbuseIPDB web</td>
+  <td style="text-align:left">Individual manual searches across browser tabs</td>
+  <td style="text-align:left">Highly fragmented; context switching; prone to human error; lacks automated evidence sealing.</td>
+</tr>
+<tr>
+  <td style="text-align:left"><strong>TraceMail AI</strong></td>
+  <td style="text-align:left"><em>Production Deployed</em></td>
+  <td style="text-align:left"><strong>Unified deep-dive forensic engine + live multi-intel</strong></td>
+  <td style="text-align:left"><strong>Automated, transparent, spoofing-resistant, SME-accessible.</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 05 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">5: Unique Value Proposition (UVP)</h2>
+            <div class="slide-text">
+              <h3>Four Genuinely Differentiated Capabilities</h3>
+<ol>
+<li><strong>Trusted-MTA Spoofing Resistance:</strong><ul>
+<li>Instead of naively reading bottom-most <code>Received:</code> headers (which attackers forge), TraceMail AI identifies the earliest verified receiving MX gateway to extract the unforgeable TCP socket peer IP.</li>
+</ul>
+</li>
+<li><strong>Normalized Multi-Source Intel Gateway:</strong><ul>
+<li>Synchronous or parallel querying across VirusTotal v3, AbuseIPDB v2, IPinfo, URLScan.io, Google Safe Browsing v4, ICANN RDAP/WHOIS, and live DNSSEC/DNS resolvers into a single deterministic schema.</li>
+</ul>
+</li>
+<li><strong>Mathematically Grounded Explainable AI:</strong><ul>
+<li>Generative summaries from Groq Cloud LLaMA-3 are strictly constrained by calculated forensic weights across Authentication (30%), Domain Age (20%), Intel Feeds (30%), and Content Heuristics (20%) — <strong>zero AI hallucinations</strong>.</li>
+</ul>
+</li>
+<li><strong>Legally Defensible Evidence Locker:</strong><ul>
+<li>Instant SHA-256 cryptographic sealing upon ingestion with continuous tamper-audit verification for forensic and courtroom compliance.</li>
+</ul>
+</li>
+</ol>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 06 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">6: Technical Architecture</h2>
+            <div class="slide-text">
+              <h3>Decoupled Cloud-Native Micro-Architecture</h3>
+<ul>
+<li><strong>Presentation Layer (Vercel):</strong> Next.js 15, React 19, TypeScript, Tailwind CSS, Lucide icons, responsive interactive UI.</li>
+<li><strong>Application Layer (Railway):</strong> FastAPI (Python 3.12), Uvicorn ASGI server, Pydantic v2 schemas, SQLAlchemy ORM.</li>
+<li><strong>Persistence Layer (PostgreSQL 16):</strong> 16 normalized relational tables with strict foreign key constraints and row-level locking.</li>
+<li><strong>Intelligence Layer:</strong> 7 external threat APIs executing with timeout-bounded async workers (<code>asyncio.gather</code>).</li>
+<li><strong>Mailbox Streaming:</strong> Google OAuth 2.0 protocol restricted to read-only mailbox monitoring.</li>
+<li><strong>Geospatial &amp; OSINT Layer:</strong> Google Maps Platform integration (Directions polylines, Geocoding, Places infrastructure OSINT, and heatmaps).</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 07 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">7: Real Tech Stack (No Placeholder Dependencies)</h2>
+            <div class="slide-text">
+              <h3>Proven, Open-Source &amp; Enterprise-Grade Technologies</h3>
+<ul>
+<li><strong>Frontend:</strong><ul>
+<li>Next.js 15 (App Router, Turbopack)</li>
+<li>TypeScript 5, Tailwind CSS</li>
+<li>Lucide React Icons</li>
+<li>Deployed on <strong>Vercel Edge Network</strong></li>
+</ul>
+</li>
+<li><strong>Backend:</strong><ul>
+<li>Python 3.12, FastAPI, Uvicorn</li>
+<li>SQLAlchemy 2.0, Alembic</li>
+<li>Pydantic v2 (strict validation)</li>
+<li>Deployed on <strong>Railway Cloud Containers</strong></li>
+</ul>
+</li>
+<li><strong>Database:</strong><ul>
+<li>PostgreSQL 16 (Hosted on Railway)</li>
+<li>16 Tables, Indexed Foreign Keys, Row-Level Locks</li>
+</ul>
+</li>
+<li><strong>Threat Intelligence &amp; AI:</strong><ul>
+<li>VirusTotal v3, AbuseIPDB v2, IPinfo, URLScan.io, Google Safe Browsing v4</li>
+<li>ICANN RDAP / WHOIS, dnspython (SPF/DKIM/DMARC)</li>
+<li>Groq Cloud LLaMA-3 (High-Speed LLM Inference)</li>
+</ul>
+</li>
+<li><strong>Testing &amp; Quality Assurance:</strong><ul>
+<li>pytest, pytest-asyncio (83 passing backend tests)</li>
+<li>TypeScript static analysis &amp; production build checks</li>
+</ul>
+</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 08 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">8: Investigation Workflow</h2>
+            <div class="slide-text">
+              <h3>From Raw Message to Forensic Evidence in 5 Stages</h3>
+<pre><code>[ Ingestion ] ──────► Raw .EML upload OR Live Gmail OAuth2 API Fetch
+                            │
+[ Stage 1: Deconstruct ] ───► RFC 5322 Parsing, Multipart MIME, Display-Name Spoofing Check
+                            │
+[ Stage 2: MTA Anchor ] ────► Identify Earliest Trusted MX Hop ──► Extract True Public IP
+                            │
+[ Stage 3: Live Intel ] ────► Parallel Queries: VirusTotal + AbuseIPDB + URLScan + DNS + RDAP
+                            │
+[ Stage 4: Scoring &amp; XAI ] ─► Deterministic Metric Weighting (0-100) + Groq LLaMA-3 Narrative
+                            │
+[ Stage 5: Seal Evidence ] ─► Compute SHA-256 Hash ──► Commit to Evidence Locker with Custody Log
+</code></pre>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 09 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">9: Feasibility & Viability</h2>
+            <div class="slide-text">
+              <h3>Tested Reliability, Fault Tolerance &amp; Cost Economics</h3>
+<ul>
+<li><strong>Proven Deployment:</strong> Both frontend (<code>Vercel</code>) and backend (<code>Railway</code>) are live, containerized, and publicly accessible today.</li>
+<li><strong>Graceful Degradation:</strong> All external threat intelligence clients execute within strict 5–8 second timeouts. If an external API is offline or rate-limited, the pipeline continues without user-facing crashes.</li>
+<li><strong>Row-Level Concurrency:</strong> Built-in PostgreSQL <code>with_for_update()</code> row-level locks prevent race conditions during simultaneous scans of identical messages.</li>
+<li><strong>Cost Efficiency:</strong><ul>
+<li>Built on open-source frameworks (FastAPI, Next.js, PostgreSQL).</li>
+<li>Utilizes standard developer-tier and freemium threat intel APIs.</li>
+<li>Highly affordable for educational institutions, government departments, and SMEs.</li>
+</ul>
+</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 10 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">10: Impact & Measurable Benefits</h2>
+            <div class="slide-text">
+              <h3>Elevating SOC Defense Capabilities</h3>
+<ul>
+<li><strong>Time Compression:</strong> Reduces per-incident forensic triage time from <strong>~30 minutes to under 30 seconds</strong> (a ~98% time reduction).</li>
+<li><strong>Cognitive Relief:</strong> Eliminates manual multi-tab browser juggling; presents single-pane-of-glass forensic visualization.</li>
+<li><strong>Spoofing Immunity:</strong> Eliminates misattribution caused by forged <code>Received:</code> headers.</li>
+<li><strong>Forensic Defensibility:</strong> Guarantees cryptographic chain of custody (SHA-256) for regulatory compliance and legal proceedings.</li>
+<li><strong>Accessibility:</strong> Bridges the cybersecurity tooling divide for resource-constrained organizations unable to afford $50,000+ annual enterprise SIEM/SOAR contracts.</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 11 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">11: Validation & Security Hardening</h2>
+            <div class="slide-text">
+              <h3>Verified Through Rigorous Production Audits</h3>
+<ul>
+<li><strong>83/83 Automated Tests Passing:</strong><ul>
+<li>100% pass rate across unit, integration, and security test suites.</li>
+<li>Specific tests verify Trusted-MTA spoofing resilience (<code>test_inbox_investigate.py</code>), concurrency, and tamper detection.</li>
+</ul>
+</li>
+<li><strong>Verified Strict Tenant Isolation:</strong><ul>
+<li>Tested with real stranger accounts in production.</li>
+<li>Zero cross-tenant data leakage: non-owners receive <code>403 Forbidden</code> on both scan and results endpoints.</li>
+<li>0 administrative over-grants: all users operate with least-privilege <code>analyst</code> roles.</li>
+</ul>
+</li>
+<li><strong>Production Mode Enforced:</strong><ul>
+<li><code>ENVIRONMENT=production</code>, <code>USE_MOCK_THREAT_INTEL=false</code>, <code>ENABLE_DEMO_SEED=false</code>.</li>
+<li>Zero hardcoded mock fallback data in production.</li>
+</ul>
+</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 12 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">12: Current Status & Future Roadmap</h2>
+            <div class="slide-text">
+              <h3>Where We Are Today &amp; Where We Are Going</h3>
+<ul>
+<li><strong>Current Status (Phase 1 — Complete):</strong><ul>
+<li>[x] Full RFC-822 / EML forensic decomposition engine.</li>
+<li>[x] Trusted-MTA boundary origin extraction.</li>
+<li>[x] 7-provider live threat intelligence correlation.</li>
+<li>[x] Live Gmail OAuth2 read-only inbox scanning.</li>
+<li>[x] Explainable AI (Groq LLaMA-3) &amp; SHA-256 Evidence Locker.</li>
+<li>[x] 16-table PostgreSQL schema &amp; Next.js 15 UI.</li>
+</ul>
+</li>
+<li><strong>Next Horizon (Phase 2 — In Progress / Planned):</strong><ul>
+<li>[ ] <strong>Q4 2026:</strong> Distributed task queue integration (Celery + Redis) for enterprise high-throughput mail streams.</li>
+<li>[ ] <strong>Q1 2027:</strong> Microsoft Graph API (Office 365 / Outlook) connector alongside Gmail.</li>
+<li>[ ] <strong>Q2 2027:</strong> Dynamic sandbox execution for zero-day macro and executable attachments.</li>
+<li>[ ] <strong>Q3 2027:</strong> Standardized load and latency benchmarking (Locust / JMeter).</li>
+</ul>
+</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 13 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">13: Team & Roles</h2>
+            <div class="slide-text">
+              <h3>TraceMail AI Engineering Team</h3>
+<ul>
+<li><strong>Lead Architect &amp; Full-Stack Engineer:</strong><ul>
+<li>Systems architecture, FastAPI backend development, Next.js frontend, database modeling.</li>
+</ul>
+</li>
+<li><strong>Cybersecurity &amp; Threat Intelligence Specialist:</strong><ul>
+<li>RFC 5322 header parsing, Trusted-MTA algorithm design, API gateway integration.</li>
+</ul>
+</li>
+<li><strong>Cloud Infrastructure &amp; Security Auditor:</strong><ul>
+<li>Railway container orchestration, Vercel deployments, tenant isolation audit, cryptographic evidence verification.</li>
+</ul>
+</li>
+<li><strong>Product &amp; UI/UX Designer:</strong><ul>
+<li>Incident investigation workflow design, SOC dashboard layout, geospatial OSINT mapping interfaces.</li>
+</ul>
+</li>
+</ul>
+<hr />
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+        <div class="slide">
+          <div class="slide-header">
+            <div class="slide-badge">SIH2024 CYBERSECURITY TRACK</div>
+            <div class="slide-num">SLIDE 14 / 14</div>
+          </div>
+          <div class="slide-body">
+            <h2 class="slide-heading">14: Conclusion & Q&A</h2>
+            <div class="slide-text">
+              <h3>TraceMail AI: Autonomous, Explainable, Cryptographically Sealed Email Forensics</h3>
+<ul>
+<li><strong>Production Prototype Live:</strong> <a href="https://tracemail-ai-84ho.vercel.app">https://tracemail-ai-84ho.vercel.app</a></li>
+<li><strong>API Status Live:</strong> <a href="https://tracemail-ai-production.up.railway.app/health/apis">https://tracemail-ai-production.up.railway.app/health/apis</a></li>
+<li><strong>Repository:</strong> <a href="https://github.com/nleelaranga-ai/tracemail-ai">github.com/nleelaranga-ai/tracemail-ai</a></li>
+</ul>
+<blockquote>
+<p><em>&quot;Protecting digital communications through deep forensics, verified intelligence, and uncompromised chain of custody.&quot;</em></p>
+</blockquote>
+<h3>Thank You!</h3>
+<p><strong>Questions &amp; Technical Discussion</strong></p>
+
+            </div>
+          </div>
+          <div class="slide-footer">
+            <span>TraceMail AI — Autonomous Forensic Email Threat Investigation</span>
+            <span>https://tracemail-ai-84ho.vercel.app</span>
+          </div>
+        </div>
+        
+</body>
+</html>

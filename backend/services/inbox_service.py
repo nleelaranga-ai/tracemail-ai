@@ -549,6 +549,27 @@ class InboxService:
             return evaluated_items
 
     @classmethod
+    async def poll_all_connected_mailboxes(cls, db: Session) -> Dict[str, Any]:
+        """
+        Automated background task runner: Iterates through connected Gmail accounts
+        and scans new incoming messages every 3 minutes.
+        """
+        now = datetime.now(timezone.utc)
+        accounts = db.query(GmailAccount).filter(GmailAccount.connected == True).all()
+        synced_count = 0
+        for account in accounts:
+            try:
+                if cls.is_oauth_configured() and not account.access_token.startswith("ya29.demo-"):
+                    await cls._fetch_and_scan_real_gmail(account, db)
+                account.last_scanned_at = now
+                db.commit()
+                synced_count += 1
+            except Exception as e:
+                logger.warning(f"Background mailbox poll failed for {account.email}: {e}")
+                db.rollback()
+        return {"polled_accounts": synced_count}
+
+    @classmethod
     def get_inbox_results(
         cls,
         account_email: Optional[str],

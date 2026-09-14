@@ -178,6 +178,45 @@ class ScanService:
         }
 
     @classmethod
+    def _call_groq_llm_explanation(
+        cls,
+        email_body: str,
+        score: int,
+        prediction: str,
+        entities: Dict[str, Any],
+        reasons: List[str]
+    ) -> Optional[str]:
+        """Direct native execution of Groq Cloud LLaMA-3.1 model."""
+        api_key = (settings.GROQ_API_KEY or "").strip()
+        if not api_key:
+            return None
+        try:
+            from groq import Groq
+            client = Groq(api_key=api_key)
+            prompt = f"""Analyze this email for phishing.
+Threat Score: {score}/100
+Preliminary Classification: {prediction}
+Observed Forensic Indicators: {', '.join(reasons[:4]) if reasons else 'None'}
+Entities: URLs={entities.get('urls', [])[:3]}, Sender={entities.get('senderClaim')}
+
+Email Content Excerpt:
+{email_body[:2000]}
+
+Provide a concise, 2-3 sentence evidence-based forensic explanation of whether this email is safe, suspicious, or phishing. Focus strictly on facts and observed technical/psychological indicators. Do not invent details."""
+
+            response = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=150
+            )
+            if response.choices and response.choices[0].message.content:
+                return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.debug(f"Native Groq LLaMA-3 call bypassed or timed out: {e}")
+        return None
+
+    @classmethod
     async def query_ai_engine(
         cls,
         email_body: str = "",
@@ -359,6 +398,26 @@ class ScanService:
             explanation = f"Legitimate communication originating from domain '{sender_domain or 'verified sender'}'. {auth_clause.capitalize()} and no social engineering traps or malicious links were detected."
         else:
             explanation = f"High-risk {prediction.lower()} indicators detected. {'; '.join(reasons[:3])}."
+
+        # Native Groq LLaMA-3.1 Cloud LLM execution (falls back cleanly to heuristic if key absent or error)
+        if settings.GROQ_API_KEY:
+            try:
+                groq_expl = await asyncio.to_thread(
+                    cls._call_groq_llm_explanation,
+                    email_body,
+                    score,
+                    prediction,
+                    {
+                        "urls": extracted_urls,
+                        "ips": extracted_ips,
+                        "senderClaim": display_name or sender or "Claimed Sender"
+                    },
+                    reasons
+                )
+                if groq_expl:
+                    explanation = groq_expl
+            except Exception as e:
+                logger.debug(f"Native Groq execution skipped or timed out: {e}")
 
         ai_summary = f"TraceMail AI classified this message as {prediction} ({confidence}% confidence). {explanation}"
         domains = [u.split("://")[1].split("/")[0] for u in extracted_urls if "://" in u]
