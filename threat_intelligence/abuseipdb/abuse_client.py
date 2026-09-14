@@ -62,7 +62,7 @@ class AbuseIPDBClient:
                         "totalReports": data.get("totalReports", 0),
                         "source": "abuseipdb_api",
                         "mode": "live",
-                        "provider_status": "live",
+                        "provider_status": "verified",
                         "fallback_used": False,
                     }
                     ip_cache.set(cache_key, result)
@@ -85,7 +85,7 @@ class AbuseIPDBClient:
                 "isMalicious": True,
                 "isp": info["isp"],
                 "countryCode": info["country"],
-                "totalReports": 42,
+                "totalReports": 0,
                 "source": "known_threat_dataset",
                 "mode": "fallback",
                 "provider_status": "simulated",

@@ -254,7 +254,7 @@ export function ThreatIntelCards({
             <div className="flex items-baseline justify-between">
               <span className="font-display text-2xl font-bold text-ink">{abuseScore}%</span>
               <span className="font-mono text-xs text-ink-muted">
-                {abuse.total_reports ?? 142} Reports
+                {abuse.total_reports !== undefined && abuse.total_reports !== null ? `${abuse.total_reports} Reports` : "No Reports"}
               </span>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bg-surface">

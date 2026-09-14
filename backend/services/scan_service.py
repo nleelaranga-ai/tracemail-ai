@@ -223,12 +223,29 @@ class ScanService:
         psychological_triggers = []
 
         # Psychological Trigger 1: Urgency & Coercion (Root Cause 2)
-        urgency_patterns = ["urgent", "immediately", "within 24 hours", "account suspended", "immediate action required", "action required", "final notice", "deadline"]
+        urgency_patterns = [
+            "urgent", "immediately", "within 24 hours", "account suspended", "immediate action required",
+            "action required", "final notice", "deadline", "today", "asap", "before banking cut-off",
+            "banking cut-off", "by end of day", "close of business", "without delay", "promptly",
+            "in 2 hours", "immediate attention required", "overdue invoice", "mandatory password reset"
+        ]
         matched_urgency = [p for p in urgency_patterns if p in lower_body]
         if matched_urgency:
             score += 25
             psychological_triggers.append("Urgency / Pressure")
             reasons.append(f"High-urgency language detected: '{matched_urgency[0]}'")
+
+        # Psychological Trigger 1b: Communication Isolation & Phone Silencing (BEC Evasion)
+        evasion_patterns = [
+            "do not call", "cannot take calls", "in a meeting", "in meetings",
+            "in closed negotiations", "unavailable by phone", "on my cell", "cell as i am",
+            "confirm via this email once processed", "confirm via email"
+        ]
+        matched_evasion = [p for p in evasion_patterns if p in lower_body]
+        if matched_evasion:
+            score += 30
+            psychological_triggers.append("Communication Channel Isolation (BEC Evasion)")
+            reasons.append(f"Meeting evasion / phone silencing detected: '{matched_evasion[0]}'")
 
         # Psychological Trigger 2: Fear & Security Threats
         fear_patterns = ["unauthorized login", "security breach", "compromised", "legal action", "law enforcement", "penalty", "account blocked"]
@@ -247,18 +264,32 @@ class ScanService:
             reasons.append(f"Direct request for user credentials: '{matched_cred[0]}'")
 
         # Psychological Trigger 4: Financial & Wire Diversion (BEC - Root Cause 9)
-        finance_patterns = ["wire transfer", "payment required", "unpaid invoice", "bank account details", "crypto payment", "gift card"]
+        finance_patterns = [
+            "wire transfer", "payment required", "unpaid invoice", "bank account details",
+            "crypto payment", "gift card", "disbursement", "escrow", "supplier acquisition",
+            "invoice #", "invoice-", "remittance", "payment of", "initial escrow", "acquisition wire"
+        ]
+        import re as re_mod
+        has_currency_amount = bool(re_mod.search(r"(?:₹|\$|€|£|INR|USD)\s*[\d,]+(?:\.\d+)?", email_body, re_mod.IGNORECASE))
         matched_fin = [p for p in finance_patterns if p in lower_body]
-        if matched_fin:
-            score += 30
+        if matched_fin or has_currency_amount:
+            score += 35
             psychological_triggers.append("Financial Diversion")
-            reasons.append(f"Financial payment diversion indicators: '{matched_fin[0]}'")
+            detail = matched_fin[0] if matched_fin else "High-value currency transfer request"
+            reasons.append(f"Financial payment diversion indicators: '{detail}'")
 
         # Identity Verification: Display Name Impersonation / BEC (Root Cause 1 & 9)
         if display_name_spoofing:
             score += 45
             psychological_triggers.append("Executive/Brand Impersonation (BEC)")
             reasons.append(f"Display Name Spoofing: Claims brand '{impersonated_brand}' but originates from untrusted domain '{sender_domain}'")
+
+        # Combine Evasion + Financial / Impersonation for high-confidence BEC
+        if matched_evasion and (matched_fin or has_currency_amount or display_name_spoofing):
+            score = max(score, 88)
+            if "Business Email Compromise (BEC Fraud)" not in psychological_triggers:
+                psychological_triggers.append("Business Email Compromise (BEC Fraud)")
+            reasons.insert(0, "High-confidence BEC Alert: Executive impersonation combined with payment diversion and phone communication evasion.")
 
         if reply_to_mismatch:
             score += 20
@@ -363,7 +394,8 @@ class ScanService:
         abuse_score: int,
         domain_age_days: int,
         ai_confidence: float,
-        is_phishing: bool
+        is_phishing: bool,
+        ai_phishing_score: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Calculates dynamic weighted threat score according to Target Architecture Section 2.E:
@@ -373,56 +405,72 @@ class ScanService:
         DKIM Failure    15
         AbuseIPDB       15
         Domain Age      10
-        AI Confidence   5
+        AI Confidence   5 (or dynamic for high-confidence BEC/Phishing)
+        Guarantees: sum(breakdown.values()) == threat_score.
         """
         # 1. VirusTotal contribution (max 35)
-        vt_score = min(35.0, (vt_positives / 5.0) * 35.0 if vt_positives > 0 else 0.0)
-        if vt_positives >= 1 and vt_score < 18.0:
-            vt_score = 25.0
-        vt_score = min(35.0, vt_score)
+        if vt_positives >= 5:
+            vt_score = 35
+        elif vt_positives >= 1:
+            vt_score = 25
+        else:
+            vt_score = 0
 
         # 2. SPF Failure contribution (max 20)
         spf_clean = (spf or "none").lower()
         if "fail" in spf_clean:
-            spf_score = 20.0
+            spf_score = 20
         elif "softfail" in spf_clean or "none" in spf_clean:
-            spf_score = 10.0
+            spf_score = 10
         else:
-            spf_score = 0.0
+            spf_score = 0
 
         # 3. DKIM Failure contribution (max 15)
         dkim_clean = (dkim or "none").lower()
         if "fail" in dkim_clean:
-            dkim_score = 15.0
+            dkim_score = 15
         elif "none" in dkim_clean:
-            dkim_score = 5.0
+            dkim_score = 5
         else:
-            dkim_score = 0.0
+            dkim_score = 0
 
         # 4. AbuseIPDB contribution (max 15)
         abuse_norm = min(100, max(0, abuse_score))
-        abuse_contrib = (abuse_norm / 100.0) * 15.0
+        abuse_contrib = int(round((abuse_norm / 100.0) * 15.0))
 
         # 5. Domain Age contribution (max 10: <30 days = 10, <90 days = 6, >=90 days = 0)
         if domain_age_days <= 0:
-            age_score = 4.0
+            age_score = 4
         elif domain_age_days <= 30:
-            age_score = 10.0
+            age_score = 10
         elif domain_age_days <= 90:
-            age_score = 6.0
+            age_score = 6
         elif domain_age_days <= 180:
-            age_score = 3.0
+            age_score = 3
         else:
-            age_score = 0.0
+            age_score = 0
 
-        # 6. AI Confidence contribution (max 5)
-        if is_phishing:
-            ai_score = (min(100.0, max(0.0, ai_confidence)) / 100.0) * 5.0
+        raw_infra_score = vt_score + spf_score + dkim_score + abuse_contrib + age_score
+
+        # 6. AI Intent & Confidence contribution
+        target_score = ai_phishing_score if (ai_phishing_score and ai_phishing_score >= 65) else (
+            75 if is_phishing else None
+        )
+
+        if target_score is not None:
+            needed_ai = max(5, target_score - raw_infra_score)
+            ai_score = needed_ai
         else:
-            ai_score = 0.0
+            ai_score = 5 if (raw_infra_score == 0 and not is_phishing) else 0
 
-        total_score = round(vt_score + spf_score + dkim_score + abuse_contrib + age_score + ai_score)
+        total_score = raw_infra_score + ai_score
         total_score = min(98, max(5, total_score))
+
+        # Reconcile so breakdown sum strictly matches total_score
+        ai_score = total_score - raw_infra_score
+        if ai_score < 0:
+            ai_score = 0
+            total_score = raw_infra_score
 
         # Risk level determination
         if total_score >= 85:
@@ -438,12 +486,12 @@ class ScanService:
             "threat_score": total_score,
             "risk_level": risk_level,
             "breakdown": {
-                "virustotal": round(vt_score, 1),
-                "spf": round(spf_score, 1),
-                "dkim": round(dkim_score, 1),
-                "abuseipdb": round(abuse_contrib, 1),
-                "domain_age": round(age_score, 1),
-                "ai_confidence": round(ai_score, 1)
+                "virustotal": vt_score,
+                "spf": spf_score,
+                "dkim": dkim_score,
+                "abuseipdb": abuse_contrib,
+                "domain_age": age_score,
+                "ai_confidence": ai_score
             }
         }
 

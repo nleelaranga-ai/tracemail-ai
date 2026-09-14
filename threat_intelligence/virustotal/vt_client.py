@@ -87,7 +87,7 @@ class VirusTotalClient:
                         vtTotal=max(total, 1),
                         source="virustotal_api",
                         mode="live",
-                        provider_status="live",
+                        provider_status="verified",
                         fallback_used=False,
                     )
                     url_cache.set(url, result)
@@ -193,7 +193,7 @@ class VirusTotalClient:
                         "scanDate": scan_date,
                         "source": "virustotal_api",
                         "mode": "live",
-                        "provider_status": "live",
+                        "provider_status": "verified",
                         "fallback_used": False,
                     }
                     url_cache.set(cache_key, result)

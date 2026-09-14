@@ -95,6 +95,15 @@ class HeaderParser:
                         )
                         break
 
+            if not display_name_spoofing:
+                exec_titles = ["ceo", "cfo", "coo", "cto", "president", "founder", "chairman", "vice president"]
+                if any(re.search(rf"\b{title}\b", display_name, re.IGNORECASE) for title in exec_titles):
+                    display_name_spoofing = True
+                    impersonated_brand = "Executive / Leadership (BEC)"
+                    spoofing_detail = (
+                        f"Display name claims executive authority '{display_name}', but envelope address is external domain '{sender_domain}'."
+                    )
+
         reply_to_mismatch = bool(reply_to_domain and sender_domain and reply_to_domain != sender_domain)
         return_path_mismatch = bool(return_path_domain and sender_domain and return_path_domain != sender_domain)
 

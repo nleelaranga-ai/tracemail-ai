@@ -68,15 +68,19 @@ class EmailParser:
         body_text = "\n".join(body_text_parts).strip()
         body_html = "\n".join(body_html_parts).strip()
 
-        # Extract IOCs from both header text and body text
-        combined_content = f"{raw_text}\n{body_text}"
-        iocs = IOCParser.extract_iocs(combined_content)
-
         sender = header_analysis.get("sender") or msg.get("From", "")
         recipient = header_analysis.get("recipient") or msg.get("To", "")
         subject = header_analysis.get("subject") or msg.get("Subject", "")
         domain = header_analysis.get("domain") or (sender.split("@")[-1].strip().strip(">").strip(";").strip(")") if "@" in sender else "")
         origin_ip = header_analysis.get("origin_ip") or (header_analysis.get("hop_ips", [""])[0] if header_analysis.get("hop_ips") else "")
+
+        recipient_domain = ""
+        if "@" in recipient:
+            recipient_domain = recipient.split("@")[-1].strip().strip(">").strip(";").strip(")").lower()
+
+        # Extract IOCs from header text, plain body, and html body with quoted-printable cleaning
+        combined_content = f"{raw_text}\n{body_text}\n{body_html}"
+        iocs = IOCParser.extract_iocs(combined_content, recipient_domain=recipient_domain)
 
         return {
             "sender": sender,

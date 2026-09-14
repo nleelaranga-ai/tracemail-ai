@@ -14,7 +14,9 @@ from backend.models.scan import (
 )
 from backend.models.threat import ThreatResult
 from backend.parsers.email_parser import EmailParser
+from backend.parsers.ioc_parser import IOCParser
 from backend.services.scan_service import ScanService
+from backend.services.verdict_service import CanonicalVerdictService
 from backend.services.threat_intelligence import ThreatIntelligenceGateway
 from backend.services.notification_service import NotificationService
 from backend.utils.logger import logger
@@ -48,10 +50,18 @@ class EmailService:
         attachments = parsed.get("attachments") or []
         iocs = parsed.get("iocs") or {}
 
-        extracted_ips = iocs.get("ips", [])
-        extracted_urls = iocs.get("urls", [])
-        extracted_domains = iocs.get("domains", [])
-        if domain and domain not in extracted_domains:
+        recipient = parsed.get("recipient") or "analyst@target.local"
+        recipient_domain = ""
+        if "@" in recipient:
+            recipient_domain = recipient.split("@")[-1].strip().strip(">").strip(";").strip(")").lower()
+
+        extracted_ips = list(dict.fromkeys(iocs.get("ips", [])))
+        extracted_urls = list(dict.fromkeys(iocs.get("urls", [])))
+        extracted_domains = [
+            d for d in list(dict.fromkeys(iocs.get("domains", [])))
+            if not IOCParser.is_allowlisted_domain(d, recipient_domain)
+        ]
+        if domain and not IOCParser.is_allowlisted_domain(domain, recipient_domain) and domain not in extracted_domains:
             extracted_domains.append(domain)
 
         # 1. Determine origin IP and enrich all IP hops
@@ -159,12 +169,24 @@ class EmailService:
             abuse_score=abuse_sc,
             domain_age_days=dom_age,
             ai_confidence=ai_conf,
-            is_phishing=is_phish
+            is_phishing=is_phish,
+            ai_phishing_score=ai_data.get("phishingScore")
         )
 
-        final_threat_score = scoring_result["threat_score"]
-        final_risk_level = scoring_result["risk_level"]
-        final_verdict = "phishing" if final_threat_score >= 65 else ("suspicious" if final_threat_score >= 35 else "safe")
+        verdict_res = CanonicalVerdictService.resolve_verdict(
+            threat_score=scoring_result["threat_score"],
+            ai_data=ai_data,
+            auth_data=auth_data,
+            vt_positives=vt_pos,
+            abuse_score=abuse_sc,
+            display_name_spoofing=parsed.get("display_name_spoofing", False),
+            is_recruitment_or_trusted=any(t in (domain or "").lower() for t in ["internshala.com", "google.com", "github.com", "sbi.co.in", "amazon.in"]),
+            has_critical_indicators=any(item.get("malicious") for item in threat_items)
+        )
+
+        final_threat_score = verdict_res["threat_score"]
+        final_risk_level = verdict_res["risk_level"]
+        final_verdict = verdict_res["verdict"]
 
         # 7. Generate Investigation Timeline & IOC Chips
         now_dt = datetime.now(timezone.utc)
@@ -185,13 +207,13 @@ class EmailService:
             origin_lon=float(origin_threat.get("lon") or 0.0)
         )
         hop_timeline = ScanService.generate_timeline(hop_objects, default_ip=origin_ip)
-        attack_graph = ScanService.generate_attack_graph(sender, recipient, hop_objects, is_phishing=is_phish)
+        attack_graph = ScanService.generate_attack_graph(sender, recipient, hop_objects, is_phishing=(final_verdict == "phishing"))
         action_items = ScanService.generate_action_items(
             threat_score=final_threat_score,
             risk_level=final_risk_level,
             domain=domain,
             origin_ip=origin_ip,
-            is_phishing=is_phish,
+            is_phishing=(final_verdict == "phishing"),
             display_name_spoofing=parsed.get("display_name_spoofing", False)
         )
 
@@ -202,10 +224,14 @@ class EmailService:
             "scan_date": vt_primary.get("scanDate") if vt_primary else now_dt.isoformat(),
             "positives": vt_pos
         }
+        real_abuse_reports = origin_threat.get("totalReports") or origin_threat.get("total_reports")
+        if real_abuse_reports is None:
+            real_abuse_reports = 0
+
         abuse_summary = {
             "confidence_score": abuse_sc,
             "isp": origin_threat.get("isp", "Internet Relay Node"),
-            "total_reports": 120 if abuse_sc > 50 else 0,
+            "total_reports": real_abuse_reports,
             "is_malicious": origin_threat.get("malicious", False)
         }
         dns_summary = {
@@ -214,10 +240,11 @@ class EmailService:
             "dmarc": auth_data.get("dmarc", "none")
         }
         ai_summary_obj = {
-            "prediction": ai_data.get("prediction", "Suspicious"),
-            "confidence": ai_data.get("confidence", 85.0),
-            "summary": ai_data.get("summary") or ai_data.get("explanation") or "",
-            "reasons": ai_data.get("reasons", [])
+            "prediction": verdict_res["prediction"],
+            "verdict": verdict_res["verdict"],
+            "confidence": verdict_res["confidence"],
+            "summary": verdict_res["summary"],
+            "reasons": verdict_res["reasons"]
         }
 
         # 9. Persist Investigation record

@@ -12,7 +12,7 @@ from threat_intelligence.utils.cache import whois_cache
 
 logger = get_logger("WHOISClient")
 
-# Heuristic domain database for demo & test scenarios
+# Heuristic domain database for synthetic unit tests and offline fallbacks ONLY
 KNOWN_DOMAINS = {
     "paypa1-secure.com": {
         "domainAge": "14 days",
@@ -25,42 +25,6 @@ KNOWN_DOMAINS = {
         "domainAgeDays": 5,
         "registrar": "Porkbun LLC",
         "created": "2026-09-01",
-    },
-    "internshala.com": {
-        "domainAge": "5734 days",
-        "domainAgeDays": 5734,
-        "registrar": "GoDaddy.com LLC",
-        "created": "2010-12-29",
-    },
-    "paypal.com": {
-        "domainAge": "9800 days",
-        "domainAgeDays": 9800,
-        "registrar": "MarkMonitor Inc.",
-        "created": "1999-07-15",
-    },
-    "google.com": {
-        "domainAge": "10500 days",
-        "domainAgeDays": 10500,
-        "registrar": "MarkMonitor Inc.",
-        "created": "1997-09-15",
-    },
-    "amazon.in": {
-        "domainAge": "6000 days",
-        "domainAgeDays": 6000,
-        "registrar": "MarkMonitor Inc.",
-        "created": "2008-01-10",
-    },
-    "sbi.co.in": {
-        "domainAge": "8500 days",
-        "domainAgeDays": 8500,
-        "registrar": "National Informatics Centre",
-        "created": "2003-04-10",
-    },
-    "github.com": {
-        "domainAge": "6800 days",
-        "domainAgeDays": 6800,
-        "registrar": "MarkMonitor Inc.",
-        "created": "2007-10-09",
     },
 }
 
@@ -88,18 +52,6 @@ class WHOISClient:
         cached = whois_cache.get(domain_clean)
         if cached:
             return cached
-
-        # Check known testing domains first to avoid network latency on simulated tests
-        if domain_clean in KNOWN_DOMAINS:
-            result = dict(KNOWN_DOMAINS[domain_clean])
-            result.update({
-                "source": "known_dataset",
-                "mode": "fallback",
-                "provider_status": "simulated",
-                "fallback_used": True
-            })
-            whois_cache.set(domain_clean, result)
-            return result
 
         # 1. Attempt RDAP standardized ICANN lookup via HTTP (live-first for real domains)
         try:
@@ -140,7 +92,7 @@ class WHOISClient:
                         "expiryDate": exp_date_str[:10] if exp_date_str else "Unknown",
                         "source": "rdap_icann",
                         "mode": "live",
-                        "provider_status": "live",
+                        "provider_status": "verified",
                         "fallback_used": False
                     }
                     whois_cache.set(domain_clean, res)
@@ -155,7 +107,7 @@ class WHOISClient:
                 result.update({
                     "source": "python_whois_live",
                     "mode": "live",
-                    "provider_status": "live",
+                    "provider_status": "verified",
                     "fallback_used": False
                 })
                 whois_cache.set(domain_clean, result)
