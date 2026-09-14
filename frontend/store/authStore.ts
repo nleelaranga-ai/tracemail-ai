@@ -14,14 +14,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   hydrate: () => {
     if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem("tm_token");
-    const userRaw = window.localStorage.getItem("tm_user");
-    if (token && userRaw) {
-      set({ token, user: JSON.parse(userRaw) as User });
+    try {
+      const token = window.localStorage.getItem("tm_token");
+      const userRaw = window.localStorage.getItem("tm_user");
+      if (token && userRaw) {
+        set({ token, user: JSON.parse(userRaw) as User });
+      }
+    } catch {
+      window.localStorage.removeItem("tm_token");
+      window.localStorage.removeItem("tm_user");
+      set({ token: null, user: null });
     }
   },
   setSession: (token, user) => {
     if (typeof window !== "undefined") {
+      window.localStorage.removeItem("tm_token");
+      window.localStorage.removeItem("tm_user");
       window.localStorage.setItem("tm_token", token);
       window.localStorage.setItem("tm_user", JSON.stringify(user));
     }

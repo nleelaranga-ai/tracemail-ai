@@ -214,16 +214,24 @@ class InboxService:
 
     @classmethod
     def get_connection_status(cls, email: Optional[str], db: Session, current_user: Optional[User] = None) -> Dict[str, Any]:
-        """Returns current live connection status and configuration state with tenant isolation."""
+        """Returns current live connection status and configuration state with strict tenant isolation."""
+        is_configured = cls.is_oauth_configured()
+        target_email = email.strip().lower() if email else None
         query = db.query(GmailAccount).filter(GmailAccount.connected == True)
-        if email:
-            query = query.filter(GmailAccount.email == email)
-        if current_user and getattr(current_user, "role", "") != "admin":
-            query = query.filter(
-                (GmailAccount.owner_user_id == current_user.id) |
-                (GmailAccount.email == current_user.email) |
-                (GmailAccount.owner_user_id == None)
-            )
+
+        if target_email:
+            query = query.filter(func.lower(GmailAccount.email) == target_email)
+
+        if current_user:
+            if getattr(current_user, "role", "") != "admin":
+                query = query.filter(
+                    (GmailAccount.owner_user_id == current_user.id) |
+                    (func.lower(GmailAccount.email) == current_user.email.strip().lower())
+                )
+        else:
+            # Unauthenticated callers cannot inspect privately owned mailboxes
+            query = query.filter(GmailAccount.owner_user_id == None)
+
         account = query.order_by(GmailAccount.last_scanned_at.desc()).first()
 
         is_configured = cls.is_oauth_configured()

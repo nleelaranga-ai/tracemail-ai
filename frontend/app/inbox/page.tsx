@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/services/api";
 import type { InboxEmailItem } from "@/types";
 import {
@@ -23,9 +24,10 @@ import {
 
 export default function InboxPage() {
   const router = useRouter();
+  const { user, ready } = useAuth();
   const [emails, setEmails] = useState<InboxEmailItem[]>([]);
   const [connected, setConnected] = useState(false);
-  const [accountEmail, setAccountEmail] = useState("analyst@tracemail.ai");
+  const [accountEmail, setAccountEmail] = useState("");
   const [connectionMode, setConnectionMode] = useState<"live" | "demo" | "disconnected">("disconnected");
   const [clientConfigured, setClientConfigured] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -64,7 +66,7 @@ export default function InboxPage() {
     }
 
     if (isConnectedParam === "true") {
-      const targetEmail = emailParam || "connected";
+      const targetEmail = emailParam || user?.email || "";
       setConnected(true);
       setAccountEmail(targetEmail);
       setConnectionMode(modeParam === "live" ? "live" : "demo");
@@ -87,7 +89,7 @@ export default function InboxPage() {
       setNotice("Exchanging Google authorization code for live tokens...");
       try {
         const res = await api.connectGoogleInboxWithCode(authCode);
-        const targetEmail = res.email || "analyst@tracemail.ai";
+        const targetEmail = res.email || user?.email || "";
         setConnected(true);
         setAccountEmail(targetEmail);
         setConnectionMode(res.live_oauth ? "live" : "demo");
@@ -115,27 +117,37 @@ export default function InboxPage() {
       }
     }
 
-    // 2. Fetch current status from backend
+    // 2. Fetch current status from backend for the authenticated user
     let activeEmail: string | undefined;
     try {
-      const status = await api.getGoogleInboxStatus();
+      const status = await api.getGoogleInboxStatus(user?.email);
       if (status.connected) {
         setConnected(true);
-        activeEmail = status.email || "analyst@tracemail.ai";
+        activeEmail = status.email || user?.email || "";
         setAccountEmail(activeEmail);
         setConnectionMode(status.mode === "live" ? "live" : "demo");
+      } else {
+        setConnected(false);
+        setAccountEmail("");
+        setConnectionMode("disconnected");
       }
       setClientConfigured(Boolean(status.client_configured));
     } catch (err) {
       console.error("Status check failed:", err);
     }
 
-    await loadInbox(activeEmail);
+    if (activeEmail) {
+      await loadInbox(activeEmail);
+    } else {
+      setEmails([]);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
+    if (!ready) return;
     checkStatusAndHandleCallback();
-  }, []);
+  }, [ready, user?.email]);
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -148,12 +160,15 @@ export default function InboxPage() {
       }
 
       // If credentials not configured in environment, prompt user or fall back to demo mode
-      const res = await api.connectGoogleInbox("analyst@tracemail.ai");
+      const targetEmail = user?.email || "";
+      const res = await api.connectGoogleInbox(targetEmail);
       setConnected(true);
-      setAccountEmail("analyst@tracemail.ai");
+      setAccountEmail(targetEmail);
       setConnectionMode("demo");
       setNotice("Connected in Demo Simulation Mode (Configure GOOGLE_CLIENT_ID for live OAuth).");
-      loadInbox();
+      if (targetEmail) {
+        loadInbox(targetEmail);
+      }
     } catch (err) {
       console.error("Connect error:", err);
       setNotice("Connection error occurred.");
@@ -164,9 +179,11 @@ export default function InboxPage() {
 
   const handleDisconnect = async () => {
     try {
-      await api.disconnectGoogleInbox(accountEmail);
+      await api.disconnectGoogleInbox(accountEmail || user?.email);
       setConnected(false);
+      setAccountEmail("");
       setConnectionMode("disconnected");
+      setEmails([]);
       setNotice("Mailbox disconnected.");
     } catch (err) {
       console.error("Disconnect error:", err);
@@ -174,17 +191,23 @@ export default function InboxPage() {
   };
 
   const handleScan = async () => {
+    const scanTarget = accountEmail || user?.email;
+    if (!scanTarget) {
+      setActionError("No connected mailbox available to scan. Please connect your account first.");
+      return;
+    }
     setScanning(true);
     setNotice(null);
+    setActionError(null);
     try {
-      const res = await api.scanInbox(accountEmail);
+      const res = await api.scanInbox(scanTarget);
       setNotice(
-        `Mailbox scan complete: ${res.emailsScanned || 4} messages evaluated (${res.threatsFound || 2} threats detected). Mode: ${res.mode || "demo"}`
+        `Mailbox scan complete: ${res.emailsScanned || 0} messages evaluated (${res.threatsFound || 0} threats detected). Mode: ${res.mode || "demo"}`
       );
-      loadInbox(accountEmail);
-    } catch (err) {
+      loadInbox(scanTarget);
+    } catch (err: any) {
       console.error("Scan error:", err);
-      setNotice("Scan encountered an error.");
+      setActionError(err?.message || "Scan encountered an error.");
     } finally {
       setScanning(false);
     }
@@ -236,7 +259,9 @@ export default function InboxPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3">
-            {connected ? (
+            {!ready ? (
+              <div className="h-8 w-44 rounded-lg bg-bg-surface border border-bg-border animate-pulse" />
+            ) : connected && accountEmail ? (
               <div className="flex items-center gap-2">
                 <div
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-mono font-semibold ${
@@ -274,7 +299,7 @@ export default function InboxPage() {
 
             <button
               onClick={handleScan}
-              disabled={scanning || !connected}
+              disabled={scanning || !connected || !accountEmail}
               className="flex items-center gap-2 rounded-lg border border-bg-border bg-bg-surface px-4 py-2 text-xs font-semibold text-ink hover:bg-bg-raised transition disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${scanning ? "animate-spin" : ""}`} />
