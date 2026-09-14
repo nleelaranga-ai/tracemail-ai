@@ -32,7 +32,16 @@ export function UploadBox() {
       router.push(`/investigation/${res.investigationId}`);
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : "Upload failed. Try again.");
+      const msg = e instanceof Error ? e.message : "Upload failed. Try again.";
+      if (msg.includes("401") || msg.includes("Invalid or expired") || msg.includes("Authentication required")) {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("tm_token");
+          window.localStorage.removeItem("tm_user");
+        }
+        setError("Your session has expired. Please sign in again to continue.");
+      } else {
+        setError(msg);
+      }
     }
   }
 
@@ -77,7 +86,19 @@ export function UploadBox() {
         )}
       </div>
 
-      {error && <p className="mt-3 text-sm text-verdict-phishing">{error}</p>}
+      {error && (
+        <div className="mt-3">
+          <p className="text-sm text-verdict-phishing">{error}</p>
+          {error.includes("session has expired") && (
+            <button
+              onClick={() => router.push("/login")}
+              className="mt-2 text-xs font-semibold text-trace underline hover:text-trace-light"
+            >
+              Click here to sign in again &rarr;
+            </button>
+          )}
+        </div>
+      )}
 
       <button
         onClick={handleUpload}

@@ -58,6 +58,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers || {}) }
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.localStorage.removeItem("tm_token");
+      window.localStorage.removeItem("tm_user");
+    }
     const body = await res.text().catch(() => "");
     throw new Error(`API ${path} failed (${res.status}): ${body}`);
   }
@@ -124,6 +128,10 @@ export const api = {
         body: form
       });
       if (!res.ok) {
+        if (res.status === 401 && typeof window !== "undefined") {
+          window.localStorage.removeItem("tm_token");
+          window.localStorage.removeItem("tm_user");
+        }
         const errText = await res.text().catch(() => "");
         throw new Error(`Upload failed (${res.status}): ${errText || res.statusText}`);
       }

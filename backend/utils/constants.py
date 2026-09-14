@@ -8,7 +8,7 @@ VERSION = "1.0.0"
 
 # JWT Config
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days
 
 # Threat Scoring Thresholds
 SCORE_SAFE_MAX = 29
