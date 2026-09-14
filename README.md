@@ -1,6 +1,11 @@
-# <p align="center"><img align="center" width="90" src="https://raw.githubusercontent.com/nleelaranga-ai/tracemail-ai/main/public/logo.png" onerror="this.src='https://img.icons8.com/fluency/96/shield.png'"/> TraceMail AI</p>
+<p align="center">
+  <a href="https://tracemail-ai-84ho.vercel.app" target="_blank">
+    <img src="public/logo.png" width="95" alt="TraceMail AI Shield Logo"/>
+  </a>
+</p>
 
-<h2 align="center">AI-Powered Email Threat Detection, Hop-by-Hop GeoLocation Tracing & Forensic Intelligence Platform</h2>
+<h1 align="center">TraceMail AI</h1>
+<h3 align="center">AI-Powered Email Threat Detection, Hop-by-Hop GeoLocation Tracing & Forensic Intelligence Platform</h3>
 
 <p align="center">
   <strong>"Trace. Analyze. Investigate. Protect."</strong><br>
@@ -383,5 +388,5 @@ We express our deepest gratitude to the **Ministry of Education's Innovation Cel
 <h1 align="center">🙏 THANK YOU 🙏</h1>
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Oldenburg&color=00D9C0&size=20&center=true&vCenter=true&width=500&lines=TraceMail+AI+%E2%80%94+Engineered+for+National+Cyber+Security;Smart+India+Hackathon+2026+(SIH26106);Protecting+Digital+India+from+Email+Fraud" alt="Typing SVG"/>
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=00D9C0&size=20&center=true&vCenter=true&width=750&lines=TraceMail+AI+%E2%80%94+Enterprise+Email+Forensics;Smart+India+Hackathon+2026+(PS+26106);Trace.+Analyze.+Investigate.+Protect." alt="TraceMail AI Typing SVG"/>
 </p>
