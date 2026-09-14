@@ -15,8 +15,6 @@ import {
   Shield,
   KeyRound,
   LogOut,
-  ChevronDown,
-  ChevronUp,
   Sparkles,
   Info
 } from "lucide-react";
@@ -34,7 +32,6 @@ export default function InboxPage() {
   const [investigatingId, setInvestigatingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   const loadInbox = async (email?: string) => {
     setLoading(true);
@@ -275,55 +272,6 @@ export default function InboxPage() {
             </button>
           </div>
         )}
-
-        {/* Google OAuth Configuration Accordion */}
-        <div className="mt-6 rounded-xl border border-bg-border bg-bg-surface/70 p-4">
-          <button
-            onClick={() => setShowSetupGuide(!showSetupGuide)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <div className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4 text-trace" />
-              <span className="text-xs font-mono font-bold text-ink uppercase tracking-wider">
-                Google Cloud OAuth 2.0 Credentials Status:{" "}
-                <span className={clientConfigured ? "text-emerald-400" : "text-amber-400"}>
-                  {clientConfigured ? "Configured in Environment" : "Ready for API Keys"}
-                </span>
-              </span>
-            </div>
-            {showSetupGuide ? <ChevronUp className="h-4 w-4 text-ink-muted" /> : <ChevronDown className="h-4 w-4 text-ink-muted" />}
-          </button>
-
-          {showSetupGuide && (
-            <div className="mt-4 border-t border-bg-border pt-3 text-xs text-ink-muted space-y-2">
-              <p>
-                To enable live Google Workspace / Gmail mailbox synchronization for your organization:
-              </p>
-              <ol className="list-decimal list-inside space-y-1 text-ink pl-1">
-                <li>
-                  Open <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-trace underline inline-flex items-center gap-0.5">Google Cloud Console Credentials <ExternalLink className="h-3 w-3" /></a>
-                </li>
-                <li>
-                  Create an <strong>OAuth 2.0 Client ID</strong> (Application type: <em>Web application</em>).
-                </li>
-                <li>
-                  Add Authorized Redirect URI:{" "}
-                  <code className="bg-bg px-1.5 py-0.5 rounded text-amber-300 font-mono">
-                    {typeof window !== "undefined" ? `${window.location.origin}/inbox` : "http://localhost:3000/inbox"}
-                  </code>
-                </li>
-                <li>
-                  Add to your Railway / <code>.env</code> file:
-                  <div className="mt-1 bg-bg p-2 rounded font-mono text-[11px] text-slate-300">
-                    GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com<br />
-                    GOOGLE_CLIENT_SECRET=GOCSPX-your-secret<br />
-                    GOOGLE_REDIRECT_URI={typeof window !== "undefined" ? `${window.location.origin}/inbox` : "http://localhost:3000/inbox"}
-                  </div>
-                </li>
-              </ol>
-            </div>
-          )}
-        </div>
 
         {/* Mailbox List */}
         <div className="mt-6 rounded-xl border border-bg-border bg-bg-surface overflow-hidden shadow-sm">
