@@ -10,7 +10,8 @@ import asyncio
 import httpx
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from backend.database.connection import Session
 from backend.models.v2_models import GmailAccount, InboxScanResult
@@ -105,11 +106,19 @@ class InboxService:
                     profile_data = profile_resp.json()
                     user_email = profile_data.get("emailAddress", user_email)
 
+                clean_email = user_email.strip().lower()
+
+                # If owner_user_id was not explicitly passed, find matching registered user by email
+                if not owner_user_id and clean_email:
+                    matched_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
+                    if matched_user:
+                        owner_user_id = matched_user.id
+
                 # Upsert into database
-                existing = db.query(GmailAccount).filter(GmailAccount.email == user_email).first()
+                existing = db.query(GmailAccount).filter(func.lower(GmailAccount.email) == clean_email).first()
                 if not existing:
                     account = GmailAccount(
-                        email=user_email,
+                        email=clean_email,
                         owner_user_id=owner_user_id,
                         access_token=access_token,
                         refresh_token=refresh_token,
@@ -150,12 +159,18 @@ class InboxService:
     @classmethod
     def connect_account(cls, email: str, db: Session, owner_user_id: Optional[str] = None) -> Dict[str, Any]:
         """Registers a connected account (live or demo)."""
-        existing = db.query(GmailAccount).filter(GmailAccount.email == email).first()
+        clean_email = (email or "").strip().lower()
+        if not owner_user_id and clean_email:
+            matched_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
+            if matched_user:
+                owner_user_id = matched_user.id
+
+        existing = db.query(GmailAccount).filter(func.lower(GmailAccount.email) == clean_email).first()
         now = datetime.now(timezone.utc)
         is_live = cls.is_oauth_configured()
         if not existing:
             account = GmailAccount(
-                email=email,
+                email=clean_email,
                 owner_user_id=owner_user_id,
                 access_token="ya29.live-token-active-oauth2" if is_live else "ya29.demo-token-active-oauth2",
                 refresh_token="1//0live-refresh-token" if is_live else "1//0demo-refresh-token",
@@ -232,6 +247,75 @@ class InboxService:
         }
 
     @classmethod
+    def verify_mailbox_access(
+        cls,
+        account_email: Optional[str],
+        current_user: Optional[User],
+        db: Session
+    ) -> GmailAccount:
+        """
+        Single canonical ownership check for all mailbox endpoints (scan, results, investigate).
+        Enforces tenant isolation:
+        - Rejects unauthenticated calls with 401.
+        - Admins have global access to all mailboxes.
+        - Non-admins must be the legitimate owner:
+            * Matches by owner_user_id == current_user.id, OR
+            * Matches by normalized email (func.lower(GmailAccount.email) == current_user.email.lower()).
+        - If an unlinked account matches the user's email, automatically links owner_user_id.
+        - Rejects non-owners / strangers with 403 Forbidden.
+        - Rejects non-existent mailboxes with 404 Not Found.
+        """
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to access mailbox.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
+        target_email = (account_email or current_user.email or "").strip().lower()
+        if not target_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mailbox email must be provided."
+            )
+
+        account = db.query(GmailAccount).filter(
+            func.lower(GmailAccount.email) == target_email,
+            GmailAccount.connected == True
+        ).first()
+
+        if not account:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Connected mailbox '{target_email}' not found."
+            )
+
+        # Admin bypass
+        if getattr(current_user, "role", "") == "admin":
+            return account
+
+        # Strict ownership verification
+        is_owner_by_id = (account.owner_user_id is not None) and (account.owner_user_id == current_user.id)
+        is_owner_by_email = (account.email.strip().lower() == current_user.email.strip().lower())
+
+        if not (is_owner_by_id or is_owner_by_email):
+            logger.warning(
+                f"Tenant boundary violation: User {current_user.email} (id={current_user.id}) "
+                f"attempted to access mailbox {account.email} (owner_user_id={account.owner_user_id})"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view or scan messages for this mailbox."
+            )
+
+        # Self-healing: if owner_user_id was unlinked but emails match, link it permanently
+        if account.owner_user_id is None:
+            account.owner_user_id = current_user.id
+            db.commit()
+
+        return account
+
+    @classmethod
     async def scan_mailbox(cls, account_email: str, db: Session, current_user: Optional[User] = None) -> Dict[str, Any]:
         """
         Scans connected Gmail inbox.
@@ -239,19 +323,7 @@ class InboxService:
         Gated demo fallback: Live accounts NEVER silently fall back to mock corpus.
         """
         now = datetime.now(timezone.utc)
-        query = db.query(GmailAccount).filter(
-            GmailAccount.email == account_email,
-            GmailAccount.connected == True
-        )
-        if current_user and getattr(current_user, "role", "") != "admin":
-            query = query.filter(
-                (GmailAccount.owner_user_id == current_user.id) |
-                (GmailAccount.email == current_user.email) |
-                (GmailAccount.owner_user_id == None)
-            )
-        account = query.first()
-        if not account:
-            raise HTTPException(status_code=404, detail="Connected mailbox not found.")
+        account = cls.verify_mailbox_access(account_email, current_user, db)
 
         # Try real Gmail API if live access token is available
         if cls.is_oauth_configured() and not account.access_token.startswith("ya29.demo-"):
@@ -490,22 +562,20 @@ class InboxService:
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-        query = db.query(InboxScanResult)
         if account_email:
-            query = query.filter(InboxScanResult.account_email == account_email)
-
-        if getattr(current_user, "role", "") != "admin":
-            if account_email:
-                acc = db.query(GmailAccount).filter(GmailAccount.email == account_email).first()
-                if not acc or (acc.owner_user_id != current_user.id and acc.email != current_user.email):
-                    raise HTTPException(status_code=403, detail="Not authorized to view messages for this mailbox.")
-            else:
+            account = cls.verify_mailbox_access(account_email, current_user, db)
+            query = db.query(InboxScanResult).filter(
+                func.lower(InboxScanResult.account_email) == account.email.strip().lower()
+            )
+        else:
+            query = db.query(InboxScanResult)
+            if getattr(current_user, "role", "") != "admin":
                 owned = db.query(GmailAccount.email).filter(
                     (GmailAccount.owner_user_id == current_user.id) |
-                    (GmailAccount.email == current_user.email)
+                    (func.lower(GmailAccount.email) == current_user.email.strip().lower())
                 ).all()
-                allowed = [o[0] for o in owned]
-                query = query.filter(InboxScanResult.account_email.in_(allowed))
+                allowed = [o[0].strip().lower() for o in owned]
+                query = query.filter(func.lower(InboxScanResult.account_email).in_(allowed))
 
         records = query.order_by(InboxScanResult.scanned_at.desc()).all()
 
@@ -663,14 +733,20 @@ class InboxService:
             db.expire_all()
 
             # --- 1. Ownership check (fixes IDOR & Tenant Isolation) ---
-            account = db.query(GmailAccount).filter(GmailAccount.email == account_email).first()
+            account = db.query(GmailAccount).filter(
+                func.lower(GmailAccount.email) == account_email.strip().lower()
+            ).first()
             if account is None:
                 raise HTTPException(status_code=404, detail="Mailbox not found")
 
-            # If mailbox is privately owned, enforce that caller is the owner or an admin
-            if account.owner_user_id is not None:
-                if not current_user or (current_user.id != account.owner_user_id and getattr(current_user, "role", "") != "admin"):
-                    raise HTTPException(status_code=404, detail="Mailbox not found")
+            if current_user:
+                if getattr(current_user, "role", "") != "admin":
+                    is_owner_by_id = (account.owner_user_id is not None) and (account.owner_user_id == current_user.id)
+                    is_owner_by_email = (account.email.strip().lower() == current_user.email.strip().lower())
+                    if not (is_owner_by_id or is_owner_by_email):
+                        raise HTTPException(status_code=404, detail="Mailbox not found")
+            elif account.owner_user_id is not None:
+                raise HTTPException(status_code=404, detail="Mailbox not found")
 
             # --- 2. Atomic idempotency check with row lock ---
             inbox_record = (

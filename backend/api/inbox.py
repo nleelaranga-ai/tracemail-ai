@@ -32,7 +32,8 @@ async def google_oauth_callback(
     state: Optional[str] = Query(None, description="Frontend origin state returned by Google"),
     email: Optional[str] = Query(None, description="Direct email for test/fallback registration"),
     redirect_to_frontend: Optional[bool] = Query(True, description="Redirect browser to frontend after exchange"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Exchanges Google auth code for live tokens or registers connected inbox."""
     import os
@@ -41,8 +42,9 @@ async def google_oauth_callback(
     if state and state.startswith("http"):
         target_frontend = state.rstrip("/")
 
+    owner_id = current_user.id if current_user else None
     if code:
-        res = await InboxService.exchange_code_and_connect(code, db)
+        res = await InboxService.exchange_code_and_connect(code, db, owner_user_id=owner_id)
         if redirect_to_frontend:
             connected_email = res.get("email", "connected")
             mode = res.get("mode", "live")
@@ -52,7 +54,7 @@ async def google_oauth_callback(
             return RedirectResponse(url=f"{target_frontend}/inbox?connected={is_conn}&email={connected_email}&mode={mode}{err_q}")
         return res
     target_email = email or "analyst@tracemail.ai"
-    return InboxService.connect_account(target_email, db)
+    return InboxService.connect_account(target_email, db, owner_user_id=owner_id)
 
 
 @router.get("/api/auth/google/status")
