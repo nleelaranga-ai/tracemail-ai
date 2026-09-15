@@ -526,8 +526,8 @@ class InboxService:
                         account_email=account.email,
                         message_id=msg_id,
                         investigation_id="",
-                        sender=sender,
-                        subject=subject,
+                        sender=str(sender or "")[:255],
+                        subject=str(subject or "")[:500],
                         snippet=snippet,
                         risk=risk,
                         threat_score=threat_score,
@@ -861,6 +861,9 @@ class InboxService:
                     raise HTTPException(status_code=502, detail=f"Failed to decode MIME payload: {e}")
 
             # --- 5. Size guard before running the forensic pipeline ---
+            if not raw_bytes:
+                raise HTTPException(status_code=400, detail="Empty email payload cannot be investigated")
+
             MAX_EML_BYTES = 25 * 1024 * 1024  # 25 MB
             if len(raw_bytes) > MAX_EML_BYTES:
                 raise HTTPException(status_code=413, detail="Message too large to investigate (exceeds 25MB)")
@@ -874,9 +877,14 @@ class InboxService:
                     filename=f"gmail_{message_id}.eml",
                     owner_user_id=owner_id
                 )
+            except HTTPException:
+                raise
             except Exception as e:
                 logger.exception(f"process_eml_file failed for message_id={message_id}: {e}")
-                raise HTTPException(status_code=500, detail="Forensic analysis pipeline failed")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Forensic analysis pipeline failed: {type(e).__name__}: {str(e)}"
+                )
 
             # --- 7. Persist association inside the locked transaction ---
             try:
@@ -890,6 +898,10 @@ class InboxService:
                     "investigationId": inbox_record.investigation_id,
                     "mode": "existing",
                 }
+            except Exception as assoc_err:
+                db.rollback()
+                logger.exception(f"Failed to persist inbox investigation association: {assoc_err}")
+                raise HTTPException(status_code=500, detail=f"Failed to associate investigation with inbox: {assoc_err}")
 
             return {
                 "messageId": message_id,

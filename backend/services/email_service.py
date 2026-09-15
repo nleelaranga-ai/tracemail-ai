@@ -35,6 +35,11 @@ class EmailService:
         Parses email, orchestrates threat and AI analysis, computes weighted threat score,
         and saves to database matching the unified master architecture.
         """
+        if isinstance(content_bytes, str):
+            content_bytes = content_bytes.encode("utf-8", errors="replace")
+        elif not isinstance(content_bytes, (bytes, bytearray)):
+            content_bytes = bytes(content_bytes or b"")
+
         evidence_hash = hashlib.sha256(content_bytes).hexdigest()
         parsed = EmailParser.parse_eml_bytes(content_bytes)
         
@@ -200,11 +205,20 @@ class EmailService:
         )
 
         # 8. Generate GeoJSON, Hop Timeline, Attack Graph, and Action Items
+        try:
+            origin_lat = float(origin_threat.get("lat") or 0.0)
+        except (ValueError, TypeError):
+            origin_lat = 0.0
+        try:
+            origin_lon = float(origin_threat.get("lon") or 0.0)
+        except (ValueError, TypeError):
+            origin_lon = 0.0
+
         geojson = ScanService.generate_geojson(
             hop_objects,
             origin_city=origin_threat.get("city", "Origin Node"),
-            origin_lat=float(origin_threat.get("lat") or 0.0),
-            origin_lon=float(origin_threat.get("lon") or 0.0)
+            origin_lat=origin_lat,
+            origin_lon=origin_lon
         )
         hop_timeline = ScanService.generate_timeline(hop_objects, default_ip=origin_ip)
         attack_graph = ScanService.generate_attack_graph(sender, recipient, hop_objects, is_phishing=(final_verdict == "phishing"))
@@ -247,127 +261,132 @@ class EmailService:
             "reasons": verdict_res["reasons"]
         }
 
-        # 9. Persist Investigation record
-        investigation = Investigation(
-            status="complete",
-            sender=sender,
-            recipient=recipient,
-            subject=subject,
-            domain=domain,
-            ip=origin_threat.get("ip", origin_ip),
-            country=origin_threat.get("country", "Unknown"),
-            city=origin_threat.get("city", "Unknown"),
-            latitude=origin_threat.get("lat", 0.0),
-            longitude=origin_threat.get("lon", 0.0),
-            phishing_score=final_threat_score,
-            verdict=final_verdict,
-            risk_level=final_risk_level,
-            explanation=ai_data.get("explanation", ""),
-            ai_summary=ai_summary_obj["summary"],
-            raw_headers=raw_headers,
-            body_text=body_text,
-            entities=ai_data.get("entities", {}),
-            auth_results=auth_data,
-            hop_timeline=hop_timeline,
-            timeline=timeline_steps,
-            geojson_map=geojson,
-            attack_graph=attack_graph,
-            threat_results=threat_items,
-            virus_total=threat_report.virus_total.model_dump(),
-            abuse_ipdb=threat_report.ip.model_dump(),
-            whois=threat_report.domain.model_dump(),
-            dns=threat_report.authentication.model_dump(),
-            urlscan=threat_report.urlscan.model_dump(),
-            google_safe_browsing=threat_report.google_safe_browsing.model_dump(),
-            ai_analysis=ai_summary_obj,
-            ioc=ioc_chips,
-            evidence_hash=evidence_hash,
-            action_items=action_items,
-            owner_user_id=owner_user_id
-        )
-        db.add(investigation)
-        db.commit()
-        db.refresh(investigation)
-
-        # 10. Persist Relational Tables (scans, emails, ai_results)
-        scan_rec = ScanRecord(
-            scan_id=investigation.id,
-            sender=sender,
-            domain=domain,
-            ip=investigation.ip,
-            country=investigation.country,
-            city=investigation.city,
-            latitude=investigation.latitude,
-            longitude=investigation.longitude,
-            threat_score=final_threat_score,
-            risk_level=final_risk_level,
-            status="complete"
-        )
-        db.add(scan_rec)
-
-        email_rec = EmailRecord(
-            scan_id=investigation.id,
-            sender=sender,
-            recipient=recipient,
-            subject=subject,
-            message_id=message_id,
-            reply_to=reply_to,
-            raw_eml=raw_headers + "\n\n" + body_text,
-            body_plain=body_text,
-            body_html=body_html,
-            date_sent=now_dt
-        )
-        db.add(email_rec)
-
-        ai_rec = AIResultRecord(
-            scan_id=investigation.id,
-            prediction=ai_summary_obj["prediction"],
-            confidence=ai_summary_obj["confidence"],
-            summary=ai_summary_obj["summary"],
-            reasons_json=ai_summary_obj["reasons"]
-        )
-        db.add(ai_rec)
-
-        # 11. Save individual threat indicators
-        for item in threat_items:
-            tr = ThreatResult(
-                investigation_id=investigation.id,
-                indicator_type=item["type"],
-                indicator_value=item["value"],
-                reputation_score=item["reputation"],
-                is_malicious=item["malicious"],
-                geo_location=item.get("geo")
+        try:
+            # 9. Persist Investigation record
+            investigation = Investigation(
+                status="complete",
+                sender=str(sender or "")[:255],
+                recipient=str(recipient or "")[:255],
+                subject=str(subject or "No Subject")[:500],
+                domain=str(domain or "unknown")[:255],
+                ip=str(origin_threat.get("ip") or origin_ip or "")[:64],
+                country=str(origin_threat.get("country") or "Unknown")[:100],
+                city=str(origin_threat.get("city") or "Unknown")[:100],
+                latitude=origin_threat.get("lat", 0.0),
+                longitude=origin_threat.get("lon", 0.0),
+                phishing_score=final_threat_score,
+                verdict=str(final_verdict or "suspicious")[:50],
+                risk_level=str(final_risk_level or "Medium")[:50],
+                explanation=ai_data.get("explanation", ""),
+                ai_summary=ai_summary_obj["summary"],
+                raw_headers=raw_headers,
+                body_text=body_text,
+                entities=ai_data.get("entities", {}),
+                auth_results=auth_data,
+                hop_timeline=hop_timeline,
+                timeline=timeline_steps,
+                geojson_map=geojson,
+                attack_graph=attack_graph,
+                threat_results=threat_items,
+                virus_total=threat_report.virus_total.model_dump(),
+                abuse_ipdb=threat_report.ip.model_dump(),
+                whois=threat_report.domain.model_dump(),
+                dns=threat_report.authentication.model_dump(),
+                urlscan=threat_report.urlscan.model_dump(),
+                google_safe_browsing=threat_report.google_safe_browsing.model_dump(),
+                ai_analysis=ai_summary_obj,
+                ioc=ioc_chips,
+                evidence_hash=str(evidence_hash or "")[:64],
+                action_items=action_items,
+                owner_user_id=str(owner_user_id)[:64] if owner_user_id else None
             )
-            db.add(tr)
+            db.add(investigation)
+            db.commit()
+            db.refresh(investigation)
 
-        # 12. Save Parsed Headers to headers table
-        if raw_headers:
-            for line in raw_headers.splitlines():
-                if ":" in line and not line.startswith(" ") and not line.startswith("\t"):
-                    h_name, _, h_val = line.partition(":")
-                    h_name = h_name.strip()
-                    h_val = h_val.strip()
-                    if h_name:
-                        db.add(HeaderRecord(
-                            scan_id=investigation.id,
-                            header_name=h_name[:255],
-                            header_value=h_val
-                        ))
+            # 10. Persist Relational Tables (scans, emails, ai_results)
+            scan_rec = ScanRecord(
+                scan_id=investigation.id,
+                sender=str(sender or "")[:255],
+                domain=str(domain or "")[:255],
+                ip=str(investigation.ip or "")[:64],
+                country=str(investigation.country or "")[:100],
+                city=str(investigation.city or "")[:100],
+                latitude=investigation.latitude,
+                longitude=investigation.longitude,
+                threat_score=final_threat_score,
+                risk_level=str(final_risk_level or "Low")[:50],
+                status="complete"
+            )
+            db.add(scan_rec)
 
-        # 13. Save Extracted IOCs to ioc_entities table
-        for chip in ioc_chips:
-            c_type = chip.get("type", "generic")
-            c_val = chip.get("value", "")
-            c_mal = chip.get("malicious", False)
-            if c_val:
-                db.add(IOCEntityRecord(
-                    scan_id=investigation.id,
-                    ioc_type=c_type[:32],
-                    ioc_value=c_val[:500],
-                    threat_score=final_threat_score if c_mal else 0,
-                    is_malicious=bool(c_mal)
-                ))
-        db.commit()
+            email_rec = EmailRecord(
+                scan_id=investigation.id,
+                sender=str(sender or "")[:255],
+                recipient=str(recipient or "")[:255],
+                subject=str(subject or "")[:500],
+                message_id=str(message_id or "")[:255],
+                reply_to=str(reply_to or "")[:255],
+                raw_eml=raw_headers + "\n\n" + body_text,
+                body_plain=body_text,
+                body_html=body_html,
+                date_sent=now_dt
+            )
+            db.add(email_rec)
+
+            ai_rec = AIResultRecord(
+                scan_id=investigation.id,
+                prediction=str(ai_summary_obj.get("prediction", "Suspicious"))[:50],
+                confidence=ai_summary_obj.get("confidence", 0.0),
+                summary=ai_summary_obj.get("summary", ""),
+                reasons_json=ai_summary_obj.get("reasons", [])
+            )
+            db.add(ai_rec)
+
+            # 11. Save individual threat indicators
+            for item in threat_items:
+                tr = ThreatResult(
+                    investigation_id=investigation.id,
+                    indicator_type=str(item.get("type", "unknown"))[:32],
+                    indicator_value=str(item.get("value", ""))[:500],
+                    reputation_score=int(item.get("reputation", 0) or 0),
+                    is_malicious=bool(item.get("malicious", False)),
+                    geo_location=str(item.get("geo", "") or "")[:255]
+                )
+                db.add(tr)
+
+            # 12. Save Parsed Headers to headers table
+            if raw_headers:
+                for line in raw_headers.splitlines():
+                    if ":" in line and not line.startswith(" ") and not line.startswith("\t"):
+                        h_name, _, h_val = line.partition(":")
+                        h_name = h_name.strip()
+                        h_val = h_val.strip()
+                        if h_name:
+                            db.add(HeaderRecord(
+                                scan_id=investigation.id,
+                                header_name=h_name[:255],
+                                header_value=h_val
+                            ))
+
+            # 13. Save Extracted IOCs to ioc_entities table
+            for chip in ioc_chips:
+                c_type = chip.get("type", "generic")
+                c_val = str(chip.get("value", ""))
+                c_mal = chip.get("malicious", False)
+                if c_val:
+                    db.add(IOCEntityRecord(
+                        scan_id=investigation.id,
+                        ioc_type=str(c_type)[:32],
+                        ioc_value=c_val[:500],
+                        threat_score=final_threat_score if c_mal else 0,
+                        is_malicious=bool(c_mal)
+                    ))
+            db.commit()
+        except Exception as db_err:
+            db.rollback()
+            logger.exception(f"Database error while saving investigation: {db_err}")
+            raise
 
         # Send alert if high severity
         if final_threat_score >= 65:

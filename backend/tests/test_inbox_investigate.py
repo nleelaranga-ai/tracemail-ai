@@ -415,3 +415,94 @@ def test_investigate_message_idor_protection(db_session):
             )
         )
     assert "404" in str(excinfo.value)
+
+
+def test_investigate_message_long_url_and_oversized_fields_hardening(db_session):
+    """
+    Production Hardening Verification:
+    Ensures that an email containing:
+    - An 800+ character tracking URL (exceeds default VARCHAR(500))
+    - An oversized sender header (>300 characters)
+    - An oversized subject (>600 characters)
+    is processed by the forensic pipeline without PostgreSQL StringDataRightTruncation
+    or database session rollback errors.
+    """
+    from backend.models.threat import ThreatResult
+
+    uid = uuid.uuid4().hex[:8]
+    test_email = f"user_{uid}@gmail.com"
+    msg_id = f"msg_long_{uid}"
+
+    account = GmailAccount(
+        email=test_email,
+        access_token="ya29.live_mock_token",
+        refresh_token="1//mock",
+        token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
+        connected=True
+    )
+    scan_row = InboxScanResult(
+        account_email=test_email,
+        message_id=msg_id,
+        investigation_id="",
+        sender="Alerts <alerts@google.com>",
+        subject="Important Notification",
+        snippet="Notification snippet",
+        risk="Suspicious",
+        threat_score=60,
+        verdict="suspicious",
+        scanned_at=datetime.now(timezone.utc)
+    )
+    db_session.add_all([account, scan_row])
+    db_session.commit()
+
+    long_url = "https://notifications.google.com/click/track?authuser=0&redirect=" + ("param_" * 120) + "&dest=https://console.cloud.google.com"
+    long_sender = "Extremely Long Organization Name In Header " * 10 + "<security-alerts@accounts.google.com>"
+    long_subject = "Urgent Account Security Review Required Immediately " * 15
+
+    raw_eml = (
+        f"From: {long_sender}\r\n"
+        f"To: {test_email}\r\n"
+        f"Subject: {long_subject}\r\n"
+        f"Date: Sun, 15 Sep 2026 12:00:00 +0000\r\n"
+        f"Message-ID: <msg-{uid}@google.com>\r\n"
+        f"Received: from mail.google.com ([172.217.16.206]) by mx.google.com with ESMTPS id xyz; Sun, 15 Sep 2026 12:00:00 +0000\r\n"
+        f"Content-Type: text/html; charset=utf-8\r\n\r\n"
+        f"<html><body>Click here: <a href=\"{long_url}\">Review Security</a></body></html>"
+    ).encode("utf-8")
+
+    fake_gmail_response = {
+        "id": msg_id,
+        "raw": base64.urlsafe_b64encode(raw_eml).decode("ascii")
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = fake_gmail_response
+    mock_resp.raise_for_status = MagicMock()
+
+    mock_client = AsyncMock()
+    mock_client.get.return_value = mock_resp
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    with patch("backend.services.inbox_service.httpx.AsyncClient", return_value=mock_client):
+        with patch.object(InboxService, "_get_valid_access_token", AsyncMock(return_value="ya29.live_valid")):
+            result = asyncio.run(
+                InboxService.investigate_message(
+                    account_email=test_email,
+                    message_id=msg_id,
+                    db=db_session
+                )
+            )
+
+    assert result["messageId"] == msg_id
+    assert result["investigationId"].startswith("inv_")
+    assert result["mode"] == "live"
+
+    # Verify threat results were safely truncated to <= 500 chars in database
+    tr_items = db_session.query(ThreatResult).filter(ThreatResult.investigation_id == result["investigationId"]).all()
+    for tr in tr_items:
+        assert len(tr.indicator_value) <= 500, f"Indicator value exceeded 500 characters: {len(tr.indicator_value)}"
+        if tr.geo_location:
+            assert len(tr.geo_location) <= 255
+

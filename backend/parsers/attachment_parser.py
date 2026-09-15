@@ -13,6 +13,13 @@ DANGEROUS_EXTENSIONS = {
 class AttachmentParser:
     @staticmethod
     def parse_attachment(filename: str, content: bytes, content_type: str = "application/octet-stream") -> Dict[str, Any]:
+        if content is None:
+            content = b""
+        elif isinstance(content, str):
+            content = content.encode("utf-8", errors="replace")
+        elif not isinstance(content, (bytes, bytearray)):
+            content = bytes(content)
+
         size_bytes = len(content)
         md5 = hashlib.md5(content).hexdigest()
         sha256 = hashlib.sha256(content).hexdigest()

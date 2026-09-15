@@ -59,6 +59,19 @@ if _HAS_SQLALCHEMY:
             inspector = inspect(engine)
             existing_tables = set(inspector.get_table_names())
             with engine.connect() as conn:
+                # On PostgreSQL, widen indicator and IOC value columns to TEXT so long URLs never truncate
+                if engine.dialect.name == "postgresql":
+                    try:
+                        conn.execute(text('ALTER TABLE "threat_results" ALTER COLUMN "indicator_value" TYPE TEXT'))
+                        conn.commit()
+                    except Exception:
+                        pass
+                    try:
+                        conn.execute(text('ALTER TABLE "ioc_entities" ALTER COLUMN "ioc_value" TYPE TEXT'))
+                        conn.commit()
+                    except Exception:
+                        pass
+
                 for table_name, table in Base.metadata.tables.items():
                     if table_name not in existing_tables:
                         continue

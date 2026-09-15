@@ -51,15 +51,26 @@ class EmailParser:
                     att_info = AttachmentParser.parse_attachment(filename, payload, content_type)
                     attachments.append(att_info)
                 elif content_type == "text/plain":
-                    payload = part.get_payload(decode=True) or b""
-                    body_text_parts.append(payload.decode("utf-8", errors="replace"))
+                    payload = part.get_payload(decode=True)
+                    if isinstance(payload, bytes):
+                        body_text_parts.append(payload.decode("utf-8", errors="replace"))
+                    elif payload is not None:
+                        body_text_parts.append(str(payload))
                 elif content_type == "text/html":
-                    payload = part.get_payload(decode=True) or b""
-                    body_html_parts.append(payload.decode("utf-8", errors="replace"))
+                    payload = part.get_payload(decode=True)
+                    if isinstance(payload, bytes):
+                        body_html_parts.append(payload.decode("utf-8", errors="replace"))
+                    elif payload is not None:
+                        body_html_parts.append(str(payload))
         else:
             content_type = msg.get_content_type()
-            payload = msg.get_payload(decode=True) or b""
-            text = payload.decode("utf-8", errors="replace")
+            payload = msg.get_payload(decode=True)
+            if isinstance(payload, bytes):
+                text = payload.decode("utf-8", errors="replace")
+            elif payload is not None:
+                text = str(payload)
+            else:
+                text = ""
             if content_type == "text/html":
                 body_html_parts.append(text)
             else:
