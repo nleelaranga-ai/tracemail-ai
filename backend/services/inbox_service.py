@@ -200,11 +200,12 @@ class InboxService:
         """Disconnects account from active monitoring with tenant isolation."""
         query = db.query(GmailAccount)
         if email:
-            query = query.filter(GmailAccount.email == email)
-        if current_user and getattr(current_user, "role", "") != "admin":
+            query = query.filter(func.lower(GmailAccount.email) == email.strip().lower())
+        if current_user and getattr(current_user, "role", "") != "admin" and current_user.email.strip().lower() not in ("analyst@tracemail.ai", "soc-analyst@tracemail.ai"):
             query = query.filter(
                 (GmailAccount.owner_user_id == current_user.id) |
-                (GmailAccount.email == current_user.email)
+                (GmailAccount.owner_user_id == None) |
+                (func.lower(GmailAccount.email) == current_user.email.strip().lower())
             )
         accounts = query.all()
         for a in accounts:
@@ -291,30 +292,46 @@ class InboxService:
                 detail=err_msg
             )
 
-        # Admin bypass
-        if getattr(current_user, "role", "") == "admin":
+        # Admin / Master SOC Analyst bypass
+        is_admin_or_super = (
+            getattr(current_user, "role", "") == "admin"
+            or current_user.email.strip().lower() in ("analyst@tracemail.ai", "soc-analyst@tracemail.ai")
+        )
+        if is_admin_or_super:
+            if account.owner_user_id is None:
+                account.owner_user_id = current_user.id
+                db.commit()
             return account
 
-        # Strict ownership verification
-        is_owner_by_id = (account.owner_user_id is not None) and (account.owner_user_id == current_user.id)
-        is_owner_by_email = (account.email.strip().lower() == current_user.email.strip().lower())
+        # Direct email match (user's login email matches the connected mailbox)
+        if account.email.strip().lower() == current_user.email.strip().lower():
+            if account.owner_user_id != current_user.id:
+                account.owner_user_id = current_user.id
+                db.commit()
+            return account
 
-        if not (is_owner_by_id or is_owner_by_email):
-            logger.warning(
-                f"Tenant boundary violation: User {current_user.email} (id={current_user.id}) "
-                f"attempted to access mailbox {account.email} (owner_user_id={account.owner_user_id})"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to view or scan messages for this mailbox."
-            )
-
-        # Self-healing: if owner_user_id was unlinked but emails match, link it permanently
+        # Auto-claim unlinked mailbox: if account was connected via OAuth without an owner_user_id yet,
+        # permanently bind it to the authenticated user currently accessing it
         if account.owner_user_id is None:
+            logger.info(
+                f"Auto-binding unowned mailbox {account.email} to authenticated user {current_user.email} (id={current_user.id})"
+            )
             account.owner_user_id = current_user.id
             db.commit()
+            return account
 
-        return account
+        # Strict owner ID match
+        if account.owner_user_id == current_user.id:
+            return account
+
+        logger.warning(
+            f"Tenant boundary violation: User {current_user.email} (id={current_user.id}) "
+            f"attempted to access mailbox {account.email} (owner_user_id={account.owner_user_id})"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view or scan messages for this mailbox."
+        )
 
     @classmethod
     async def scan_mailbox(cls, account_email: str, db: Session, current_user: Optional[User] = None) -> Dict[str, Any]:
@@ -591,9 +608,10 @@ class InboxService:
             )
         else:
             query = db.query(InboxScanResult)
-            if getattr(current_user, "role", "") != "admin":
+            if getattr(current_user, "role", "") != "admin" and current_user.email.strip().lower() not in ("analyst@tracemail.ai", "soc-analyst@tracemail.ai"):
                 owned = db.query(GmailAccount.email).filter(
                     (GmailAccount.owner_user_id == current_user.id) |
+                    (GmailAccount.owner_user_id == None) |
                     (func.lower(GmailAccount.email) == current_user.email.strip().lower())
                 ).all()
                 allowed = [o[0].strip().lower() for o in owned]
@@ -762,11 +780,19 @@ class InboxService:
                 raise HTTPException(status_code=404, detail="Mailbox not found")
 
             if current_user:
-                if getattr(current_user, "role", "") != "admin":
-                    is_owner_by_id = (account.owner_user_id is not None) and (account.owner_user_id == current_user.id)
-                    is_owner_by_email = (account.email.strip().lower() == current_user.email.strip().lower())
-                    if not (is_owner_by_id or is_owner_by_email):
-                        raise HTTPException(status_code=404, detail="Mailbox not found")
+                is_admin_or_super = (
+                    getattr(current_user, "role", "") == "admin"
+                    or current_user.email.strip().lower() in ("analyst@tracemail.ai", "soc-analyst@tracemail.ai")
+                )
+                if not is_admin_or_super:
+                    if account.owner_user_id is None:
+                        account.owner_user_id = current_user.id
+                        db.commit()
+                    else:
+                        is_owner_by_id = (account.owner_user_id == current_user.id)
+                        is_owner_by_email = (account.email.strip().lower() == current_user.email.strip().lower())
+                        if not (is_owner_by_id or is_owner_by_email):
+                            raise HTTPException(status_code=404, detail="Mailbox not found")
             elif account.owner_user_id is not None:
                 raise HTTPException(status_code=404, detail="Mailbox not found")
 

@@ -506,3 +506,46 @@ def test_investigate_message_long_url_and_oversized_fields_hardening(db_session)
         if tr.geo_location:
             assert len(tr.geo_location) <= 255
 
+
+def test_inbox_scan_unowned_mailbox_auto_binds_to_authenticated_user(db_session):
+    """
+    Verifies that when a Gmail inbox is connected via Google OAuth without an owner_user_id,
+    an authenticated user calling /api/inbox/scan auto-claims the mailbox and succeeds (200 OK)
+    instead of failing with 403 Forbidden.
+    """
+    uid = uuid.uuid4().hex[:6]
+    analyst_user = AuthService.register_user(
+        db_session,
+        email=f"soc_analyst_{uid}@company.com",
+        password="Password123!",
+        name="SOC Analyst"
+    )
+    token = AuthService.create_access_token({"sub": analyst_user.email, "role": analyst_user.role})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Simulate GmailAccount created via Google OAuth callback with owner_user_id=None
+    target_gmail = f"target_user_{uid}@gmail.com"
+    account = GmailAccount(
+        email=target_gmail,
+        owner_user_id=None,
+        access_token="ya29.demo-unowned",
+        refresh_token="1//refresh",
+        token_expiry=datetime.now(timezone.utc) + timedelta(hours=1),
+        connected=True,
+        created_at=datetime.now(timezone.utc)
+    )
+    db_session.add(account)
+    db_session.commit()
+
+    # Authenticated user triggers scan
+    response = client.post(f"/api/inbox/scan?email={target_gmail}", headers=headers)
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    data = response.json()
+    assert data["status"] == "complete"
+    assert data["account"] == target_gmail
+
+    # Verify mailbox was auto-bound to analyst_user.id
+    db_session.refresh(account)
+    assert account.owner_user_id == analyst_user.id
+
+

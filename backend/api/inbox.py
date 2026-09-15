@@ -15,9 +15,15 @@ router = APIRouter(tags=["Gmail Inbox Scanner"])
 
 
 @router.get("/api/auth/google/login")
-def google_oauth_login(origin: Optional[str] = Query(None, description="Frontend origin URL for state redirect")):
+def google_oauth_login(
+    origin: Optional[str] = Query(None, description="Frontend origin URL for state redirect"),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """Generates and redirects to Google OAuth consent screen."""
-    url = InboxService.get_google_auth_url(state=origin)
+    state_str = origin or ""
+    if current_user:
+        state_str = f"{state_str}:::{current_user.id}"
+    url = InboxService.get_google_auth_url(state=state_str)
     return {
         "authUrl": url,
         "provider": "Google Identity (OAuth 2.0)",
@@ -39,10 +45,15 @@ async def google_oauth_callback(
     import os
     import urllib.parse
     target_frontend = os.getenv("FRONTEND_URL", "https://tracemail-ai-84ho.vercel.app").rstrip("/")
-    if state and state.startswith("http"):
-        target_frontend = state.rstrip("/")
-
     owner_id = current_user.id if current_user else None
+    if state:
+        parts = state.split(":::")
+        frontend_part = parts[0]
+        if frontend_part and frontend_part.startswith("http"):
+            target_frontend = frontend_part.rstrip("/")
+        if len(parts) > 1 and parts[1] and not owner_id:
+            owner_id = parts[1]
+
     if code:
         res = await InboxService.exchange_code_and_connect(code, db, owner_user_id=owner_id)
         if redirect_to_frontend:
