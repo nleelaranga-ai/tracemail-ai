@@ -483,13 +483,57 @@ class MapsService:
                     except Exception:
                         pass
 
-        # 4. Google Maps Markers (🔴 Attacker, 🔵 Victim, 🟠 Relay, 🟢 Safe)
+        # Determine whether the email is a genuine threat, suspicious, or legitimate
+        is_malicious = False
+        if inv and inv.verdict:
+            is_malicious = inv.verdict in ("phishing", "malicious", "critical") or threat_score >= 65
+        else:
+            is_malicious = threat_score >= 65
+
+        is_suspicious = False
+        if inv and inv.verdict:
+            is_suspicious = inv.verdict in ("suspicious", "medium") or (35 <= threat_score < 65)
+        else:
+            is_suspicious = 35 <= threat_score < 65
+
+        if is_malicious:
+            origin_id = "attacker-node"
+            origin_label = f"Attacker IP: {origin_ip}"
+            origin_type = "attacker"
+            origin_color = "#ef4444"  # 🔴 Red
+            origin_role = "Hostile Attack Origin"
+            origin_threat_type = "Phishing Dispatcher"
+            route_name = f"Attack Traversal: {origin_city} -> {relay_city} -> {victim_city}"
+            route_color = "#ef4444"
+            victim_status = "Quarantine Intercepted"
+        elif is_suspicious:
+            origin_id = "suspicious-origin-node"
+            origin_label = f"Suspicious Origin IP: {origin_ip}"
+            origin_type = "suspicious"
+            origin_color = "#f97316"  # 🟠 Orange
+            origin_role = "Unverified Dispatcher"
+            origin_threat_type = "Unauthenticated Relay"
+            route_name = f"Suspicious Routing: {origin_city} -> {relay_city} -> {victim_city}"
+            route_color = "#f97316"
+            victim_status = "Flagged for Review"
+        else:
+            origin_id = "sender-node"
+            origin_label = f"Sender IP: {origin_ip}"
+            origin_type = "sender"
+            origin_color = "#10b981"  # 🟢 Emerald Green
+            origin_role = "Verified Origin Server"
+            origin_threat_type = "Legitimate Sender"
+            route_name = f"Email Delivery Route: {origin_city} -> {relay_city} -> {victim_city}"
+            route_color = "#10b981"
+            victim_status = "Delivered (Safe)"
+
+        # 4. Google Maps Markers (🔴 Attacker / 🟢 Sender, 🔵 Target, 🟠 Relay, 🟢 Safe Auth)
         markers = [
             {
-                "id": "attacker-node",
-                "label": f"Attacker IP: {origin_ip}",
-                "type": "attacker",
-                "color": "#ef4444",  # 🔴 Red
+                "id": origin_id,
+                "label": origin_label,
+                "type": origin_type,
+                "color": origin_color,
                 "latitude": origin_lat,
                 "longitude": origin_lon,
                 "ip": origin_ip,
@@ -497,11 +541,11 @@ class MapsService:
                 "country": origin_country,
                 "threat_score": threat_score,
                 "isp": origin_isp,
-                "role": "Hostile Attack Origin",
+                "role": origin_role,
                 "details": {
                     "sender": sender,
                     "risk_level": risk_level,
-                    "threat_type": "Phishing Dispatcher"
+                    "threat_type": origin_threat_type
                 }
             },
             {
@@ -514,7 +558,7 @@ class MapsService:
                 "ip": relay_ip,
                 "city": relay_city,
                 "country": relay_country,
-                "threat_score": 45,
+                "threat_score": 45 if (is_malicious or is_suspicious) else 10,
                 "isp": relay_isp,
                 "role": "Intermediate Inbound Gateway",
                 "details": {
@@ -534,12 +578,12 @@ class MapsService:
                 "country": victim_country,
                 "threat_score": 0,
                 "isp": victim_isp,
-                "role": "Target Organization (Victim)",
+                "role": "Target Organization (Recipient)",
                 "details": {
                     "recipient": recipient,
                     "mail_server": victim_server,
                     "protected": True,
-                    "status": "Quarantine Intercepted"
+                    "status": victim_status
                 }
             },
             {
@@ -573,11 +617,11 @@ class MapsService:
         routes = [
             {
                 "id": f"route-{investigation_id}",
-                "name": f"Attack Traversal: {origin_city} -> {relay_city} -> {victim_city}",
+                "name": route_name,
                 "polyline": route_data.get("geometry", []),
                 "distance_km": round(route_data.get("distance", 0.0) / 1000.0, 1),
-                "is_hostile": threat_score >= 50,
-                "color": "#ef4444" if threat_score >= 50 else "#f97316",
+                "is_hostile": is_malicious,
+                "color": route_color,
                 "hops": [origin_ip, relay_ip, victim_ip]
             }
         ]
