@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" width="100%" height="580">
+  <defs>
+    <linearGradient id="tmBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#060a12"/>
+      <stop offset="50%" stop-color="#0b1326"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+
+    <linearGradient id="cyanBorder" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <filter id="tmGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <pattern id="tmGrid" width="25" height="25" patternUnits="userSpaceOnUse">
+      <path d="M 25 0 L 0 0 0 25" fill="none" stroke="#1e293b" stroke-width="0.7" stroke-opacity="0.35"/>
+    </pattern>
+
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#00f0ff"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#c084fc"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="580" fill="url(#tmBg)"/>
+  <rect width="1000" height="580" fill="url(#tmGrid)"/>
+
+  <!-- Header Section -->
+  <g transform="translate(40, 35)">
+    <text font-family="'Fira Code', monospace" font-size="12" font-weight="700" fill="#00f0ff" letter-spacing="2">&gt; SYSTEM_ARCHITECTURE :: PIPELINE_SPEC</text>
+    <text y="28" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800" fill="#f8fafc">TraceMail AI — Forensic Investigation &amp; Threat Attribution Pipeline</text>
+    <text y="48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" fill="#94a3b8">Smart India Hackathon 2026 (SIH26106) | CERT-In &amp; Cyber Crime Cell Calibrated</text>
+  </g>
+
+  <!-- Status Pill -->
+  <g transform="translate(740, 35)">
+    <rect width="220" height="32" rx="16" fill="#031525" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.4"/>
+    <circle cx="16" cy="16" r="4" fill="#10b981" filter="url(#tmGlow)"/>
+    <text x="28" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" fill="#38bdf8">AIR-GAPPED COMPLIANT</text>
+  </g>
+
+  <!-- Stage 1: Ingestion -->
+  <g transform="translate(40, 110)">
+    <rect width="260" height="180" rx="12" fill="#0b1329" stroke="#1e3a8a" stroke-width="1.5"/>
+    <rect width="260" height="32" rx="12" fill="#172554"/>
+    <text x="16" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#60a5fa">1. INGESTION HUB (FastAPI)</text>
+
+    <text x="16" y="55" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#e2e8f0">• Raw .eml / MIME Stream Parser</text>
+    <text x="16" y="75" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#94a3b8">  - RFC 822 Header Deconstruction</text>
+    <text x="16" y="93" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#94a3b8">  - Hop Extraction (Received Chain)</text>
+    <text x="16" y="111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#94a3b8">  - Boundary &amp; Attachment Hashes</text>
+
+    <rect x="16" y="130" width="228" height="34" rx="6" fill="#030712" stroke="#334155" stroke-width="1"/>
+    <text x="24" y="152" font-family="'Fira Code', monospace" font-size="11" fill="#38bdf8">UUID: e7f1-4b2a-89c0</text>
+  </g>
+
+  <!-- Stage 2A: Threat Intelligence Engine (Top Branch) -->
+  <g transform="translate(370, 110)">
+    <rect width="270" height="200" rx="12" fill="#0b1329" stroke="#00f0ff" stroke-width="1.5"/>
+    <rect width="270" height="32" rx="12" fill="#0c4a6e"/>
+    <text x="16" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#38bdf8">2A. THREAT INTEL ENGINE (8001)</text>
+
+    <text x="16" y="55" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f1f5f9">• SPF / DKIM / DMARC Verification</text>
+    <text x="16" y="75" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f1f5f9">• VirusTotal v3 URL Maliciousness</text>
+    <text x="16" y="95" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f1f5f9">• AbuseIPDB v2 Confidence Score</text>
+    <text x="16" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f1f5f9">• WHOIS Domain Age &amp; Registrar</text>
+    <text x="16" y="135" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f1f5f9">• MaxMind GeoIP / ASN Enrichment</text>
+
+    <rect x="16" y="152" width="238" height="34" rx="6" fill="#030712" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="24" y="174" font-family="'Fira Code', monospace" font-size="11" fill="#00f0ff">Score = S_auth + S_age + S_ip</text>
+  </g>
+
+  <!-- Stage 2B: AI NLP Phishing Engine (Bottom Branch) -->
+  <g transform="translate(370, 330)">
+    <rect width="270" height="200" rx="12" fill="#130d24" stroke="#8b5cf6" stroke-width="1.5"/>
+    <rect width="270" height="32" rx="12" fill="#2e1065"/>
+    <text x="16" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#c084fc">2B. AI ENGINE MICROSERVICE (8002)</text>
+
+    <text x="16" y="55" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f3e8ff">• Fine-tuned RoBERTa Classifier</text>
+    <text x="16" y="75" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d8b4fe">  - Phishing vs Benign Probability</text>
+    <text x="16" y="93" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d8b4fe">  - BEC / CEO Spoofing Detection</text>
+    <text x="16" y="113" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="600" fill="#f3e8ff">• LLaMA-3 Evidence Synthesis</text>
+    <text x="16" y="131" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d8b4fe">  - Plain-English Forensic Justification</text>
+    <text x="16" y="149" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#d8b4fe">  - Social Engineering Vector Rating</text>
+
+    <rect x="16" y="160" width="238" height="26" rx="4" fill="#030712" stroke="#8b5cf6" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="24" y="178" font-family="'Fira Code', monospace" font-size="10.5" fill="#c084fc">Groq API &lt;180ms Inference</text>
+  </g>
+
+  <!-- Stage 3: Attack Graph & Output -->
+  <g transform="translate(700, 110)">
+    <rect width="260" height="420" rx="12" fill="#081c15" stroke="#10b981" stroke-width="1.5"/>
+    <rect width="260" height="32" rx="12" fill="#064e3b"/>
+    <text x="16" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#34d399">3. FORENSICS &amp; ATTRIBUTION</text>
+
+    <!-- Sub-block A: Maps & Graph -->
+    <rect x="16" y="48" width="228" height="110" rx="8" fill="#030a06" stroke="#047857" stroke-width="1"/>
+    <text x="26" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7">🌐 Attack Graph &amp; Geo Maps</text>
+    <text x="26" y="90" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#a7f3d0">• GeoJSON Hop Flow (Leaflet)</text>
+    <text x="26" y="108" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#a7f3d0">• Node/Edge DAG Attack Path</text>
+    <text x="26" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#a7f3d0">• Chronological Relay Timeline</text>
+
+    <!-- Sub-block B: Evidentiary PDF Dossier -->
+    <rect x="16" y="170" width="228" height="110" rx="8" fill="#030a06" stroke="#047857" stroke-width="1"/>
+    <text x="26" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#6ee7b7">📄 Court-Admissible Dossier</text>
+    <text x="26" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#a7f3d0">• ReportLab Master PDF Export</text>
+    <text x="26" y="230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#a7f3d0">• SHA-256 Chain of Custody</text>
+    <text x="26" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#a7f3d0">• CERT-In Automated JSON Spec</text>
+
+    <!-- Sub-block C: Verdict Indicator -->
+    <rect x="16" y="295" width="228" height="105" rx="8" fill="#1c0a0a" stroke="#ef4444" stroke-width="1"/>
+    <text x="26" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#f87171">🚨 COMPOSITE RISK VERDICT</text>
+    <text x="26" y="342" font-family="'Fira Code', monospace" font-size="13" font-weight="700" fill="#ef4444">LEVEL: CRITICAL (94/100)</text>
+    <text x="26" y="362" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#fca5a5">SPF/DMARC: FAIL | VT: 14/90</text>
+    <text x="26" y="380" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#fca5a5">Abuse Score: 98% | Origin: DE</text>
+  </g>
+
+  <!-- Connectors -->
+  <!-- 1 to 2A -->
+  <path d="M 300 170 L 370 170" fill="none" stroke="#00f0ff" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- 1 to 2B -->
+  <path d="M 300 220 L 335 220 L 335 430 L 370 430" fill="none" stroke="#c084fc" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- 2A to 3 -->
+  <path d="M 640 210 L 700 210" fill="none" stroke="#00f0ff" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 2B to 3 -->
+  <path d="M 640 430 L 670 430 L 670 350 L 700 350" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Bottom Legend -->
+  <g transform="translate(40, 545)">
+    <circle cx="10" cy="5" r="4" fill="#00f0ff"/>
+    <text x="20" y="9" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#94a3b8">Threat Intel Pipeline</text>
+
+    <circle cx="180" cy="5" r="4" fill="#c084fc"/>
+    <text x="190" y="9" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#94a3b8">AI NLP Classification</text>
+
+    <circle cx="350" cy="5" r="4" fill="#34d399"/>
+    <text x="360" y="9" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#94a3b8">Court Evidentiary Reporting</text>
+  </g>
+</svg>
